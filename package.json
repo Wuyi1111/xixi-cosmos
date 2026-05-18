@@ -1,0 +1,25 @@
+{
+  "name": "xixi-cosmos",
+  "private": true,
+  "version": "4.0.0",
+  "type": "module",
+  "description": "息息·宇宙 V4 — 一个温柔的睡前情绪陪伴 App",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "echo \"Push to main; GitHub Actions will deploy automatically.\""
+  },
+  "dependencies": {
+    "lucide-react": "^0.460.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "vite": "^5.4.11"
+  }
+}
