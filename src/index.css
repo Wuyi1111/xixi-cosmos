@@ -8,6 +8,18 @@ html, body, #root {
   padding: 0;
 }
 
+/* 主题背景应用到 html/body，避免 iOS Safari overscroll bounce 时漏出白色 */
+html {
+  background-color: #f8fafc;
+}
+html.dark {
+  background-color: #0f0f1a;
+  color-scheme: dark;
+}
+body {
+  background-color: inherit;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
     "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial,
@@ -15,15 +27,13 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  overscroll-behavior-y: none;
+
+  /* 允许下拉刷新；不再禁用 y 方向 overscroll，但 html bg 已经接住了视觉 */
+  overscroll-behavior-y: auto;
 
   /* 避免横屏时 iOS Safari 把字体放大 */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-}
-
-html.dark {
-  color-scheme: dark;
 }
 
 /* 关闭 iOS Safari 点击时的灰色高亮闪烁 */
@@ -37,39 +47,62 @@ button, [role="button"] {
   touch-action: manipulation;
 }
 
-/* 触屏设备上把所有输入框的字体强制 >= 16px，避免 iOS Safari 聚焦时自动放大整个页面 */
+/* 触屏设备所有 input/textarea/select 强制 >= 16px，避免 iOS Safari 聚焦时自动放大 */
 @media (hover: none) and (pointer: coarse) {
   input, textarea, select {
     font-size: 16px !important;
   }
 }
 
-/* Safe-area 工具类：搭配 viewport-fit=cover 在刘海/Home 指示条机型上让出空间 */
-.safe-pt {
-  padding-top: max(env(safe-area-inset-top), 0px);
-}
-.safe-pb {
-  padding-bottom: max(env(safe-area-inset-bottom), 0px);
-}
+/* Safe-area 工具类 */
+.safe-pt { padding-top: max(env(safe-area-inset-top), 0px); }
+.safe-pb { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
 
-/* === 移动端文字放大：让 App 在 iPhone 上接近原生 iOS 字号 ===
- * Tailwind 默认 text-sm=14px / text-base=16px，但 iOS 系统 body 字号是 17px，
- * 直接搬到手机会显得偏小。这里只在 <=480px 的小屏触屏设备上整体抬一档。
+/* === 移动端文字尺寸：接近 iOS 小红书设置页参考字号 ===
+ * 小屏 (<=480px) 上整体抬高 Tailwind text-* 字号。
+ * 这些值是 rem，会随 html font-size 一起被字号滑动条缩放。
  */
 @media (max-width: 480px) {
-  /* Tailwind 数字尺寸 → iOS 风格尺寸 */
-  .text-xs { font-size: 0.8125rem; line-height: 1.125rem; }   /* 13px */
-  .text-sm { font-size: 0.9375rem; line-height: 1.375rem; }   /* 15px */
-  .text-base { font-size: 1.0625rem; line-height: 1.5rem; }   /* 17px iOS body */
-  .text-lg { font-size: 1.1875rem; line-height: 1.7rem; }     /* 19px */
-  .text-xl { font-size: 1.3125rem; line-height: 1.875rem; }   /* 21px */
-  .text-2xl { font-size: 1.625rem; line-height: 2rem; }       /* 26px */
-  .text-3xl { font-size: 2rem; line-height: 2.25rem; }        /* 32px */
-  .text-4xl { font-size: 2.375rem; line-height: 2.5rem; }     /* 38px */
+  .text-xs    { font-size: 0.875rem; line-height: 1.25rem; }   /* 14px */
+  .text-sm    { font-size: 1rem;     line-height: 1.5rem;  }   /* 16px */
+  .text-base  { font-size: 1.125rem; line-height: 1.625rem; }  /* 18px iOS 舒适 body */
+  .text-lg    { font-size: 1.25rem;  line-height: 1.75rem;  }  /* 20px */
+  .text-xl    { font-size: 1.375rem; line-height: 1.875rem; }  /* 22px */
+  .text-2xl   { font-size: 1.625rem; line-height: 2rem;     }  /* 26px */
+  .text-3xl   { font-size: 2rem;     line-height: 2.25rem;  }  /* 32px */
+  .text-4xl   { font-size: 2.5rem;   line-height: 2.75rem;  }  /* 40px */
 
-  /* Tailwind 任意值小尺寸（fine print），略略抬一点 */
-  .text-\[9px\] { font-size: 10px !important; }
-  .text-\[10px\] { font-size: 11px !important; }
-  .text-\[11px\] { font-size: 12px !important; }
-  .text-\[12px\] { font-size: 13px !important; }
+  /* 任意值小尺寸 */
+  .text-\[9px\]  { font-size: 11px !important; }
+  .text-\[10px\] { font-size: 12px !important; }
+  .text-\[11px\] { font-size: 13px !important; }
+  .text-\[12px\] { font-size: 14px !important; }
+}
+
+/* 字号滑动条美化 */
+input[type="range"].font-scale-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(99, 102, 241, 0.2);
+  outline: none;
+}
+input[type="range"].font-scale-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #6366f1;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.4);
+}
+input[type="range"].font-scale-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #6366f1;
+  cursor: pointer;
+  border: none;
 }

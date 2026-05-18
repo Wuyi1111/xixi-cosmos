@@ -113,14 +113,17 @@ export default function App() {
   
   // 用户数据状态
   const [userData, setUserData] = useState({
-    id: 'TR' + Math.floor(Math.random() * 10000),
+    id: 'TR755',                  // 固定编号，用户不能修改
+    displayName: '星海旅人',       // 用户名（可改）
+    avatarEmoji: '🪐',             // 头像 emoji（可改）
+    fontScale: 1.0,                // 字号缩放
     totalDays: 0,
     continuousDays: 0,
     stardust: 0,
     totalHugs: 0,
     checkInHistory: [],
-    dreamLogs: [], 
-    myWhispers: [], // 新增：保存用户发送的树洞心语记录
+    dreamLogs: [],
+    myWhispers: [],
     personality: null,
     dailyPosts: 0,
     lastPostDate: '',
@@ -147,11 +150,22 @@ export default function App() {
       if (parsed.continuousDays === undefined) parsed.continuousDays = 0;
       if (!parsed.dreamLogs) parsed.dreamLogs = [];
       if (!parsed.myWhispers) parsed.myWhispers = [];
+      // v4.2.0 迁移：统一固定 ID + 补默认字段
+      parsed.id = 'TR755';
+      if (!parsed.displayName) parsed.displayName = '星海旅人';
+      if (!parsed.avatarEmoji) parsed.avatarEmoji = '🪐';
+      if (typeof parsed.fontScale !== 'number') parsed.fontScale = 1.0;
       setUserData(parsed);
     }
     const savedTheme = localStorage.getItem('xixi_cosmos_theme') || 'light';
     setTheme(savedTheme);
   }, []);
+
+  // 全局字号缩放：写到 <html> 的 font-size 上，rem-based 的所有尺寸跟着变
+  useEffect(() => {
+    const scale = userData.fontScale || 1.0;
+    document.documentElement.style.fontSize = (16 * scale) + 'px';
+  }, [userData.fontScale]);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -227,10 +241,77 @@ export default function App() {
 
   const isDark = theme === 'dark' || (theme === 'auto' && (new Date().getHours() >= 18 || new Date().getHours() < 6));
 
+  // === 下拉刷新 ===
+  const [pullDistance, setPullDistance] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const pullStartY = useRef(0);
+  const pullActive = useRef(false);
+
+  useEffect(() => {
+    const onTouchStart = (e) => {
+      if (window.scrollY <= 0 && !refreshing) {
+        pullStartY.current = e.touches[0].clientY;
+        pullActive.current = true;
+      } else {
+        pullActive.current = false;
+      }
+    };
+    const onTouchMove = (e) => {
+      if (!pullActive.current) return;
+      const dy = e.touches[0].clientY - pullStartY.current;
+      if (dy <= 0) { setPullDistance(0); return; }
+      // 阻尼效果
+      const distance = Math.min(Math.pow(dy, 0.85) * 0.7, 120);
+      setPullDistance(distance);
+    };
+    const onTouchEnd = () => {
+      if (!pullActive.current) return;
+      pullActive.current = false;
+      if (pullDistance > 60) {
+        setRefreshing(true);
+        setTimeout(() => window.location.reload(), 400);
+      } else {
+        setPullDistance(0);
+      }
+    };
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+    window.addEventListener('touchcancel', onTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [pullDistance, refreshing]);
+
   return (
     <div className={`min-h-screen transition-colors duration-1000 ${isDark ? 'dark bg-[#0f0f1a] text-[#f1f5f9]' : 'bg-[#f8fafc] text-[#1e293b]'}`}>
       <style>{styles}</style>
-      
+
+      {/* 下拉刷新指示器 */}
+      {(pullDistance > 0 || refreshing) && (
+        <div
+          className="fixed left-0 right-0 z-[60] flex items-center justify-center pointer-events-none"
+          style={{
+            top: 'env(safe-area-inset-top)',
+            height: refreshing ? '60px' : `${pullDistance}px`,
+            transition: pullActive.current ? 'none' : 'height 0.3s ease',
+          }}
+        >
+          <div className={`flex items-center gap-2 text-xs ${isDark ? 'text-indigo-300' : 'text-indigo-500'}`}>
+            {refreshing ? (
+              <><Loader2 size={16} className="animate-spin" /> 正在刷新…</>
+            ) : pullDistance > 60 ? (
+              <><ChevronUp size={16} /> 释放刷新</>
+            ) : (
+              <><ChevronDown size={16} /> 下拉刷新</>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         {isDark && (
           <>
@@ -240,7 +321,13 @@ export default function App() {
         )}
       </div>
 
-      <main className="relative z-10 px-6 max-w-md mx-auto min-h-screen pt-[max(env(safe-area-inset-top),3rem)] pb-[calc(env(safe-area-inset-bottom)+6rem)]">
+      <main
+        className="relative z-10 px-4 max-w-md mx-auto min-h-screen pt-[max(env(safe-area-inset-top),3rem)] pb-[calc(env(safe-area-inset-bottom)+6rem)]"
+        style={{
+          transform: pullDistance > 0 ? `translateY(${pullDistance}px)` : undefined,
+          transition: pullActive.current ? 'none' : 'transform 0.3s ease',
+        }}
+      >
         {activeTab === 'tonight' && (
           <TonightView 
             isDark={isDark} 
@@ -283,7 +370,7 @@ export default function App() {
       </main>
 
       <nav className={`fixed bottom-0 w-full z-50 transition-colors duration-500 ${isDark ? 'bg-[#13131a]/90 border-[#2a2a35]' : 'bg-white/90 border-gray-200'} backdrop-blur-md border-t pb-[env(safe-area-inset-bottom)]`}>
-        <div className="max-w-md mx-auto flex justify-around items-center h-20 px-6">
+        <div className="max-w-md mx-auto flex justify-around items-center h-20 px-4">
           <TabButton id="tonight" icon={Moon} label="此刻" active={activeTab === 'tonight'} onClick={() => setActiveTab('tonight')} isDark={isDark} />
           <TabButton id="treehole" icon={Wind} label="微澜" active={activeTab === 'treehole'} onClick={() => setActiveTab('treehole')} isDark={isDark} />
           <TabButton id="galaxy" icon={Sparkles} label="星系" active={activeTab === 'galaxy'} onClick={() => setActiveTab('galaxy')} isDark={isDark} />
@@ -1578,28 +1665,48 @@ function QuizWidget({ isDark, onClose, onComplete }) {
 const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev';
 const BUILD_TIME = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 0;
 
+// 头像可选 emoji
+const AVATAR_EMOJIS = ['🪐', '🌙', '⭐', '🌟', '✨', '💫', '🌠', '🌌', '☄️', '🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘', '🛸', '🚀', '🌈', '☁️', '🦄'];
+
 // --- 页面 4：我的 (Mine) ---
 function MineView({ isDark, theme, setTheme, userData, setUserData, saveUserData }) {
   const [showSettings, setShowSettings] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false); // 控制性格测试显示
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [nameDraft, setNameDraft] = useState(userData.displayName || '星海旅人');
+  const [emojiDraft, setEmojiDraft] = useState(userData.avatarEmoji || '🪐');
 
   const unlockedTitles = TITLES.filter(t => userData.totalHugs >= t.count);
   const highestTitle = unlockedTitles.length > 0 ? unlockedTitles[unlockedTitles.length - 1].title : '星辰初学者';
-  
+
   // 兼容旧数据的字符型 personality 或读取新版对象
   const personalityData = typeof userData.personality === 'object' ? userData.personality : null;
   const displayPersonalityName = personalityData?.name || (typeof userData.personality === 'string' ? userData.personality : '尚未探测内宇宙');
 
+  const openProfileEdit = () => {
+    setNameDraft(userData.displayName || '星海旅人');
+    setEmojiDraft(userData.avatarEmoji || '🪐');
+    setShowProfileEdit(true);
+  };
+  const saveProfile = () => {
+    const trimmed = (nameDraft || '').trim().slice(0, 20) || '星海旅人';
+    saveUserData({ ...userData, displayName: trimmed, avatarEmoji: emojiDraft });
+    setShowProfileEdit(false);
+  };
+
   if (showSettings) {
     return <SettingsPanel isDark={isDark} theme={theme} setTheme={setTheme} userData={userData} saveUserData={saveUserData} onClose={() => setShowSettings(false)} onReset={() => {
       setUserData({
-        id: 'TR' + Math.floor(Math.random() * 10000),
+        id: 'TR755',
+        displayName: '星海旅人',
+        avatarEmoji: '🪐',
+        fontScale: 1.0,
         totalDays: 0, continuousDays: 0, stardust: 0, totalHugs: 0, checkInHistory: [], dreamLogs: [], myWhispers: [], personality: null, dailyPosts: 0, lastPostDate: '', reminderEnabled: false, reminderTime: '22:30'
       });
       setShowSettings(false);
     }}/>;
   }
-  
+
   if (showQuiz) {
     return <QuizWidget isDark={isDark} onClose={() => setShowQuiz(false)} onComplete={(resultObj) => {
       // 首次测试奖励 30 星尘，重测不奖励
@@ -1612,22 +1719,96 @@ function MineView({ isDark, theme, setTheme, userData, setUserData, saveUserData
   return (
     <div className="animate-fade-in space-y-8 pb-10">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+        <button onClick={openProfileEdit} className="flex items-center gap-4 text-left active:scale-[0.98] transition-transform">
           <div className={`w-16 h-16 rounded-full flex items-center justify-center text-3xl ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'} border border-indigo-500/20 relative overflow-hidden`}>
             {personalityData ? <div className="absolute inset-0 bg-indigo-500/20 blur-md animate-pulse"></div> : null}
-            <span className="relative z-10">🪐</span>
+            <span className="relative z-10">{userData.avatarEmoji || '🪐'}</span>
           </div>
           <div>
-            <h2 className="text-lg font-medium mb-1">星海旅人 #{userData.id}</h2>
+            <h2 className="text-lg font-medium mb-1 flex items-center gap-1.5">
+              {userData.displayName || '星海旅人'}
+              <span className={`text-xs font-normal ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>#{userData.id}</span>
+              <Edit3 size={12} className="text-gray-400" />
+            </h2>
             <p className={`text-xs ${isDark ? 'text-indigo-400' : 'text-indigo-600'} font-medium`}>
               {highestTitle} · {displayPersonalityName}
             </p>
           </div>
-        </div>
+        </button>
         <button onClick={() => setShowSettings(true)} className={`p-2 rounded-full ${isDark ? 'bg-[#171724] text-gray-400' : 'bg-white text-gray-500 shadow-sm'}`}>
           <Settings size={20} />
         </button>
       </div>
+
+      {/* 编辑个人资料弹窗 */}
+      {showProfileEdit && (
+        <div className={`fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setShowProfileEdit(false)}>
+          <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`} onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setShowProfileEdit(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-200"><X size={20} /></button>
+            <h3 className="text-lg font-medium mb-5 text-center">编辑资料</h3>
+
+            {/* 预览 */}
+            <div className="flex flex-col items-center gap-2 mb-5">
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center text-5xl ${isDark ? 'bg-[#0f0f1a] border border-indigo-500/30' : 'bg-indigo-50 border border-indigo-100'}`}>
+                {emojiDraft}
+              </div>
+              <p className="text-base font-medium">{(nameDraft || '').trim() || '星海旅人'} <span className={`text-xs ml-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>#{userData.id}</span></p>
+            </div>
+
+            {/* 头像 emoji 选择 */}
+            <div className="mb-4">
+              <p className={`text-xs mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>选择星体头像</p>
+              <div className={`grid grid-cols-6 gap-2 p-3 rounded-2xl max-h-44 overflow-y-auto no-scrollbar ${isDark ? 'bg-[#0f0f1a]' : 'bg-gray-50'}`}>
+                {AVATAR_EMOJIS.map(e => (
+                  <button
+                    key={e}
+                    onClick={() => setEmojiDraft(e)}
+                    className={`aspect-square rounded-xl text-2xl flex items-center justify-center transition-all ${
+                      emojiDraft === e
+                        ? (isDark ? 'bg-indigo-500/30 ring-2 ring-indigo-400' : 'bg-indigo-100 ring-2 ring-indigo-400')
+                        : (isDark ? 'hover:bg-white/5' : 'hover:bg-white')
+                    }`}
+                  >{e}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* 用户名 */}
+            <div className="mb-4">
+              <p className={`text-xs mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>名字</p>
+              <input
+                type="text"
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                maxLength={20}
+                placeholder="星海旅人"
+                className={`w-full px-4 py-3 rounded-xl text-sm outline-none transition-colors ${
+                  isDark
+                    ? 'bg-[#0f0f1a] border border-gray-800 focus:border-indigo-500 text-gray-200 placeholder-gray-600'
+                    : 'bg-gray-50 border border-gray-200 focus:border-indigo-400 text-gray-800 placeholder-gray-400'
+                }`}
+              />
+              <p className={`text-[11px] mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>最多 20 个字符</p>
+            </div>
+
+            {/* ID 固定，不可改 */}
+            <div className={`mb-5 px-4 py-3 rounded-xl flex items-center justify-between ${isDark ? 'bg-[#0f0f1a] border border-gray-800' : 'bg-gray-50 border border-gray-200'}`}>
+              <div>
+                <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>星际编号（固定）</p>
+                <p className="text-sm font-mono mt-0.5">#{userData.id}</p>
+              </div>
+              <span className={`text-[10px] px-2 py-1 rounded-md ${isDark ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-500'}`}>不可修改</span>
+            </div>
+
+            <button
+              onClick={saveProfile}
+              className="w-full py-3 rounded-xl text-sm font-medium bg-indigo-500 hover:bg-indigo-600 text-white transition-colors shadow-lg shadow-indigo-500/20 active:scale-95"
+            >
+              保存
+            </button>
+          </div>
+        </div>
+      )}
       
       {/* 睡眠性格测试区 (状态驱动展示) */}
       {!personalityData ? (
@@ -1998,6 +2179,44 @@ function SettingsPanel({ isDark, theme, setTheme, userData, saveUserData, onClos
               {t === 'light' ? '浅色' : t === 'dark' ? '深色' : '跟随系统'}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* === 整体字号 === */}
+      <div className="pt-4">
+        <h3 className="text-xs text-gray-500 mb-2 px-2">整体字号</h3>
+        <div className={`p-4 rounded-2xl ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
+          <div className="flex items-center justify-between mb-3">
+            <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>偏小</span>
+            <span className="text-base font-medium">
+              示例文字 · Aa
+            </span>
+            <span className={`text-xl font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>偏大</span>
+          </div>
+          <input
+            type="range"
+            min="0.85"
+            max="1.3"
+            step="0.05"
+            value={userData.fontScale ?? 1.0}
+            onChange={(e) => saveUserData({ ...userData, fontScale: parseFloat(e.target.value) })}
+            className="font-scale-slider w-full"
+          />
+          <div className="flex justify-between mt-2 text-[10px] text-gray-500">
+            <span>85%</span>
+            <span>当前 {Math.round(((userData.fontScale ?? 1.0)) * 100)}%</span>
+            <span>130%</span>
+          </div>
+          <button
+            onClick={() => saveUserData({ ...userData, fontScale: 1.0 })}
+            className={`mt-3 w-full py-2 rounded-xl text-xs font-medium transition-colors ${
+              isDark
+                ? 'bg-[#0f0f1a] text-gray-400 hover:text-gray-200'
+                : 'bg-gray-50 text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            恢复默认 (100%)
+          </button>
         </div>
       </div>
 
