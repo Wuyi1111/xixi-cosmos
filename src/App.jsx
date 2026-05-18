@@ -1574,12 +1574,42 @@ function QuizWidget({ isDark, onClose, onComplete }) {
   );
 }
 
+// 当前构建的版本号与构建时间，由 vite.config.js 的 define 注入
+const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev';
+const BUILD_TIME = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 0;
+
 // --- 页面 4：我的 (Mine) ---
 function MineView({ isDark, theme, setTheme, userData, setUserData, saveUserData }) {
   const [showSettings, setShowSettings] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false); // 新增：控制性格测试显示
+
+  // 版本检查相关状态
+  const [versionCheckState, setVersionCheckState] = useState('idle'); // idle | checking | latest | update | error
+  const [latestVersionInfo, setLatestVersionInfo] = useState(null);
+
+  const handleCheckVersion = async () => {
+    setVersionCheckState('checking');
+    try {
+      // 加随机查询串，绕过 CDN / 浏览器缓存，强制拿最新部署的 version.json
+      const res = await fetch(`${import.meta.env.BASE_URL}version.json?t=${Date.now()}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error('fetch failed');
+      const data = await res.json();
+      setLatestVersionInfo(data);
+      const isNewer =
+        (data.buildTime && BUILD_TIME && data.buildTime > BUILD_TIME) ||
+        (data.version && data.version !== APP_VERSION);
+      setVersionCheckState(isNewer ? 'update' : 'latest');
+    } catch (e) {
+      setVersionCheckState('error');
+    }
+  };
+
+  const handleApplyUpdate = () => {
+    // 强制刷新到最新构建；用户的 localStorage 数据保留在同一域名下不会丢失
+    window.location.reload();
+  };
 
   const unlockedTitles = TITLES.filter(t => userData.totalHugs >= t.count);
   const highestTitle = unlockedTitles.length > 0 ? unlockedTitles[unlockedTitles.length - 1].title : '星辰初学者';
@@ -1750,12 +1780,76 @@ function MineView({ isDark, theme, setTheme, userData, setUserData, saveUserData
       {showAbout && (
         <div className={`fixed inset-0 z-50 flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/90' : 'bg-[#f8fafc]/90'} backdrop-blur-sm animate-fade-in`}>
           <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`}>
-            <button onClick={() => setShowAbout(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-200"><X size={20} /></button>
+            <button onClick={() => { setShowAbout(false); setVersionCheckState('idle'); setLatestVersionInfo(null); }} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-200"><X size={20} /></button>
             <h3 className="text-lg font-medium mb-4 text-center">关于息息·宇宙</h3>
             <div className={`space-y-4 text-sm font-light leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
               <p>每一个夜晚都值得被认真对待，每一份情绪都值得被温柔倾听。</p>
               <p>我们希望在这个快节奏的时代，为你提供一个宁静的宇宙空间。在这里，你可以放下白天的疲惫，不用追求任何数据与指标，只是纯粹地与自己对话。</p>
-              <p className="text-center mt-6 text-xs text-indigo-400">版本 V4.0 · 已连接至宇宙网络</p>
+
+              <div className={`mt-4 p-3 rounded-xl text-xs ${isDark ? 'bg-[#0f0f1a]/60 border border-gray-800' : 'bg-gray-50 border border-gray-100'}`}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>当前版本</span>
+                  <span className="text-indigo-400 font-medium">V{APP_VERSION}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>构建时间</span>
+                  <span className={isDark ? 'text-gray-300' : 'text-gray-600'}>
+                    {BUILD_TIME ? new Date(BUILD_TIME).toLocaleString('zh-CN', { hour12: false }) : '—'}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={handleCheckVersion}
+                disabled={versionCheckState === 'checking'}
+                className={`w-full py-3 rounded-xl text-sm font-medium transition-colors active:scale-95 flex items-center justify-center gap-2 ${
+                  versionCheckState === 'checking'
+                    ? (isDark ? 'bg-gray-800 text-gray-500' : 'bg-gray-100 text-gray-400')
+                    : 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                }`}
+              >
+                {versionCheckState === 'checking' ? (
+                  <><Loader2 size={14} className="animate-spin" /> 正在连接宇宙网络…</>
+                ) : (
+                  <><RotateCcw size={14} /> 检查更新</>
+                )}
+              </button>
+
+              {versionCheckState === 'latest' && (
+                <div className={`text-xs text-center px-3 py-2 rounded-lg ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
+                  ✓ 已是最新版本，可以安心入眠
+                </div>
+              )}
+
+              {versionCheckState === 'error' && (
+                <div className={`text-xs text-center px-3 py-2 rounded-lg ${isDark ? 'bg-rose-500/10 text-rose-300' : 'bg-rose-50 text-rose-600'}`}>
+                  无法连接宇宙网络，请稍后重试
+                </div>
+              )}
+
+              {versionCheckState === 'update' && latestVersionInfo && (
+                <div className={`p-3 rounded-xl ${isDark ? 'bg-indigo-500/10 border border-indigo-500/30' : 'bg-indigo-50 border border-indigo-100'}`}>
+                  <div className="flex items-center gap-2 text-xs mb-2">
+                    <Zap size={12} className="text-indigo-400" />
+                    <span className={isDark ? 'text-indigo-200' : 'text-indigo-700'}>
+                      发现新版本 V{latestVersionInfo.version}
+                    </span>
+                  </div>
+                  <p className={`text-[11px] leading-relaxed mb-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    你的本地数据（打卡记录、梦境、心语）会完整保留，更新只刷新程序本身。
+                  </p>
+                  <button
+                    onClick={handleApplyUpdate}
+                    className="w-full py-2 rounded-lg text-xs font-medium bg-indigo-500 hover:bg-indigo-600 text-white transition-colors active:scale-95"
+                  >
+                    立即更新
+                  </button>
+                </div>
+              )}
+
+              <p className={`text-center text-[11px] mt-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                所有打卡、梦境、心语均存储于本机 LocalStorage<br/>更新后数据不会丢失
+              </p>
             </div>
           </div>
         </div>

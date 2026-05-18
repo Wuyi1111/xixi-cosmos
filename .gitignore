@@ -15,3 +15,4 @@ pnpm-debug.log*
 .vscode/*
 !.vscode/extensions.json
 .claude
+public/version.json
