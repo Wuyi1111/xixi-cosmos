@@ -256,6 +256,11 @@ export default function App() {
 
   useEffect(() => {
     const onTouchStart = (e) => {
+      // 若 touch 落在标了 data-no-pull-refresh 的元素里（如星系页可拖拽光晕），不触发下拉刷新
+      if (e.target?.closest && e.target.closest('[data-no-pull-refresh]')) {
+        pullActive.current = false;
+        return;
+      }
       if (window.scrollY <= 0 && !refreshing) {
         pullStartY.current = e.touches[0].clientY;
         pullActive.current = true;
@@ -1503,22 +1508,90 @@ function TreeholeView({ isDark, userData, saveUserData, currentDateStr }) {
 // --- 页面 3：星系 (Galaxy) ---
 function GalaxyView({ isDark, userData, saveUserData, currentDateStr }) {
   const [selectedMilestone, setSelectedMilestone] = useState(null);
-  
+
   const currentMilestone = MILESTONES.slice().reverse().find(m => userData.totalDays >= m.days) || MILESTONES[0];
-  const milestoneIcons = ['🌌', '🌫️', '⭐', '🪐', '💫', '🌗', '🌀']; 
-  
+  const milestoneIcons = ['🌌', '🌫️', '⭐', '🪐', '💫', '🌗', '🌀'];
+
+  // === 光晕跟随手指 ===
+  const glowAreaRef = useRef(null);
+  const [glowOffset, setGlowOffset] = useState({ x: 0, y: 0 });
+  const [glowDragging, setGlowDragging] = useState(false);
+  const glowActiveRef = useRef(false);
+
+  const MAX_OFFSET = 55; // 像素，光晕最大偏移半径
+
+  const updateGlow = (clientX, clientY) => {
+    const el = glowAreaRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const dx = clientX - rect.left - rect.width / 2;
+    const dy = clientY - rect.top - rect.height / 2;
+    // 0.55 灵敏度 + clamp，让光晕"软"地跟着手指，不会冲出画面
+    setGlowOffset({
+      x: Math.max(-MAX_OFFSET, Math.min(MAX_OFFSET, dx * 0.55)),
+      y: Math.max(-MAX_OFFSET, Math.min(MAX_OFFSET, dy * 0.55)),
+    });
+  };
+
+  const onGlowDown = (e) => {
+    glowActiveRef.current = true;
+    setGlowDragging(true);
+    const t = e.touches?.[0];
+    if (t) updateGlow(t.clientX, t.clientY);
+    else updateGlow(e.clientX, e.clientY);
+  };
+  const onGlowMove = (e) => {
+    if (!glowActiveRef.current) return;
+    const t = e.touches?.[0];
+    if (t) updateGlow(t.clientX, t.clientY);
+    else updateGlow(e.clientX, e.clientY);
+  };
+  const onGlowEnd = () => {
+    glowActiveRef.current = false;
+    setGlowDragging(false);
+    setGlowOffset({ x: 0, y: 0 }); // 平滑回中
+  };
+
   const renderGalaxyVisual = () => {
     const days = userData.totalDays;
+
+    // 跟随手指的 transform & 过渡曲线
+    const followStyle = {
+      transform: `translate(${glowOffset.x}px, ${glowOffset.y}px)`,
+      transition: glowDragging ? 'transform 0.05s linear' : 'transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1)',
+      willChange: 'transform',
+    };
+
     return (
-      <div className={`py-8 rounded-[32px] border space-y-6 relative overflow-hidden flex flex-col items-center ${isDark ? 'bg-black/20 border-indigo-500/10' : 'bg-indigo-50/50 border-indigo-100 shadow-sm'}`}>
+      <div
+        ref={glowAreaRef}
+        data-no-pull-refresh="true"
+        onTouchStart={onGlowDown}
+        onTouchMove={onGlowMove}
+        onTouchEnd={onGlowEnd}
+        onTouchCancel={onGlowEnd}
+        onMouseDown={onGlowDown}
+        onMouseMove={onGlowMove}
+        onMouseUp={onGlowEnd}
+        onMouseLeave={onGlowEnd}
+        style={{ touchAction: 'none' }}
+        className={`py-8 rounded-[32px] border space-y-6 relative overflow-hidden flex flex-col items-center select-none cursor-grab active:cursor-grabbing ${isDark ? 'bg-black/20 border-indigo-500/10' : 'bg-indigo-50/50 border-indigo-100 shadow-sm'}`}
+      >
         <div className="relative w-48 h-48 flex items-center justify-center">
-          <div className="absolute inset-4 bg-indigo-600/10 rounded-full filter blur-xl animate-pulse"></div>
+          {/* 主光晕：跟随手指 */}
+          <div
+            className="absolute inset-4 bg-indigo-600/10 rounded-full filter blur-xl animate-pulse"
+            style={followStyle}
+          ></div>
 
           {days >= 0 && (
             <div className={`absolute inset-0 border rounded-full galaxy-spin ${isDark ? 'border-white/5' : 'border-indigo-200/50'}`}></div>
           )}
           {days >= 1 && (
-            <div className="absolute inset-4 bg-gradient-to-tr from-indigo-500/10 to-blue-500/10 rounded-full filter blur-md animate-pulse"></div>
+            <div
+              className="absolute inset-4 bg-gradient-to-tr from-indigo-500/10 to-blue-500/10 rounded-full filter blur-md animate-pulse"
+              style={followStyle}
+            ></div>
           )}
           {days >= 7 && <div className="w-16 h-16 bg-gradient-to-tr from-yellow-400 to-orange-500 rounded-full shadow-[0_0_30px_rgba(234,179,8,0.6)] animate-pulse z-10"></div>}
           {days >= 14 && <div className={`absolute w-28 h-6 border-2 rounded-full transform -rotate-12 z-20 pointer-events-none ${isDark ? 'border-orange-300/40' : 'border-orange-400/50'}`}></div>}
@@ -1535,7 +1608,7 @@ function GalaxyView({ isDark, userData, saveUserData, currentDateStr }) {
           {days >= 60 && <div className={`absolute inset-0 opacity-40 galaxy-spin rounded-full ${isDark ? 'bg-[radial-gradient(circle,transparent,rgba(15,15,26,0.8))]' : 'bg-[radial-gradient(circle,transparent,rgba(255,255,255,0.6))]'}`}></div>}
         </div>
 
-        <div className="space-y-1 z-10 px-6 text-center">
+        <div className="space-y-1 z-10 px-6 text-center pointer-events-none">
           <span className={`text-[10px] px-3 py-1 rounded-full border ${isDark ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-indigo-100 text-indigo-600 border-indigo-200'}`}>
             阶段 {Math.min(7, Math.max(1, Math.floor(days / 7) + 1))}：{currentMilestone.name}
           </span>
