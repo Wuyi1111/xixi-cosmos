@@ -1581,35 +1581,7 @@ const BUILD_TIME = typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 0;
 // --- 页面 4：我的 (Mine) ---
 function MineView({ isDark, theme, setTheme, userData, setUserData, saveUserData }) {
   const [showSettings, setShowSettings] = useState(false);
-  const [showAbout, setShowAbout] = useState(false);
-  const [showPrivacy, setShowPrivacy] = useState(false);
-  const [showQuiz, setShowQuiz] = useState(false); // 新增：控制性格测试显示
-
-  // 版本检查相关状态
-  const [versionCheckState, setVersionCheckState] = useState('idle'); // idle | checking | latest | update | error
-  const [latestVersionInfo, setLatestVersionInfo] = useState(null);
-
-  const handleCheckVersion = async () => {
-    setVersionCheckState('checking');
-    try {
-      // 加随机查询串，绕过 CDN / 浏览器缓存，强制拿最新部署的 version.json
-      const res = await fetch(`${import.meta.env.BASE_URL}version.json?t=${Date.now()}`, { cache: 'no-store' });
-      if (!res.ok) throw new Error('fetch failed');
-      const data = await res.json();
-      setLatestVersionInfo(data);
-      const isNewer =
-        (data.buildTime && BUILD_TIME && data.buildTime > BUILD_TIME) ||
-        (data.version && data.version !== APP_VERSION);
-      setVersionCheckState(isNewer ? 'update' : 'latest');
-    } catch (e) {
-      setVersionCheckState('error');
-    }
-  };
-
-  const handleApplyUpdate = () => {
-    // 强制刷新到最新构建；用户的 localStorage 数据保留在同一域名下不会丢失
-    window.location.reload();
-  };
+  const [showQuiz, setShowQuiz] = useState(false); // 控制性格测试显示
 
   const unlockedTitles = TITLES.filter(t => userData.totalHugs >= t.count);
   const highestTitle = unlockedTitles.length > 0 ? unlockedTitles[unlockedTitles.length - 1].title : '星辰初学者';
@@ -1760,115 +1732,6 @@ function MineView({ isDark, theme, setTheme, userData, setUserData, saveUserData
         </div>
       </div>
       
-      <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
-        <button onClick={() => setShowAbout(true)} className={`w-full p-4 flex items-center justify-between border-b ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
-          <div className="flex items-center gap-3">
-            <Info size={16} className="text-gray-400" />
-            <span className="text-sm">关于息息</span>
-          </div>
-          <ChevronRight size={16} className="text-gray-500" />
-        </button>
-        <button onClick={() => setShowPrivacy(true)} className="w-full p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <User size={16} className="text-gray-400" />
-            <span className="text-sm">隐私协议</span>
-          </div>
-          <ChevronRight size={16} className="text-gray-500" />
-        </button>
-      </div>
-
-      {showAbout && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/90' : 'bg-[#f8fafc]/90'} backdrop-blur-sm animate-fade-in`}>
-          <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`}>
-            <button onClick={() => { setShowAbout(false); setVersionCheckState('idle'); setLatestVersionInfo(null); }} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-200"><X size={20} /></button>
-            <h3 className="text-lg font-medium mb-4 text-center">关于息息·宇宙</h3>
-            <div className={`space-y-4 text-sm font-light leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-              <p>每一个夜晚都值得被认真对待，每一份情绪都值得被温柔倾听。</p>
-              <p>我们希望在这个快节奏的时代，为你提供一个宁静的宇宙空间。在这里，你可以放下白天的疲惫，不用追求任何数据与指标，只是纯粹地与自己对话。</p>
-
-              <div className={`mt-4 p-3 rounded-xl text-xs ${isDark ? 'bg-[#0f0f1a]/60 border border-gray-800' : 'bg-gray-50 border border-gray-100'}`}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>当前版本</span>
-                  <span className="text-indigo-400 font-medium">V{APP_VERSION}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>构建时间</span>
-                  <span className={isDark ? 'text-gray-300' : 'text-gray-600'}>
-                    {BUILD_TIME ? new Date(BUILD_TIME).toLocaleString('zh-CN', { hour12: false }) : '—'}
-                  </span>
-                </div>
-              </div>
-
-              <button
-                onClick={handleCheckVersion}
-                disabled={versionCheckState === 'checking'}
-                className={`w-full py-3 rounded-xl text-sm font-medium transition-colors active:scale-95 flex items-center justify-center gap-2 ${
-                  versionCheckState === 'checking'
-                    ? (isDark ? 'bg-gray-800 text-gray-500' : 'bg-gray-100 text-gray-400')
-                    : 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
-                }`}
-              >
-                {versionCheckState === 'checking' ? (
-                  <><Loader2 size={14} className="animate-spin" /> 正在连接宇宙网络…</>
-                ) : (
-                  <><RotateCcw size={14} /> 检查更新</>
-                )}
-              </button>
-
-              {versionCheckState === 'latest' && (
-                <div className={`text-xs text-center px-3 py-2 rounded-lg ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
-                  ✓ 已是最新版本，可以安心入眠
-                </div>
-              )}
-
-              {versionCheckState === 'error' && (
-                <div className={`text-xs text-center px-3 py-2 rounded-lg ${isDark ? 'bg-rose-500/10 text-rose-300' : 'bg-rose-50 text-rose-600'}`}>
-                  无法连接宇宙网络，请稍后重试
-                </div>
-              )}
-
-              {versionCheckState === 'update' && latestVersionInfo && (
-                <div className={`p-3 rounded-xl ${isDark ? 'bg-indigo-500/10 border border-indigo-500/30' : 'bg-indigo-50 border border-indigo-100'}`}>
-                  <div className="flex items-center gap-2 text-xs mb-2">
-                    <Zap size={12} className="text-indigo-400" />
-                    <span className={isDark ? 'text-indigo-200' : 'text-indigo-700'}>
-                      发现新版本 V{latestVersionInfo.version}
-                    </span>
-                  </div>
-                  <p className={`text-[11px] leading-relaxed mb-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                    你的本地数据（打卡记录、梦境、心语）会完整保留，更新只刷新程序本身。
-                  </p>
-                  <button
-                    onClick={handleApplyUpdate}
-                    className="w-full py-2 rounded-lg text-xs font-medium bg-indigo-500 hover:bg-indigo-600 text-white transition-colors active:scale-95"
-                  >
-                    立即更新
-                  </button>
-                </div>
-              )}
-
-              <p className={`text-center text-[11px] mt-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                所有打卡、梦境、心语均存储于本机 LocalStorage<br/>更新后数据不会丢失
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showPrivacy && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/90' : 'bg-[#f8fafc]/90'} backdrop-blur-sm animate-fade-in`}>
-          <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`}>
-            <button onClick={() => setShowPrivacy(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-200"><X size={20} /></button>
-            <h3 className="text-lg font-medium mb-4 text-center">隐私守护协议</h3>
-            <div className={`space-y-4 text-sm font-light leading-relaxed max-h-64 overflow-y-auto no-scrollbar ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-              <p><strong>1. 信息的温柔对待</strong><br/>你在宇宙中留下的每一句心语、每一次情绪打卡，都仅存储在你的设备本地（LocalStorage），我们不会收集或窥探你的内心世界。</p>
-              <p><strong>2. 树洞的匿名法则</strong><br/>当你将心语发射至「微澜」树洞时，它们将化作无名星尘，抹去所有身份标识，仅传递温暖本身。</p>
-              <p><strong>3. 梦境守护机制</strong><br/>对于您使用"潜意识梦境舱"进行的 AI 梦境解读，内容将采用无标识加密通道发送至解析节点，且仅为瞬时处理，不在云端做任何永久归档保存。</p>
-              <p><strong>4. 数据控制权</strong><br/>你可以随时在「设置」中一键清除所有运行数据，让你的宇宙归于最初的虚空。</p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -1876,10 +1739,38 @@ function MineView({ isDark, theme, setTheme, userData, setUserData, saveUserData
 // 开发者测试控制台访问密码
 const DEV_CONSOLE_PASSWORD = '186638';
 
+// 把字节数格式化为 KB / MB
+function formatBytes(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+}
+
+// 友好显示浏览器/系统语言
+function getLanguageLabel() {
+  const lang = (typeof navigator !== 'undefined' && navigator.language) || 'zh-CN';
+  const map = {
+    'zh-CN': '简体中文', 'zh-TW': '繁體中文', 'zh-HK': '繁體中文（香港）', 'zh': '中文',
+    'en-US': 'English (US)', 'en-GB': 'English (UK)', 'en': 'English',
+    'ja-JP': '日本語', 'ja': '日本語', 'ko-KR': '한국어', 'ko': '한국어',
+  };
+  return { code: lang, label: map[lang] || map[lang.split('-')[0]] || lang };
+}
+
 // 设置面板小组件：引入完整的开发者测试闭环
 function SettingsPanel({ isDark, theme, setTheme, userData, saveUserData, onClose, onReset }) {
   const [confirmDialog, setConfirmDialog] = useState(null); // 自定义确认弹窗
   const [alertDialog, setAlertDialog] = useState(null);     // 自定义提示弹窗
+
+  // 关于息息（版本检查相关）
+  const [versionCheckState, setVersionCheckState] = useState('idle'); // idle | checking | latest | update | error
+  const [latestVersionInfo, setLatestVersionInfo] = useState(null);
+
+  // 隐私协议查看
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+
+  // 数据导入文件输入
+  const fileInputRef = useRef(null);
 
   // 开发者测试控制台的密码门
   const [devUnlocked, setDevUnlocked] = useState(false);
@@ -1896,6 +1787,119 @@ function SettingsPanel({ isDark, theme, setTheme, userData, saveUserData, onClos
       setDevPasswordError(true);
     }
   };
+
+  // --- 关于息息：检查更新 ---
+  const handleCheckVersion = async () => {
+    setVersionCheckState('checking');
+    try {
+      const res = await fetch(`${import.meta.env.BASE_URL}version.json?t=${Date.now()}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error('fetch failed');
+      const data = await res.json();
+      setLatestVersionInfo(data);
+      const isNewer =
+        (data.buildTime && BUILD_TIME && data.buildTime > BUILD_TIME) ||
+        (data.version && data.version !== APP_VERSION);
+      setVersionCheckState(isNewer ? 'update' : 'latest');
+    } catch (e) {
+      setVersionCheckState('error');
+    }
+  };
+  const handleApplyUpdate = () => { window.location.reload(); };
+
+  // --- 账号与安全：复制星际编号 ---
+  const handleCopyId = async () => {
+    try {
+      await navigator.clipboard.writeText(userData.id);
+      setAlertDialog({ title: '复制成功', message: `星际编号 ${userData.id} 已复制到剪贴板。` });
+    } catch {
+      setAlertDialog({ title: '请手动复制', message: `星际编号：${userData.id}` });
+    }
+  };
+
+  // --- 账号与安全：导出数据备份 JSON ---
+  const handleExportData = () => {
+    try {
+      const payload = {
+        app: 'xixi-cosmos',
+        version: APP_VERSION,
+        exportedAt: new Date().toISOString(),
+        theme: localStorage.getItem('xixi_cosmos_theme') || 'light',
+        userData,
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const stamp = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `xixi-cosmos-backup-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setAlertDialog({ title: '备份完成', message: '数据已导出到下载文件夹，请妥善保管。' });
+    } catch (e) {
+      setAlertDialog({ title: '备份失败', message: '导出时发生错误，请稍后重试。' });
+    }
+  };
+
+  // --- 账号与安全：导入数据恢复 ---
+  const handleImportClick = () => { fileInputRef.current?.click(); };
+  const handleImportFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target.result);
+        if (!parsed || !parsed.userData || typeof parsed.userData !== 'object') {
+          throw new Error('invalid');
+        }
+        setConfirmDialog({
+          title: '数据恢复',
+          message: '即将用备份文件覆盖当前所有记录，此操作不可撤销，确定继续吗？',
+          onConfirm: () => {
+            saveUserData(parsed.userData);
+            if (parsed.theme && ['light', 'dark', 'auto'].includes(parsed.theme)) {
+              setTheme(parsed.theme);
+            }
+            setAlertDialog({ title: '恢复成功', message: '已从备份文件恢复你的全部宇宙数据。' });
+          }
+        });
+      } catch {
+        setAlertDialog({ title: '恢复失败', message: '文件格式不正确，请选择由本应用导出的备份文件。' });
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  // --- 存储与隐私：用量统计 ---
+  const dataString = JSON.stringify(userData);
+  const dataBytes = new Blob([dataString]).size;
+  const checkInCount = userData.checkInHistory?.length || 0;
+  const dreamCount = userData.dreamLogs?.length || 0;
+  const whisperCount = userData.myWhispers?.length || 0;
+
+  // 浏览器 quota（如可用，异步刷新一次）
+  const [storageQuota, setStorageQuota] = useState(null);
+  useEffect(() => {
+    if (navigator.storage && navigator.storage.estimate) {
+      navigator.storage.estimate().then(est => {
+        setStorageQuota({ usage: est.usage || 0, quota: est.quota || 0 });
+      }).catch(() => {});
+    }
+  }, []);
+
+  // 用户级"清空所有数据"
+  const handleClearAll = () => {
+    setConfirmDialog({
+      title: '清空所有数据',
+      message: '所有打卡、梦境、心语、徽章都将被清除，此操作不可撤销。确定吗？',
+      onConfirm: () => { onReset(); }
+    });
+  };
+
+  const language = getLanguageLabel();
   
   // 1. 时空跃迁 (生成虚拟记录)
   const handleFillMockData = (days) => {
@@ -1997,6 +2001,72 @@ function SettingsPanel({ isDark, theme, setTheme, userData, saveUserData, onClos
         </div>
       </div>
 
+      {/* === 系统语言 === */}
+      <div className="pt-4">
+        <h3 className="text-xs text-gray-500 mb-2 px-2">系统语言</h3>
+        <div className={`p-4 rounded-2xl ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Compass size={16} className="text-gray-400" />
+              <div>
+                <p className="text-sm">{language.label}</p>
+                <p className="text-[11px] text-gray-500 mt-0.5">{language.code} · 跟随浏览器设置</p>
+              </div>
+            </div>
+            <span className={`text-[10px] px-2 py-1 rounded-md ${isDark ? 'bg-indigo-500/10 text-indigo-300' : 'bg-indigo-50 text-indigo-500'}`}>自动</span>
+          </div>
+        </div>
+      </div>
+
+      {/* === 账号与安全 === */}
+      <div className="pt-4">
+        <h3 className="text-xs text-gray-500 mb-2 px-2">账号与安全</h3>
+        <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
+          <div className={`p-4 flex items-center justify-between border-b ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
+            <div className="flex items-center gap-3">
+              <User size={16} className="text-gray-400" />
+              <div>
+                <p className="text-sm">我的星际编号</p>
+                <p className="text-[11px] text-gray-500 mt-0.5 font-mono">{userData.id}</p>
+              </div>
+            </div>
+            <button onClick={handleCopyId} className={`text-[11px] px-3 py-1.5 rounded-lg transition-colors ${isDark ? 'bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}>
+              复制
+            </button>
+          </div>
+          <button onClick={handleExportData} className={`w-full p-4 flex items-center justify-between border-b transition-colors ${isDark ? 'border-gray-800 hover:bg-white/5' : 'border-gray-100 hover:bg-gray-50'}`}>
+            <div className="flex items-center gap-3">
+              <ChevronDown size={16} className="text-gray-400 rotate-0" />
+              <div className="text-left">
+                <p className="text-sm">导出数据备份</p>
+                <p className="text-[11px] text-gray-500 mt-0.5">下载 JSON 文件保存到本地</p>
+              </div>
+            </div>
+            <ChevronRight size={16} className="text-gray-500" />
+          </button>
+          <button onClick={handleImportClick} className={`w-full p-4 flex items-center justify-between transition-colors ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'}`}>
+            <div className="flex items-center gap-3">
+              <ChevronUp size={16} className="text-gray-400" />
+              <div className="text-left">
+                <p className="text-sm">导入数据恢复</p>
+                <p className="text-[11px] text-gray-500 mt-0.5">从备份文件还原全部记录</p>
+              </div>
+            </div>
+            <ChevronRight size={16} className="text-gray-500" />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={handleImportFile}
+          />
+        </div>
+        <p className="text-[11px] text-gray-500 mt-2 px-2">
+          数据仅存于本机，导出文件即唯一备份，请妥善保管。
+        </p>
+      </div>
+
       <div className="pt-4">
         <h3 className="text-xs text-gray-500 mb-2 px-2">睡眠守护</h3>
         <div className={`p-4 rounded-2xl space-y-4 ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
@@ -2019,6 +2089,128 @@ function SettingsPanel({ isDark, theme, setTheme, userData, saveUserData, onClos
                 onChange={(e) => saveUserData({...userData, reminderTime: e.target.value})}
                 className={`bg-transparent text-lg font-medium outline-none text-right ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}
               />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* === 存储与隐私 === */}
+      <div className="pt-4">
+        <h3 className="text-xs text-gray-500 mb-2 px-2">存储与隐私</h3>
+        <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
+          {/* 本地存储用量 */}
+          <div className={`p-4 border-b ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm">本地存储用量</span>
+              <span className={`text-xs font-medium ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>
+                {formatBytes(dataBytes)}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className={`py-2 rounded-lg ${isDark ? 'bg-black/20' : 'bg-gray-50'}`}>
+                <p className="text-lg font-medium">{checkInCount}</p>
+                <p className="text-[10px] text-gray-500">打卡星轨</p>
+              </div>
+              <div className={`py-2 rounded-lg ${isDark ? 'bg-black/20' : 'bg-gray-50'}`}>
+                <p className="text-lg font-medium">{dreamCount}</p>
+                <p className="text-[10px] text-gray-500">梦境记录</p>
+              </div>
+              <div className={`py-2 rounded-lg ${isDark ? 'bg-black/20' : 'bg-gray-50'}`}>
+                <p className="text-lg font-medium">{whisperCount}</p>
+                <p className="text-[10px] text-gray-500">我的心语</p>
+              </div>
+            </div>
+            {storageQuota && storageQuota.quota > 0 && (
+              <p className="text-[11px] text-gray-500 mt-3">
+                浏览器整体存储：{formatBytes(storageQuota.usage)} / {formatBytes(storageQuota.quota)}
+                （{((storageQuota.usage / storageQuota.quota) * 100).toFixed(2)}%）
+              </p>
+            )}
+          </div>
+
+          {/* 隐私协议 */}
+          <button onClick={() => setShowPrivacyModal(true)} className={`w-full p-4 flex items-center justify-between border-b transition-colors ${isDark ? 'border-gray-800 hover:bg-white/5' : 'border-gray-100 hover:bg-gray-50'}`}>
+            <div className="flex items-center gap-3">
+              <User size={16} className="text-gray-400" />
+              <span className="text-sm">隐私守护协议</span>
+            </div>
+            <ChevronRight size={16} className="text-gray-500" />
+          </button>
+
+          {/* 清空所有数据 */}
+          <button onClick={handleClearAll} className={`w-full p-4 flex items-center justify-between text-red-500 transition-colors ${isDark ? 'hover:bg-red-500/5' : 'hover:bg-red-50'}`}>
+            <div className="flex items-center gap-3">
+              <Trash2 size={16} />
+              <span className="text-sm">清空所有数据</span>
+            </div>
+            <ChevronRight size={16} className="text-red-400/50" />
+          </button>
+        </div>
+        <p className="text-[11px] text-gray-500 mt-2 px-2">
+          清空操作不可撤销，建议先导出备份。
+        </p>
+      </div>
+
+      {/* === 关于息息 === */}
+      <div className="pt-4">
+        <h3 className="text-xs text-gray-500 mb-2 px-2">关于息息</h3>
+        <div className={`p-4 rounded-2xl ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-medium text-sm">
+              息
+            </div>
+            <div>
+              <p className="text-sm">息息·宇宙</p>
+              <p className="text-[11px] text-gray-500">V{APP_VERSION} · {BUILD_TIME ? new Date(BUILD_TIME).toLocaleString('zh-CN', { hour12: false }) : '—'}</p>
+            </div>
+          </div>
+          <p className={`text-[12px] leading-relaxed mb-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            每一个夜晚都值得被认真对待，每一份情绪都值得被温柔倾听。一个宁静的宇宙空间，让你卸下白天的疲惫，纯粹与自己对话。
+          </p>
+
+          <button
+            onClick={handleCheckVersion}
+            disabled={versionCheckState === 'checking'}
+            className={`w-full py-2.5 rounded-xl text-sm font-medium transition-colors active:scale-95 flex items-center justify-center gap-2 ${
+              versionCheckState === 'checking'
+                ? (isDark ? 'bg-gray-800 text-gray-500' : 'bg-gray-100 text-gray-400')
+                : 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+            }`}
+          >
+            {versionCheckState === 'checking' ? (
+              <><Loader2 size={14} className="animate-spin" /> 正在连接宇宙网络…</>
+            ) : (
+              <><RotateCcw size={14} /> 检查更新</>
+            )}
+          </button>
+
+          {versionCheckState === 'latest' && (
+            <div className={`text-xs text-center px-3 py-2 mt-3 rounded-lg ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
+              ✓ 已是最新版本，可以安心入眠
+            </div>
+          )}
+          {versionCheckState === 'error' && (
+            <div className={`text-xs text-center px-3 py-2 mt-3 rounded-lg ${isDark ? 'bg-rose-500/10 text-rose-300' : 'bg-rose-50 text-rose-600'}`}>
+              无法连接宇宙网络，请稍后重试
+            </div>
+          )}
+          {versionCheckState === 'update' && latestVersionInfo && (
+            <div className={`p-3 mt-3 rounded-xl ${isDark ? 'bg-indigo-500/10 border border-indigo-500/30' : 'bg-indigo-50 border border-indigo-100'}`}>
+              <div className="flex items-center gap-2 text-xs mb-2">
+                <Zap size={12} className="text-indigo-400" />
+                <span className={isDark ? 'text-indigo-200' : 'text-indigo-700'}>
+                  发现新版本 V{latestVersionInfo.version}
+                </span>
+              </div>
+              <p className={`text-[11px] leading-relaxed mb-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                本地数据（打卡、梦境、心语）会完整保留，更新只刷新程序本身。
+              </p>
+              <button
+                onClick={handleApplyUpdate}
+                className="w-full py-2 rounded-lg text-xs font-medium bg-indigo-500 hover:bg-indigo-600 text-white transition-colors active:scale-95"
+              >
+                立即更新
+              </button>
             </div>
           )}
         </div>
@@ -2123,6 +2315,23 @@ function SettingsPanel({ isDark, theme, setTheme, userData, saveUserData, onClos
         </>
         )}
       </div>
+
+      {/* === 隐私守护协议弹窗 === */}
+      {showPrivacyModal && (
+        <div className={`fixed inset-0 z-[70] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/90' : 'bg-[#f8fafc]/90'} backdrop-blur-sm animate-fade-in`} onClick={() => setShowPrivacyModal(false)}>
+          <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`} onClick={e => e.stopPropagation()}>
+            <button onClick={() => setShowPrivacyModal(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-200"><X size={20} /></button>
+            <h3 className="text-lg font-medium mb-4 text-center">隐私守护协议</h3>
+            <div className={`space-y-4 text-sm font-light leading-relaxed max-h-72 overflow-y-auto no-scrollbar ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+              <p><strong>1. 信息的温柔对待</strong><br/>你在宇宙中留下的每一句心语、每一次情绪打卡，都仅存储在你的设备本地（LocalStorage），我们不会收集或窥探你的内心世界。</p>
+              <p><strong>2. 树洞的匿名法则</strong><br/>当你将心语发射至「微澜」树洞时，它们将化作无名星尘，抹去所有身份标识，仅传递温暖本身。</p>
+              <p><strong>3. 梦境守护机制</strong><br/>对于您使用"潜意识梦境舱"进行的 AI 梦境解读，内容将采用无标识加密通道发送至解析节点，且仅为瞬时处理，不在云端做任何永久归档保存。</p>
+              <p><strong>4. 数据控制权</strong><br/>你可以随时在「存储与隐私」中导出备份、导入恢复，或一键清除所有运行数据，让你的宇宙归于最初的虚空。</p>
+              <p><strong>5. 无第三方追踪</strong><br/>本应用不集成任何第三方分析、广告或追踪 SDK。打开你的浏览器开发者工具，你能看到的所有网络请求都仅与版本更新检查有关。</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* --- 自定义确认弹窗 Modal --- */}
       {confirmDialog && (
