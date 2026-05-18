@@ -240,7 +240,7 @@ export default function App() {
         )}
       </div>
 
-      <main className="relative z-10 pb-24 px-6 pt-12 max-w-md mx-auto min-h-screen">
+      <main className="relative z-10 px-6 max-w-md mx-auto min-h-screen pt-[max(env(safe-area-inset-top),3rem)] pb-[calc(env(safe-area-inset-bottom)+6rem)]">
         {activeTab === 'tonight' && (
           <TonightView 
             isDark={isDark} 
@@ -282,7 +282,7 @@ export default function App() {
         )}
       </main>
 
-      <nav className={`fixed bottom-0 w-full z-50 transition-colors duration-500 ${isDark ? 'bg-[#13131a]/90 border-[#2a2a35]' : 'bg-white/90 border-gray-200'} backdrop-blur-md border-t`}>
+      <nav className={`fixed bottom-0 w-full z-50 transition-colors duration-500 ${isDark ? 'bg-[#13131a]/90 border-[#2a2a35]' : 'bg-white/90 border-gray-200'} backdrop-blur-md border-t pb-[env(safe-area-inset-bottom)]`}>
         <div className="max-w-md mx-auto flex justify-around items-center h-20 px-6">
           <TabButton id="tonight" icon={Moon} label="此刻" active={activeTab === 'tonight'} onClick={() => setActiveTab('tonight')} isDark={isDark} />
           <TabButton id="treehole" icon={Wind} label="微澜" active={activeTab === 'treehole'} onClick={() => setActiveTab('treehole')} isDark={isDark} />
@@ -976,7 +976,7 @@ function BreathingWidget({ isDark, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in" style={{ backgroundColor: isDark ? '#0f0f1a' : '#f8fafc' }}>
-      <button onClick={onClose} className="absolute top-10 right-6 p-2 rounded-full bg-gray-800/20 text-gray-400">
+      <button onClick={onClose} className="absolute right-6 p-2 rounded-full bg-gray-800/20 text-gray-400 top-[max(env(safe-area-inset-top)+0.5rem,2.5rem)]">
         <X size={24} />
       </button>
       <div className="flex flex-col items-center justify-center h-full space-y-16">
@@ -1323,7 +1323,7 @@ function TreeholeView({ isDark, userData, saveUserData, currentDateStr }) {
 
       {/* 顶部发射成功提示 */}
       {showToast && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full bg-indigo-500 text-white text-sm shadow-lg shadow-indigo-500/20 animate-fade-in z-50 flex items-center gap-2">
+        <div className="fixed left-1/2 -translate-x-1/2 px-6 py-3 rounded-full bg-indigo-500 text-white text-sm shadow-lg shadow-indigo-500/20 animate-fade-in z-50 flex items-center gap-2 top-[max(env(safe-area-inset-top)+1rem,5rem)]">
           <Send size={14} /> 信号已抵达深空
         </div>
       )}
@@ -1533,7 +1533,7 @@ function QuizWidget({ isDark, onClose, onComplete }) {
 
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]' : 'bg-[#f8fafc]'} animate-fade-in`}>
-      <button onClick={onClose} className="absolute top-10 right-6 p-2 text-gray-400 hover:text-gray-200">
+      <button onClick={onClose} className="absolute right-6 p-2 text-gray-400 hover:text-gray-200 top-[max(env(safe-area-inset-top)+0.5rem,2.5rem)]">
         <X size={24} />
       </button>
       

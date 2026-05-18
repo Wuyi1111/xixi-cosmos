@@ -16,8 +16,38 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   overscroll-behavior-y: none;
+
+  /* 避免横屏时 iOS Safari 把字体放大 */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 html.dark {
   color-scheme: dark;
+}
+
+/* 关闭 iOS Safari 点击时的灰色高亮闪烁 */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 按钮在 iOS 上保持快速响应、不显示长按菜单 */
+button, [role="button"] {
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+/* 触屏设备上把所有输入框的字体强制 >= 16px，避免 iOS Safari 聚焦时自动放大整个页面 */
+@media (hover: none) and (pointer: coarse) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
+/* Safe-area 工具类：搭配 viewport-fit=cover 在刘海/Home 指示条机型上让出空间 */
+.safe-pt {
+  padding-top: max(env(safe-area-inset-top), 0px);
+}
+.safe-pb {
+  padding-bottom: max(env(safe-area-inset-bottom), 0px);
 }
