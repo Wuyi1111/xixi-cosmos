@@ -60,7 +60,10 @@ const TITLES = [
   { id: 'starter', title: '星辰初学者', count: 5, icon: '🌟' },
   { id: 'comforter', title: '温暖使者', count: 20, icon: '💫' },
   { id: 'guardian', title: '宇宙守护者', count: 50, icon: '🌙' },
-  { id: 'master', title: '星系大师', count: 100, icon: '✨' }
+  { id: 'master', title: '星系大师', count: 100, icon: '✨' },
+  // v4.2.1 新增
+  { id: 'comet', title: '暖意流星', count: 200, icon: '☄️' },     // 用温度划过别人的夜
+  { id: 'eternal', title: '永恒银河', count: 500, icon: '🌌' }    // 你的温暖已融入银河
 ];
 
 // --- 样式定义 ---
@@ -162,9 +165,10 @@ export default function App() {
   }, []);
 
   // 全局字号缩放：写到 <html> 的 font-size 上，rem-based 的所有尺寸跟着变
+  // 基准 18.4px (= 16 * 1.15)：v4.2.0 滑动条的 115% 在 v4.2.1 起被定为新默认 100%
   useEffect(() => {
     const scale = userData.fontScale || 1.0;
-    document.documentElement.style.fontSize = (16 * scale) + 'px';
+    document.documentElement.style.fontSize = (18.4 * scale) + 'px';
   }, [userData.fontScale]);
 
   useEffect(() => {
