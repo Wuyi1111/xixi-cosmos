@@ -247,9 +247,10 @@ export default function App() {
 
   const isDark = theme === 'dark' || (theme === 'auto' && (new Date().getHours() >= 18 || new Date().getHours() < 6));
 
-  // === 下拉刷新 ===
+  // === 下拉刷新（仅刷新当前 tab 内容，保留所在页面） ===
   const [pullDistance, setPullDistance] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const pullStartY = useRef(0);
   const pullActive = useRef(false);
 
@@ -275,7 +276,24 @@ export default function App() {
       pullActive.current = false;
       if (pullDistance > 60) {
         setRefreshing(true);
-        setTimeout(() => window.location.reload(), 400);
+        // 重新读 localStorage（保险），再让当前 tab 重新挂载
+        setTimeout(() => {
+          try {
+            const saved = localStorage.getItem('xixi_cosmos_data');
+            if (saved) {
+              const parsed = JSON.parse(saved);
+              parsed.id = 'TR755';
+              if (!parsed.displayName) parsed.displayName = '星海旅人';
+              if (!parsed.avatarEmoji) parsed.avatarEmoji = '🪐';
+              if (typeof parsed.fontScale !== 'number') parsed.fontScale = 1.0;
+              if (!Array.isArray(parsed.huggedWhispers)) parsed.huggedWhispers = [];
+              setUserData(parsed);
+            }
+          } catch {}
+          setRefreshKey(k => k + 1);
+          setRefreshing(false);
+          setPullDistance(0);
+        }, 500);
       } else {
         setPullDistance(0);
       }
@@ -328,43 +346,47 @@ export default function App() {
       </div>
 
       <main
-        className="relative z-10 px-4 max-w-md mx-auto min-h-screen pt-[max(env(safe-area-inset-top),3rem)] pb-[calc(env(safe-area-inset-bottom)+6rem)]"
+        className="relative z-10 px-4 max-w-md mx-auto min-h-screen pt-[max(env(safe-area-inset-top),0.75rem)] pb-[calc(env(safe-area-inset-bottom)+6rem)]"
         style={{
           transform: pullDistance > 0 ? `translateY(${pullDistance}px)` : undefined,
           transition: pullActive.current ? 'none' : 'transform 0.3s ease',
         }}
       >
         {activeTab === 'tonight' && (
-          <TonightView 
-            isDark={isDark} 
-            hasCheckedInToday={hasCheckedInToday} 
-            onCheckIn={handleCheckIn} 
+          <TonightView
+            key={`tonight-${refreshKey}`}
+            isDark={isDark}
+            hasCheckedInToday={hasCheckedInToday}
+            onCheckIn={handleCheckIn}
             userData={userData}
             saveUserData={saveUserData}
             currentDateStr={currentDateStr}
           />
         )}
         {activeTab === 'treehole' && (
-          <TreeholeView 
-            isDark={isDark} 
-            userData={userData} 
+          <TreeholeView
+            key={`treehole-${refreshKey}`}
+            isDark={isDark}
+            userData={userData}
             saveUserData={saveUserData}
             currentDateStr={currentDateStr}
           />
         )}
         {activeTab === 'galaxy' && (
-          <GalaxyView 
-            isDark={isDark} 
+          <GalaxyView
+            key={`galaxy-${refreshKey}`}
+            isDark={isDark}
             userData={{...userData, displayContinuousDays}}
             saveUserData={saveUserData}
             currentDateStr={currentDateStr}
           />
         )}
         {activeTab === 'mine' && (
-          <MineView 
-            isDark={isDark} 
-            theme={theme} 
-            setTheme={setTheme} 
+          <MineView
+            key={`mine-${refreshKey}`}
+            isDark={isDark}
+            theme={theme}
+            setTheme={setTheme}
             userData={userData}
             saveUserData={saveUserData}
             setUserData={(d) => {
@@ -449,7 +471,7 @@ function TonightView({ isDark, hasCheckedInToday, onCheckIn, userData, saveUserD
 
   return (
     <div className="animate-fade-in space-y-6 pb-10">
-      <header className="text-center pt-4 mb-2">
+      <header className="text-center pt-1 mb-2">
         <h1 className="text-2xl font-light tracking-widest mb-2">息息·宇宙</h1>
         <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'} font-light`}>
           与繁星作伴，和内心和解
