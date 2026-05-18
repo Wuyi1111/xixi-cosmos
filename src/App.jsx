@@ -124,6 +124,7 @@ export default function App() {
     continuousDays: 0,
     stardust: 0,
     totalHugs: 0,
+    huggedWhispers: [],            // 已点亮的心语 id 列表（可切换）
     checkInHistory: [],
     dreamLogs: [],
     myWhispers: [],
@@ -158,6 +159,7 @@ export default function App() {
       if (!parsed.displayName) parsed.displayName = '星海旅人';
       if (!parsed.avatarEmoji) parsed.avatarEmoji = '🪐';
       if (typeof parsed.fontScale !== 'number') parsed.fontScale = 1.0;
+      if (!Array.isArray(parsed.huggedWhispers)) parsed.huggedWhispers = [];
       setUserData(parsed);
     }
     const savedTheme = localStorage.getItem('xixi_cosmos_theme') || 'light';
@@ -1113,20 +1115,36 @@ function TreeholeView({ isDark, userData, saveUserData, currentDateStr }) {
     }
   }, [whisperText, mode]);
 
-  const handleSendHug = (e) => {
-    saveUserData({ ...userData, totalHugs: userData.totalHugs + 1 });
-    const rect = e.currentTarget.getBoundingClientRect();
-    const newParticles = Array.from({ length: 5 }).map((_, i) => ({
-      id: Date.now() + i,
-      x: rect.left + rect.width / 2,
-      y: rect.top,
-      tx: (Math.random() - 0.5) * 100 + 'px'
-    }));
-    
-    setParticles(prev => [...prev, ...newParticles]);
-    setTimeout(() => {
-      setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
-    }, 1000);
+  const handleToggleHug = (whisperId, e) => {
+    const huggedList = userData.huggedWhispers || [];
+    const isHugged = huggedList.includes(whisperId);
+
+    if (isHugged) {
+      // 取消点亮
+      saveUserData({
+        ...userData,
+        totalHugs: Math.max(0, userData.totalHugs - 1),
+        huggedWhispers: huggedList.filter(id => id !== whisperId),
+      });
+    } else {
+      // 点亮 + 粒子动效
+      saveUserData({
+        ...userData,
+        totalHugs: userData.totalHugs + 1,
+        huggedWhispers: [...huggedList, whisperId],
+      });
+      const rect = e.currentTarget.getBoundingClientRect();
+      const newParticles = Array.from({ length: 5 }).map((_, i) => ({
+        id: Date.now() + i,
+        x: rect.left + rect.width / 2,
+        y: rect.top,
+        tx: (Math.random() - 0.5) * 100 + 'px'
+      }));
+      setParticles(prev => [...prev, ...newParticles]);
+      setTimeout(() => {
+        setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
+      }, 1000);
+    }
   };
 
   const handleEmit = () => {
@@ -1202,16 +1220,18 @@ function TreeholeView({ isDark, userData, saveUserData, currentDateStr }) {
       {/* 模式 1: 星际回音 (浏览他人的心语) */}
       {mode === 'browse' && (
         <div className="space-y-6">
-          {MOCK_WHISPERS.map((whisper, i) => (
-            <div 
-              key={whisper.id} 
+          {MOCK_WHISPERS.map((whisper, i) => {
+            const isHugged = (userData.huggedWhispers || []).includes(whisper.id);
+            return (
+            <div
+              key={whisper.id}
               className={`p-6 rounded-[28px] ${isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border-white/5' : 'bg-gradient-to-br from-indigo-50/50 to-white border-indigo-50'} border shadow-sm relative overflow-hidden group hover:scale-[1.01] transition-all duration-500`}
               style={{ animationDelay: `${i * 0.1}s`, animationFillMode: 'both' }}
             >
               {/* 情感光晕 */}
               <div className={`absolute -right-4 -top-4 w-20 h-20 rounded-full blur-3xl opacity-50 group-hover:opacity-100 transition-opacity duration-700 ${whisper.isPositive ? 'bg-amber-500/20' : 'bg-blue-500/20'}`}></div>
               <div className={`absolute -bottom-10 -left-4 w-16 h-16 rounded-full blur-2xl opacity-30 ${whisper.isPositive ? 'bg-pink-500/10' : 'bg-indigo-500/10'}`}></div>
-              
+
               <div className="flex items-center gap-2 mb-5 relative z-10">
                 <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
                   {whisper.emotion}
@@ -1220,24 +1240,37 @@ function TreeholeView({ isDark, userData, saveUserData, currentDateStr }) {
                   <Radio size={10} /> 未知坐标
                 </span>
               </div>
-              
+
               <p className={`text-sm leading-relaxed mb-6 font-light relative z-10 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                 "{whisper.text}"
               </p>
-              
+
               <div className="flex justify-end relative z-10">
-                <button 
-                  onClick={handleSendHug}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all active:scale-95 ${
-                    isDark ? 'bg-white/5 hover:bg-white/10 text-pink-400 border border-white/5 hover:border-pink-500/30' : 'bg-pink-50 hover:bg-pink-100 text-pink-500 border border-pink-100'
+                <button
+                  onClick={(e) => handleToggleHug(whisper.id, e)}
+                  aria-pressed={isHugged}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 active:scale-95 ${
+                    isHugged
+                      ? (isDark
+                          ? 'bg-pink-500/25 text-pink-300 border border-pink-400/60 shadow-[0_0_20px_rgba(236,72,153,0.35)]'
+                          : 'bg-pink-100 text-pink-600 border border-pink-300 shadow-[0_0_18px_rgba(236,72,153,0.25)]')
+                      : (isDark
+                          ? 'bg-white/5 hover:bg-white/10 text-pink-400 border border-white/5 hover:border-pink-500/30'
+                          : 'bg-pink-50 hover:bg-pink-100 text-pink-500 border border-pink-100')
                   }`}
                 >
-                  <Heart size={16} />
-                  <span className="text-xs">送出温暖</span>
+                  <Heart
+                    size={16}
+                    fill={isHugged ? 'currentColor' : 'none'}
+                    strokeWidth={isHugged ? 2.5 : 2}
+                    className={`transition-transform duration-300 ${isHugged ? 'scale-110' : 'scale-100'}`}
+                  />
+                  <span className="text-xs">{isHugged ? '已送出温暖' : '送出温暖'}</span>
                 </button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -1705,7 +1738,7 @@ function MineView({ isDark, theme, setTheme, userData, setUserData, saveUserData
         displayName: '星海旅人',
         avatarEmoji: '🪐',
         fontScale: 1.0,
-        totalDays: 0, continuousDays: 0, stardust: 0, totalHugs: 0, checkInHistory: [], dreamLogs: [], myWhispers: [], personality: null, dailyPosts: 0, lastPostDate: '', reminderEnabled: false, reminderTime: '22:30'
+        totalDays: 0, continuousDays: 0, stardust: 0, totalHugs: 0, huggedWhispers: [], checkInHistory: [], dreamLogs: [], myWhispers: [], personality: null, dailyPosts: 0, lastPostDate: '', reminderEnabled: false, reminderTime: '22:30'
       });
       setShowSettings(false);
     }}/>;
