@@ -1512,55 +1512,86 @@ function GalaxyView({ isDark, userData, saveUserData, currentDateStr }) {
   const currentMilestone = MILESTONES.slice().reverse().find(m => userData.totalDays >= m.days) || MILESTONES[0];
   const milestoneIcons = ['🌌', '🌫️', '⭐', '🪐', '💫', '🌗', '🌀'];
 
-  // === 光晕跟随手指 ===
+  // === 光晕跟随手指：RAF 多层缓动，模拟云雾散开 ===
   const glowAreaRef = useRef(null);
-  const [glowOffset, setGlowOffset] = useState({ x: 0, y: 0 });
-  const [glowDragging, setGlowDragging] = useState(false);
-  const glowActiveRef = useRef(false);
+  const ambientRef = useRef(null);   // 外层弥散云团（最慢、最浓）
+  const mainGlowRef = useRef(null);  // 主光晕
+  const coreGlowRef = useRef(null);  // 内部明亮核心（最快）
+  const targetOffsetRef = useRef({ x: 0, y: 0 });
+  const layersRef = useRef([
+    { x: 0, y: 0, scale: 1, factor: 0.06, scaleTarget: 1, scaleFactor: 0.12, dragScale: 1.18 },  // ambient — 慢、散得大
+    { x: 0, y: 0, scale: 1, factor: 0.13, scaleTarget: 1, scaleFactor: 0.15, dragScale: 1.12 },  // main — 中速
+    { x: 0, y: 0, scale: 1, factor: 0.24, scaleTarget: 1, scaleFactor: 0.18, dragScale: 1.06 },  // core — 较快、贴近手指
+  ]);
+  const draggingRef = useRef(false);
 
-  const MAX_OFFSET = 55; // 像素，光晕最大偏移半径
+  const MAX_OFFSET = 60;
 
-  const updateGlow = (clientX, clientY) => {
+  const updateTarget = (clientX, clientY) => {
     const el = glowAreaRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
     const dx = clientX - rect.left - rect.width / 2;
     const dy = clientY - rect.top - rect.height / 2;
-    // 0.55 灵敏度 + clamp，让光晕"软"地跟着手指，不会冲出画面
-    setGlowOffset({
-      x: Math.max(-MAX_OFFSET, Math.min(MAX_OFFSET, dx * 0.55)),
-      y: Math.max(-MAX_OFFSET, Math.min(MAX_OFFSET, dy * 0.55)),
-    });
+    targetOffsetRef.current = {
+      x: Math.max(-MAX_OFFSET, Math.min(MAX_OFFSET, dx * 0.65)),
+      y: Math.max(-MAX_OFFSET, Math.min(MAX_OFFSET, dy * 0.65)),
+    };
   };
 
+  useEffect(() => {
+    let raf;
+    let active = true;
+    const refs = [ambientRef, mainGlowRef, coreGlowRef];
+
+    const tick = () => {
+      const t = targetOffsetRef.current;
+      const dragging = draggingRef.current;
+
+      for (let i = 0; i < layersRef.current.length; i++) {
+        const layer = layersRef.current[i];
+
+        // 位移缓动
+        layer.x += (t.x - layer.x) * layer.factor;
+        layer.y += (t.y - layer.y) * layer.factor;
+
+        // 缩放缓动：拖拽时各层向外散开成"云"，松开慢慢聚回
+        const targetScale = dragging ? layer.dragScale : 1;
+        layer.scale += (targetScale - layer.scale) * layer.scaleFactor;
+
+        const el = refs[i].current;
+        if (el) {
+          el.style.transform =
+            `translate3d(${layer.x.toFixed(2)}px, ${layer.y.toFixed(2)}px, 0) scale(${layer.scale.toFixed(3)})`;
+        }
+      }
+      if (active) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => { active = false; cancelAnimationFrame(raf); };
+  }, []);
+
   const onGlowDown = (e) => {
-    glowActiveRef.current = true;
-    setGlowDragging(true);
+    draggingRef.current = true;
     const t = e.touches?.[0];
-    if (t) updateGlow(t.clientX, t.clientY);
-    else updateGlow(e.clientX, e.clientY);
+    if (t) updateTarget(t.clientX, t.clientY);
+    else updateTarget(e.clientX, e.clientY);
   };
   const onGlowMove = (e) => {
-    if (!glowActiveRef.current) return;
+    if (!draggingRef.current) return;
     const t = e.touches?.[0];
-    if (t) updateGlow(t.clientX, t.clientY);
-    else updateGlow(e.clientX, e.clientY);
+    if (t) updateTarget(t.clientX, t.clientY);
+    else updateTarget(e.clientX, e.clientY);
   };
   const onGlowEnd = () => {
-    glowActiveRef.current = false;
-    setGlowDragging(false);
-    setGlowOffset({ x: 0, y: 0 }); // 平滑回中
+    draggingRef.current = false;
+    targetOffsetRef.current = { x: 0, y: 0 }; // RAF 会缓动回中
   };
 
   const renderGalaxyVisual = () => {
     const days = userData.totalDays;
-
-    // 跟随手指的 transform & 过渡曲线
-    const followStyle = {
-      transform: `translate(${glowOffset.x}px, ${glowOffset.y}px)`,
-      transition: glowDragging ? 'transform 0.05s linear' : 'transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1)',
-      willChange: 'transform',
-    };
+    // RAF 已经在每帧 lerp transform，CSS 不要再做 transition，否则两层缓动会打架
+    const followTransitionStyle = { willChange: 'transform' };
 
     return (
       <div
@@ -1578,10 +1609,18 @@ function GalaxyView({ isDark, userData, saveUserData, currentDateStr }) {
         className={`py-8 rounded-[32px] border space-y-6 relative overflow-hidden flex flex-col items-center select-none cursor-grab active:cursor-grabbing ${isDark ? 'bg-black/20 border-indigo-500/10' : 'bg-indigo-50/50 border-indigo-100 shadow-sm'}`}
       >
         <div className="relative w-48 h-48 flex items-center justify-center">
-          {/* 主光晕：跟随手指 */}
+          {/* 外层弥散云团：最慢、最朦胧，撑出"雾"的弥漫感 */}
           <div
+            ref={ambientRef}
+            className={`absolute -inset-2 rounded-full filter blur-[40px] opacity-70 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-400/20'}`}
+            style={followTransitionStyle}
+          ></div>
+
+          {/* 主光晕：中速跟随 */}
+          <div
+            ref={mainGlowRef}
             className="absolute inset-4 bg-indigo-600/10 rounded-full filter blur-xl animate-pulse"
-            style={followStyle}
+            style={followTransitionStyle}
           ></div>
 
           {days >= 0 && (
@@ -1589,8 +1628,9 @@ function GalaxyView({ isDark, userData, saveUserData, currentDateStr }) {
           )}
           {days >= 1 && (
             <div
+              ref={coreGlowRef}
               className="absolute inset-4 bg-gradient-to-tr from-indigo-500/10 to-blue-500/10 rounded-full filter blur-md animate-pulse"
-              style={followStyle}
+              style={followTransitionStyle}
             ></div>
           )}
           {days >= 7 && <div className="w-16 h-16 bg-gradient-to-tr from-yellow-400 to-orange-500 rounded-full shadow-[0_0_30px_rgba(234,179,8,0.6)] animate-pulse z-10"></div>}
