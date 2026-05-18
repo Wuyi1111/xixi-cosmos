@@ -1723,7 +1723,7 @@ function MineView({ isDark, theme, setTheme, userData, setUserData, saveUserData
                     : (isDark ? 'bg-[#1f1f2e] border-transparent opacity-50 grayscale' : 'bg-gray-50 border-transparent opacity-60 grayscale')
                 }`}
               >
-                <span className="text-2xl">{title.icon}</span>
+                <span className="text-4xl">{title.icon}</span>
                 <span className="text-xs font-medium">{title.title}</span>
                 <span className="text-[9px] text-gray-500">送出 {title.count} 次温暖解锁</span>
               </div>
