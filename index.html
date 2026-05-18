@@ -16,6 +16,42 @@
     <!-- 关闭 iOS Safari 把数字串自动识别成电话链接（避免星际编号变成可拨电话） -->
     <meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no" />
     <title>息息·宇宙 V4</title>
+    <!--
+      防暗色启动闪屏：必须 inline 在 <head> 里，于首次绘制前同步把主题 class 和
+      字号 scale 写到 <html> 上。React 加载完成后会再做一遍，结果一致。
+    -->
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem('xixi_cosmos_theme') || 'light';
+          var isDark;
+          if (theme === 'dark') isDark = true;
+          else if (theme === 'light') isDark = false;
+          else {
+            var h = new Date().getHours();
+            isDark = (h >= 18 || h < 6);
+          }
+          var root = document.documentElement;
+          if (isDark) {
+            root.classList.add('dark');
+            root.style.backgroundColor = '#0f0f1a';
+            document.body && (document.body.style.backgroundColor = '#0f0f1a');
+          } else {
+            root.classList.add('light');
+            root.style.backgroundColor = '#f8fafc';
+          }
+          // 同步字号缩放，避免基准 16→18.4 切换时整页字号"跳"一下
+          var data = localStorage.getItem('xixi_cosmos_data');
+          if (data) {
+            var parsed = JSON.parse(data);
+            var s = (parsed && typeof parsed.fontScale === 'number') ? parsed.fontScale : 1.0;
+            root.style.fontSize = (18.4 * s) + 'px';
+          } else {
+            root.style.fontSize = '18.4px';
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
