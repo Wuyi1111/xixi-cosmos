@@ -1873,10 +1873,29 @@ function MineView({ isDark, theme, setTheme, userData, setUserData, saveUserData
   );
 }
 
+// 开发者测试控制台访问密码
+const DEV_CONSOLE_PASSWORD = '186638';
+
 // 设置面板小组件：引入完整的开发者测试闭环
 function SettingsPanel({ isDark, theme, setTheme, userData, saveUserData, onClose, onReset }) {
   const [confirmDialog, setConfirmDialog] = useState(null); // 自定义确认弹窗
   const [alertDialog, setAlertDialog] = useState(null);     // 自定义提示弹窗
+
+  // 开发者测试控制台的密码门
+  const [devUnlocked, setDevUnlocked] = useState(false);
+  const [devPasswordInput, setDevPasswordInput] = useState('');
+  const [devPasswordError, setDevPasswordError] = useState(false);
+
+  const handleDevUnlock = (e) => {
+    if (e) e.preventDefault();
+    if (devPasswordInput === DEV_CONSOLE_PASSWORD) {
+      setDevUnlocked(true);
+      setDevPasswordInput('');
+      setDevPasswordError(false);
+    } else {
+      setDevPasswordError(true);
+    }
+  };
   
   // 1. 时空跃迁 (生成虚拟记录)
   const handleFillMockData = (days) => {
@@ -2009,8 +2028,57 @@ function SettingsPanel({ isDark, theme, setTheme, userData, saveUserData, onClos
       <div className={`pt-8 space-y-4 border-t ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
         <h3 className="text-xs text-indigo-500 mb-2 px-2 flex items-center gap-1.5 font-medium">
           <Bug size={14} /> 开发者测试控制台
+          {devUnlocked && (
+            <button
+              onClick={() => { setDevUnlocked(false); setDevPasswordInput(''); setDevPasswordError(false); }}
+              className="ml-auto text-[10px] font-normal text-gray-500 hover:text-indigo-400 underline-offset-2 hover:underline"
+              title="锁定控制台"
+            >
+              锁定
+            </button>
+          )}
         </h3>
-        
+
+        {!devUnlocked ? (
+          /* 密码门：未解锁前隐藏所有开发者操作 */
+          <form
+            onSubmit={handleDevUnlock}
+            className={`p-5 rounded-2xl space-y-3 ${isDark ? 'bg-[#1a1a28] border border-gray-800' : 'bg-gray-50 border border-gray-200'}`}
+          >
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <AlertTriangle size={12} />
+              <span>此控制台仅限开发者使用，请输入访问密码</span>
+            </div>
+            <input
+              type="password"
+              inputMode="numeric"
+              autoComplete="off"
+              value={devPasswordInput}
+              onChange={(e) => { setDevPasswordInput(e.target.value); if (devPasswordError) setDevPasswordError(false); }}
+              placeholder="请输入访问密码"
+              className={`w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-colors ${
+                isDark
+                  ? 'bg-black/30 border border-gray-700 focus:border-indigo-500 text-gray-200 placeholder-gray-600'
+                  : 'bg-white border border-gray-200 focus:border-indigo-400 text-gray-800 placeholder-gray-400'
+              } ${devPasswordError ? 'border-rose-400 focus:border-rose-400' : ''}`}
+            />
+            {devPasswordError && (
+              <p className="text-[11px] text-rose-400">密码错误，请重试</p>
+            )}
+            <button
+              type="submit"
+              disabled={!devPasswordInput}
+              className={`w-full py-2.5 rounded-xl text-sm font-medium transition-colors active:scale-95 ${
+                devPasswordInput
+                  ? 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                  : (isDark ? 'bg-gray-800 text-gray-600' : 'bg-gray-200 text-gray-400')
+              }`}
+            >
+              解锁控制台
+            </button>
+          </form>
+        ) : (
+        <>
         {/* 模块1：数据注入 */}
         <div className={`p-4 rounded-2xl space-y-3 ${isDark ? 'bg-indigo-500/5 border border-indigo-500/10' : 'bg-indigo-50/50 border border-indigo-100'}`}>
            <p className="text-[10px] text-gray-500 flex items-center gap-1"><Zap size={10}/> 时空与能量注入 (正向推进)</p>
@@ -2052,6 +2120,8 @@ function SettingsPanel({ isDark, theme, setTheme, userData, saveUserData, onClos
           </div>
           <ChevronRight size={16} />
         </button>
+        </>
+        )}
       </div>
 
       {/* --- 自定义确认弹窗 Modal --- */}
