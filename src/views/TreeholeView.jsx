@@ -1,18 +1,22 @@
 /**
- * TreeholeView.jsx — "微澜"树洞，三栏 tab：星际回音 / 发射台 / 我的信号。
+ * TreeholeView.jsx — "微澜"树洞，三栏 tab：星际回音 / 发射台 / 明日。
  *
- * 三个 mode：
- *   - 'browse' 星际回音：浏览 5 条示例心语，每张卡底部"送出温暖"心形按钮
- *   - 'emit'   发射台：选标签 + 写心语 + 选可见度 + 发射（每日上限 5 条）
- *   - 'mine'   我的信号：搜索 / 展开 / 收藏 / 删除自己发过的心语
+ * 三个 tab（mode）：
+ *   - 'browse'   星际回音：浏览示例心语，每张卡底部"送出温暖"心形按钮
+ *   - 'emit'     发射台：选标签 + 写心语 + 选可见度 + 发射（每日上限 5 条）
+ *                       下方接"我的信号" — 搜索 + 历史心语列表（v4.5.0 起合并进来）
+ *   - 'tomorrow' 明日：给用户的温柔建议清单，原则是不逼用户改变只陪着
+ *
+ * 三个 tab 可以手指**横向滑动切换**（v4.5.0 起），也可以继续点击顶部按钮。
  *
  * 改什么：
- *   - 改"星际回音"展示的 5 条示例 → src/constants.js 的 MOCK_WHISPERS
+ *   - 改"星际回音"展示的示例心语 → src/constants.js 的 MOCK_WHISPERS
  *   - 改发射台的预设波段标签 → src/constants.js 的 PRESET_TAGS
  *   - 改每日发射上限（默认 5 次）→ 这里 postsLeft 那行的 5
  *   - 改"送出温暖"心形点亮 / 取消交互、粒子动效 → handleToggleHug
- *   - 改发射成功后的 toast 文案 → 文件底部 showToast 那块
- *   - 改"我的信号"的搜索 / 展开 / 删除交互 → mode === 'mine' 分支
+ *   - 改"明日"tab 的建议条目（emoji / 主文 / 副文）→ src/constants.js 的 TOMORROW_SUGGESTIONS
+ *   - 调整手势滑动灵敏度（默认 20% 容器宽即触发切换）→ SWIPE_THRESHOLD_RATIO
+ *   - 改边界阻尼 / 拖动反馈曲线 → onTouchMove 里的 0.3 系数
  *
  * 注意：当前没有后端，"散落星海"和"深空折叠"两个可见度选项目前只是 UI 标签，
  *      心语全都只保存在本地。要做真"匿名公开"得自己加后端。
@@ -21,9 +25,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { Radio, Heart, Search, X, Star, ChevronDown, Trash2, Send, AlertTriangle } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
-import { MOCK_WHISPERS, PRESET_TAGS } from '../constants.js';
+import { MOCK_WHISPERS, PRESET_TAGS, TOMORROW_SUGGESTIONS } from '../constants.js';
 
-// --- 页面 2：微澜 (Treehole) ---
+const MODES = ['browse', 'emit', 'tomorrow'];
+const MODE_LABELS = { browse: '星际回音', emit: '发射台', tomorrow: '明日' };
+const SWIPE_THRESHOLD_RATIO = 0.2; // 拖过容器 20% 宽就切到下一页
+
 export default function TreeholeView({ isDark, userData, saveUserData, currentDateStr }) {
   const [mode, setMode] = useState('browse');
   const [whisperText, setWhisperText] = useState('');
@@ -50,6 +57,66 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
     }
   }, [whisperText, mode]);
 
+  // === 横向手势滑动 ===
+  const containerRef = useRef(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [dragX, setDragX] = useState(0);
+  const dragging = useRef(false);
+  const swipeStart = useRef({ x: 0, y: 0, direction: null });
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const measure = () => setContainerWidth(containerRef.current?.offsetWidth || 0);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  const modeIndex = MODES.indexOf(mode);
+
+  const onPagesTouchStart = (e) => {
+    swipeStart.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+      direction: null,
+    };
+    dragging.current = true;
+  };
+  const onPagesTouchMove = (e) => {
+    if (!dragging.current) return;
+    const dx = e.touches[0].clientX - swipeStart.current.x;
+    const dy = e.touches[0].clientY - swipeStart.current.y;
+
+    // 锁定方向：第一次显著移动决定是横滑还是竖滚
+    if (swipeStart.current.direction === null) {
+      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+        swipeStart.current.direction = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+      }
+    }
+
+    if (swipeStart.current.direction === 'h') {
+      // 边界阻尼：到了最左 / 最右还想往外拖时，给 0.3 的衰减
+      let constrained = dx;
+      if (modeIndex === 0 && dx > 0) constrained = dx * 0.3;
+      if (modeIndex === MODES.length - 1 && dx < 0) constrained = dx * 0.3;
+      setDragX(constrained);
+    }
+  };
+  const onPagesTouchEnd = () => {
+    if (swipeStart.current.direction === 'h' && containerWidth > 0) {
+      const threshold = containerWidth * SWIPE_THRESHOLD_RATIO;
+      let newIndex = modeIndex;
+      if (dragX < -threshold && modeIndex < MODES.length - 1) newIndex = modeIndex + 1;
+      else if (dragX > threshold && modeIndex > 0) newIndex = modeIndex - 1;
+      if (newIndex !== modeIndex) setMode(MODES[newIndex]);
+    }
+    setDragX(0);
+    dragging.current = false;
+    swipeStart.current.direction = null;
+  };
+
+  // === 业务逻辑 ===
   const handleToggleHug = (whisperId, e) => {
     const huggedList = userData.huggedWhispers || [];
     const isHugged = huggedList.includes(whisperId);
@@ -82,7 +149,6 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
 
   const handleEmit = () => {
     if(!whisperText || postsLeft <= 0) return;
-
     const newWhisper = {
       id: Date.now(),
       date: currentDateStr,
@@ -91,18 +157,15 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
       visibility,
       isFavorite: false
     };
-
     saveUserData({
       ...userData,
       dailyPosts: postsToday + 1,
       lastPostDate: currentDateStr,
       myWhispers: [newWhisper, ...myWhispers]
     });
-
     setWhisperText('');
     setSelectedTag('');
     setVisibility('public');
-    setMode('mine');
     setShowToast(true);
     setTimeout(() => setShowToast(false), 2000);
   };
@@ -123,257 +186,328 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
     w.emotion.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  return (
-    <div className="animate-fade-in pb-10">
-      {/* 三栏式导航 */}
-      <div className="flex justify-center mb-8">
-        <div className={`flex p-1 rounded-full w-full max-w-[320px] ${isDark ? 'bg-[#171724]' : 'bg-gray-200/50'}`}>
-          <button
-            className={`flex-1 py-2 rounded-full text-xs font-medium transition-colors ${mode === 'browse' ? (isDark ? 'bg-[#1f1f2e] text-white shadow-sm' : 'bg-white text-gray-900 shadow-sm') : 'text-gray-400'}`}
-            onClick={() => setMode('browse')}
+  // === 三个页面内容 ===
+  const renderBrowse = () => (
+    <div className="space-y-6">
+      {MOCK_WHISPERS.map((whisper, i) => {
+        const isHugged = (userData.huggedWhispers || []).includes(whisper.id);
+        return (
+          <div
+            key={whisper.id}
+            className={`p-6 rounded-[28px] ${isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border-white/5' : 'bg-gradient-to-br from-indigo-50/50 to-white border-indigo-50'} border shadow-sm relative overflow-hidden`}
           >
-            星际回音
+            <div className={`absolute -right-4 -top-4 w-20 h-20 rounded-full blur-3xl opacity-50 ${whisper.isPositive ? 'bg-amber-500/20' : 'bg-blue-500/20'}`}></div>
+            <div className={`absolute -bottom-10 -left-4 w-16 h-16 rounded-full blur-2xl opacity-30 ${whisper.isPositive ? 'bg-pink-500/10' : 'bg-indigo-500/10'}`}></div>
+
+            <div className="flex items-center gap-2 mb-5 relative z-10">
+              <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
+                {whisper.emotion}
+              </span>
+              <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                <Radio size={10} /> 未知坐标
+              </span>
+            </div>
+
+            <p className={`text-sm leading-relaxed mb-6 font-light relative z-10 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+              "{whisper.text}"
+            </p>
+
+            <div className="flex justify-end relative z-10">
+              <button
+                onClick={(e) => handleToggleHug(whisper.id, e)}
+                aria-pressed={isHugged}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 active:scale-95 ${
+                  isHugged
+                    ? (isDark
+                        ? 'bg-pink-500/25 text-pink-300 border border-pink-400/60 shadow-[0_0_20px_rgba(236,72,153,0.35)]'
+                        : 'bg-pink-100 text-pink-600 border border-pink-300 shadow-[0_0_18px_rgba(236,72,153,0.25)]')
+                    : (isDark
+                        ? 'bg-white/5 hover:bg-white/10 text-pink-400 border border-white/5 hover:border-pink-500/30'
+                        : 'bg-pink-50 hover:bg-pink-100 text-pink-500 border border-pink-100')
+                }`}
+              >
+                <Heart
+                  size={16}
+                  fill={isHugged ? 'currentColor' : 'none'}
+                  strokeWidth={isHugged ? 2.5 : 2}
+                  className={`transition-transform duration-300 ${isHugged ? 'scale-110' : 'scale-100'}`}
+                />
+                <span className="text-xs">{isHugged ? '已送出温暖' : '送出温暖'}</span>
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const renderEmitAndMine = () => (
+    <div className="space-y-6">
+      {/* 发射区 */}
+      <div className="space-y-3">
+        <p className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>为你的信号选择一个波段：</p>
+        <div className="flex flex-wrap gap-2">
+          {[...PRESET_TAGS.positive, ...PRESET_TAGS.neutral].slice(0, 5).map((tag, i) => (
+            <button
+              key={i}
+              onClick={() => {
+                setWhisperText(tag + '...');
+                setSelectedTag(tag);
+              }}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                selectedTag === tag
+                ? (isDark ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300' : 'bg-indigo-100 border-indigo-300 text-indigo-700')
+                : (isDark ? 'border-gray-700 text-gray-400 hover:border-gray-500' : 'border-gray-200 text-gray-500 hover:border-gray-300')
+              }`}
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="relative">
+        <textarea
+          ref={textareaRef}
+          className={`w-full p-5 rounded-[28px] resize-none min-h-[160px] text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-colors ${
+            isDark ? 'bg-[#171724] text-gray-200 placeholder-gray-600' : 'bg-white shadow-sm text-gray-800 placeholder-gray-400'
+          }`}
+          placeholder="宇宙无边无际，你的心声在这里不再受限。倾诉吧..."
+          value={whisperText}
+          onChange={e => setWhisperText(e.target.value)}
+        ></textarea>
+      </div>
+
+      <div className="flex justify-between items-center px-2">
+        <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>信号可见度：</span>
+        <div className={`flex p-1 rounded-full ${isDark ? 'bg-[#171724]' : 'bg-gray-100'}`}>
+          <button
+            onClick={() => setVisibility('public')}
+            className={`px-3 py-1.5 rounded-full text-[10px] font-medium transition-colors ${visibility === 'public' ? (isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white text-indigo-600 shadow-sm') : 'text-gray-400 hover:text-gray-300'}`}
+          >
+            散落星海 (公开)
           </button>
           <button
-            className={`flex-1 py-2 rounded-full text-xs font-medium transition-colors ${mode === 'emit' ? (isDark ? 'bg-[#1f1f2e] text-white shadow-sm' : 'bg-white text-gray-900 shadow-sm') : 'text-gray-400'}`}
-            onClick={() => setMode('emit')}
+            onClick={() => setVisibility('private')}
+            className={`px-3 py-1.5 rounded-full text-[10px] font-medium transition-colors ${visibility === 'private' ? (isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white text-indigo-600 shadow-sm') : 'text-gray-400 hover:text-gray-300'}`}
           >
-            发射台
-          </button>
-          <button
-            className={`flex-1 py-2 rounded-full text-xs font-medium transition-colors ${mode === 'mine' ? (isDark ? 'bg-[#1f1f2e] text-white shadow-sm' : 'bg-white text-gray-900 shadow-sm') : 'text-gray-400'}`}
-            onClick={() => setMode('mine')}
-          >
-            我的信号
+            深空折叠 (仅自己)
           </button>
         </div>
       </div>
 
-      {/* 模式 1: 星际回音 */}
-      {mode === 'browse' && (
-        <div className="space-y-6">
-          {MOCK_WHISPERS.map((whisper, i) => {
-            const isHugged = (userData.huggedWhispers || []).includes(whisper.id);
-            return (
-              <div
-                key={whisper.id}
-                className={`p-6 rounded-[28px] ${isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border-white/5' : 'bg-gradient-to-br from-indigo-50/50 to-white border-indigo-50'} border shadow-sm relative overflow-hidden group hover:scale-[1.01] transition-all duration-500`}
-                style={{ animationDelay: `${i * 0.1}s`, animationFillMode: 'both' }}
-              >
-                <div className={`absolute -right-4 -top-4 w-20 h-20 rounded-full blur-3xl opacity-50 group-hover:opacity-100 transition-opacity duration-700 ${whisper.isPositive ? 'bg-amber-500/20' : 'bg-blue-500/20'}`}></div>
-                <div className={`absolute -bottom-10 -left-4 w-16 h-16 rounded-full blur-2xl opacity-30 ${whisper.isPositive ? 'bg-pink-500/10' : 'bg-indigo-500/10'}`}></div>
+      <button
+        onClick={handleEmit}
+        disabled={!whisperText || postsLeft <= 0}
+        className={`w-full py-4 rounded-2xl font-medium tracking-wider transition-all flex items-center justify-center gap-2 ${
+          whisperText && postsLeft > 0
+            ? 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 active:scale-95'
+            : (isDark ? 'bg-[#1f1f2e] text-gray-600 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed')
+        }`}
+      >
+        <Send size={18} />
+        {postsLeft > 0 ? '向深空发射' : '今日星际能量已耗尽'}
+      </button>
+      <p className="text-center text-[10px] text-gray-500">
+        {postsLeft > 0 ? `今日还可发射 ${postsLeft} 次信号` : '明日 00:00 信号能量自动恢复'}
+      </p>
 
-                <div className="flex items-center gap-2 mb-5 relative z-10">
-                  <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
-                    {whisper.emotion}
-                  </span>
-                  <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                    <Radio size={10} /> 未知坐标
-                  </span>
-                </div>
-
-                <p className={`text-sm leading-relaxed mb-6 font-light relative z-10 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
-                  "{whisper.text}"
-                </p>
-
-                <div className="flex justify-end relative z-10">
-                  <button
-                    onClick={(e) => handleToggleHug(whisper.id, e)}
-                    aria-pressed={isHugged}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 active:scale-95 ${
-                      isHugged
-                        ? (isDark
-                            ? 'bg-pink-500/25 text-pink-300 border border-pink-400/60 shadow-[0_0_20px_rgba(236,72,153,0.35)]'
-                            : 'bg-pink-100 text-pink-600 border border-pink-300 shadow-[0_0_18px_rgba(236,72,153,0.25)]')
-                        : (isDark
-                            ? 'bg-white/5 hover:bg-white/10 text-pink-400 border border-white/5 hover:border-pink-500/30'
-                            : 'bg-pink-50 hover:bg-pink-100 text-pink-500 border border-pink-100')
-                    }`}
-                  >
-                    <Heart
-                      size={16}
-                      fill={isHugged ? 'currentColor' : 'none'}
-                      strokeWidth={isHugged ? 2.5 : 2}
-                      className={`transition-transform duration-300 ${isHugged ? 'scale-110' : 'scale-100'}`}
-                    />
-                    <span className="text-xs">{isHugged ? '已送出温暖' : '送出温暖'}</span>
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+      {/* === 我的信号 列表（合并进发射台底部） === */}
+      <div className={`pt-6 mt-2 border-t ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
+        <div className="flex items-center justify-between mb-3 px-1">
+          <h3 className="text-sm font-medium flex items-center gap-2">
+            <Radio size={14} className="text-indigo-400" />
+            我的信号
+          </h3>
+          <span className="text-[10px] text-gray-500">{myWhispers.length} 条</span>
         </div>
-      )}
 
-      {/* 模式 2: 发射台 */}
-      {mode === 'emit' && (
-        <div className="space-y-6 animate-fade-in">
-          <div className="space-y-3">
-            <p className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>为你的信号选择一个波段：</p>
-            <div className="flex flex-wrap gap-2">
-              {[...PRESET_TAGS.positive, ...PRESET_TAGS.neutral].slice(0, 5).map((tag, i) => (
-                <button
-                  key={i}
-                  onClick={() => {
-                    setWhisperText(tag + '...');
-                    setSelectedTag(tag);
-                  }}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                    selectedTag === tag
-                    ? (isDark ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300' : 'bg-indigo-100 border-indigo-300 text-indigo-700')
-                    : (isDark ? 'border-gray-700 text-gray-400 hover:border-gray-500' : 'border-gray-200 text-gray-500 hover:border-gray-300')
-                  }`}
+        <div className={`flex items-center px-4 py-3 rounded-2xl mb-3 ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
+          <Search size={16} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
+          <input
+            type="text"
+            placeholder="搜索我的心语轨迹..."
+            className={`flex-1 ml-3 bg-transparent text-sm outline-none ${isDark ? 'text-gray-200 placeholder-gray-600' : 'text-gray-800 placeholder-gray-400'}`}
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} className={isDark ? 'text-gray-500' : 'text-gray-400'}>
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          {filteredWhispers.length === 0 ? (
+            <div className={`py-10 text-center text-xs flex flex-col items-center gap-3 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+              <Radio size={28} className="opacity-40" />
+              {searchQuery ? '在广袤宇宙中未寻得该信号' : '暂未发射过任何信号'}
+            </div>
+          ) : (
+            filteredWhispers.map(whisper => {
+              const isExpanded = expandedWhisperId === whisper.id;
+              return (
+                <div
+                  key={whisper.id}
+                  onClick={() => setExpandedWhisperId(isExpanded ? null : whisper.id)}
+                  className={`rounded-[24px] transition-all duration-300 border cursor-pointer ${
+                    isExpanded ? (isDark ? 'bg-[#1f1f2e] border-indigo-500/30 shadow-lg shadow-indigo-500/5' : 'bg-white border-indigo-200 shadow-md')
+                               : (isDark ? 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04]' : 'bg-white/60 border-white/50 hover:bg-white shadow-sm')
+                  } active:scale-[0.98]`}
                 >
-                  {tag}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="relative">
-            <textarea
-              ref={textareaRef}
-              className={`w-full p-5 rounded-[28px] resize-none min-h-[160px] text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-colors ${
-                isDark ? 'bg-[#171724] text-gray-200 placeholder-gray-600' : 'bg-white shadow-sm text-gray-800 placeholder-gray-400'
-              }`}
-              placeholder="宇宙无边无际，你的心声在这里不再受限。倾诉吧..."
-              value={whisperText}
-              onChange={e => setWhisperText(e.target.value)}
-            ></textarea>
-          </div>
-
-          <div className="flex justify-between items-center px-2">
-            <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>信号可见度：</span>
-            <div className={`flex p-1 rounded-full ${isDark ? 'bg-[#171724]' : 'bg-gray-100'}`}>
-              <button
-                onClick={() => setVisibility('public')}
-                className={`px-3 py-1.5 rounded-full text-[10px] font-medium transition-colors ${visibility === 'public' ? (isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white text-indigo-600 shadow-sm') : 'text-gray-400 hover:text-gray-300'}`}
-              >
-                散落星海 (公开)
-              </button>
-              <button
-                onClick={() => setVisibility('private')}
-                className={`px-3 py-1.5 rounded-full text-[10px] font-medium transition-colors ${visibility === 'private' ? (isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white text-indigo-600 shadow-sm') : 'text-gray-400 hover:text-gray-300'}`}
-              >
-                深空折叠 (仅自己)
-              </button>
-            </div>
-          </div>
-
-          <button
-            onClick={handleEmit}
-            disabled={!whisperText || postsLeft <= 0}
-            className={`w-full py-4 rounded-2xl font-medium tracking-wider transition-all flex items-center justify-center gap-2 ${
-              whisperText && postsLeft > 0
-                ? 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 active:scale-95'
-                : (isDark ? 'bg-[#1f1f2e] text-gray-600 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed')
-            }`}
-          >
-            <Send size={18} />
-            {postsLeft > 0 ? '向深空发射' : '今日星际能量已耗尽'}
-          </button>
-          <p className="text-center text-[10px] text-gray-500">今日还可发射 {postsLeft} 次信号</p>
-        </div>
-      )}
-
-      {/* 模式 3: 我的信号 */}
-      {mode === 'mine' && (
-        <div className="space-y-4 animate-fade-in flex flex-col h-full">
-          <div className={`flex items-center px-4 py-3 rounded-2xl ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
-            <Search size={16} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
-            <input
-              type="text"
-              placeholder="搜索我的心语轨迹..."
-              className={`flex-1 ml-3 bg-transparent text-sm outline-none ${isDark ? 'text-gray-200 placeholder-gray-600' : 'text-gray-800 placeholder-gray-400'}`}
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className={isDark ? 'text-gray-500' : 'text-gray-400'}>
-                <X size={14} />
-              </button>
-            )}
-          </div>
-
-          <div className="max-h-[500px] overflow-y-auto no-scrollbar space-y-3 pb-6 pt-2">
-            {filteredWhispers.length === 0 ? (
-              <div className={`py-12 text-center text-xs flex flex-col items-center gap-3 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                <Radio size={32} className="opacity-40" />
-                {searchQuery ? '在广袤宇宙中未寻得该信号' : '暂未发射过任何信号'}
-              </div>
-            ) : (
-              filteredWhispers.map(whisper => {
-                const isExpanded = expandedWhisperId === whisper.id;
-
-                return (
-                  <div
-                    key={whisper.id}
-                    onClick={() => setExpandedWhisperId(isExpanded ? null : whisper.id)}
-                    className={`rounded-[24px] transition-all duration-300 border cursor-pointer ${
-                      isExpanded ? (isDark ? 'bg-[#1f1f2e] border-indigo-500/30 shadow-lg shadow-indigo-500/5' : 'bg-white border-indigo-200 shadow-md')
-                                 : (isDark ? 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04]' : 'bg-white/60 border-white/50 hover:bg-white shadow-sm')
-                    } active:scale-[0.98]`}
-                  >
-                    <div className="p-5 flex items-center justify-between">
-                      <div className="flex flex-col gap-1.5 overflow-hidden pr-3">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-[10px] px-2 py-0.5 rounded-sm ${isDark ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
-                            {whisper.emotion}
-                          </span>
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded-sm border ${whisper.visibility === 'private' ? (isDark ? 'bg-gray-800/50 text-gray-400 border-gray-700' : 'bg-gray-100 text-gray-500 border-gray-200') : (isDark ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30' : 'bg-indigo-50 text-indigo-500 border-indigo-100')}`}>
-                            {whisper.visibility === 'private' ? '深空折叠' : '散落星海'}
-                          </span>
-                          <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{whisper.date}</span>
-                        </div>
-                        {!isExpanded && (
-                          <span className={`text-sm truncate font-light ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                            {whisper.text}
-                          </span>
-                        )}
+                  <div className="p-5 flex items-center justify-between">
+                    <div className="flex flex-col gap-1.5 overflow-hidden pr-3">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-sm ${isDark ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                          {whisper.emotion}
+                        </span>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-sm border ${whisper.visibility === 'private' ? (isDark ? 'bg-gray-800/50 text-gray-400 border-gray-700' : 'bg-gray-100 text-gray-500 border-gray-200') : (isDark ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30' : 'bg-indigo-50 text-indigo-500 border-indigo-100')}`}>
+                          {whisper.visibility === 'private' ? '深空折叠' : '散落星海'}
+                        </span>
+                        <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{whisper.date}</span>
                       </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <button onClick={(e) => toggleFavoriteWhisper(whisper.id, e)} className="p-1 hover:scale-110 transition-transform">
-                          <Star size={16} className={`${whisper.isFavorite ? 'text-yellow-400 fill-yellow-400' : (isDark ? 'text-gray-600' : 'text-gray-300')} transition-colors`} />
-                        </button>
-                        <div className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
-                          <ChevronDown size={16} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
-                        </div>
+                      {!isExpanded && (
+                        <span className={`text-sm truncate font-light ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                          {whisper.text}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <button onClick={(e) => toggleFavoriteWhisper(whisper.id, e)} className="p-1 hover:scale-110 transition-transform">
+                        <Star size={16} className={`${whisper.isFavorite ? 'text-yellow-400 fill-yellow-400' : (isDark ? 'text-gray-600' : 'text-gray-300')} transition-colors`} />
+                      </button>
+                      <div className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+                        <ChevronDown size={16} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
                       </div>
                     </div>
+                  </div>
 
-                    <div className={`grid transition-all duration-300 ease-in-out ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-                      <div className="overflow-hidden">
-                        <div className="px-5 pb-5 space-y-4 pt-1 border-t border-white/5">
-                          <div className={`p-4 rounded-xl ${isDark ? 'bg-black/20' : 'bg-gray-50/80'}`}>
-                            <p className={`text-sm font-light leading-relaxed whitespace-pre-wrap ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
-                              {whisper.text}
-                            </p>
-                          </div>
-
-                          <div className="flex justify-end items-center gap-4 pt-2">
-                            <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(whisper.id); }} className={`flex items-center gap-1 text-[10px] hover:text-red-400 transition-colors ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                              <Trash2 size={12} /> 消散
-                            </button>
-                          </div>
+                  <div className={`grid transition-all duration-300 ease-in-out ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                    <div className="overflow-hidden">
+                      <div className="px-5 pb-5 space-y-4 pt-1 border-t border-white/5">
+                        <div className={`p-4 rounded-xl ${isDark ? 'bg-black/20' : 'bg-gray-50/80'}`}>
+                          <p className={`text-sm font-light leading-relaxed whitespace-pre-wrap ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+                            {whisper.text}
+                          </p>
+                        </div>
+                        <div className="flex justify-end items-center gap-4 pt-2">
+                          <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(whisper.id); }} className={`flex items-center gap-1 text-[10px] hover:text-red-400 transition-colors ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                            <Trash2 size={12} /> 消散
+                          </button>
                         </div>
                       </div>
                     </div>
                   </div>
-                );
-              })
-            )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderTomorrow = () => (
+    <div className="space-y-5">
+      {/* 头 */}
+      <div className={`p-6 rounded-[28px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a24] to-[#171724] border border-indigo-500/15' : 'bg-gradient-to-br from-indigo-50/70 to-white border border-indigo-100'}`}>
+        <div className="absolute -top-8 -right-6 w-32 h-32 rounded-full bg-amber-300/15 blur-3xl pointer-events-none"></div>
+        <div className="absolute -bottom-8 -left-6 w-24 h-24 rounded-full bg-indigo-300/15 blur-3xl pointer-events-none"></div>
+
+        <div className="relative z-10">
+          <p className={`text-[10px] tracking-[0.2em] mb-1 ${isDark ? 'text-indigo-300' : 'text-indigo-500'}`}>TOMORROW</p>
+          <h2 className="text-xl font-light mb-2">轻轻陪你走向明天</h2>
+          <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            这些不是任务，只是几颗你随手就能拾起的小光点。<br/>
+            可以试试，也可以放着。
+          </p>
+        </div>
+      </div>
+
+      {/* 建议条目 */}
+      <div className="space-y-2.5">
+        {TOMORROW_SUGGESTIONS.map((s) => (
+          <div
+            key={s.id}
+            className={`flex items-start gap-4 p-4 rounded-2xl transition-colors ${isDark ? 'bg-[#171724] hover:bg-[#1c1c2a]' : 'bg-white hover:bg-gray-50 shadow-sm'}`}
+          >
+            <span className="text-3xl shrink-0 leading-none mt-0.5">{s.emoji}</span>
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-medium mb-1 ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>{s.main}</p>
+              <p className={`text-xs leading-relaxed font-light ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{s.sub}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <p className={`text-center text-[11px] pt-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+        明天醒来时，记得只是先睁开眼，剩下的慢慢来。
+      </p>
+    </div>
+  );
+
+  // === 渲染 ===
+  return (
+    <div className="animate-fade-in pb-10">
+      {/* 三栏式导航：点击 / 高亮跟着滑动 */}
+      <div className="flex justify-center mb-6">
+        <div className={`flex p-1 rounded-full w-full max-w-[320px] ${isDark ? 'bg-[#171724]' : 'bg-gray-200/50'}`}>
+          {MODES.map(m => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              className={`flex-1 py-2 rounded-full text-xs font-medium transition-colors ${mode === m ? (isDark ? 'bg-[#1f1f2e] text-white shadow-sm' : 'bg-white text-gray-900 shadow-sm') : 'text-gray-400'}`}
+            >
+              {MODE_LABELS[m]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 横向滑动容器 */}
+      <div
+        ref={containerRef}
+        className="overflow-hidden -mx-4"
+        data-no-pull-refresh="true"
+        style={{ touchAction: 'pan-y' }}
+        onTouchStart={onPagesTouchStart}
+        onTouchMove={onPagesTouchMove}
+        onTouchEnd={onPagesTouchEnd}
+        onTouchCancel={onPagesTouchEnd}
+      >
+        <div
+          className="flex"
+          style={{
+            width: `${MODES.length * 100}%`,
+            transform: containerWidth
+              ? `translateX(${-modeIndex * containerWidth + dragX}px)`
+              : 'translateX(0)',
+            transition: dragging.current && swipeStart.current.direction === 'h'
+              ? 'none'
+              : 'transform 0.35s cubic-bezier(0.2, 0.9, 0.4, 1)',
+          }}
+        >
+          <div className="shrink-0 px-4" style={{ width: `${100 / MODES.length}%` }}>
+            {renderBrowse()}
+          </div>
+          <div className="shrink-0 px-4" style={{ width: `${100 / MODES.length}%` }}>
+            {renderEmitAndMine()}
+          </div>
+          <div className="shrink-0 px-4" style={{ width: `${100 / MODES.length}%` }}>
+            {renderTomorrow()}
           </div>
         </div>
-      )}
+      </div>
 
-      {/* 粒子效果渲染 */}
+      {/* 粒子效果 */}
       {particles.map(p => (
         <div key={p.id} className="particle text-pink-500 z-50 flex items-center justify-center" style={{ left: p.x - 10, top: p.y - 10, '--tx': p.tx }}>
           <Heart size={20} fill="currentColor" />
         </div>
       ))}
 
-      {/* 顶部发射成功提示 */}
+      {/* 发射成功 toast */}
       {showToast && (
         <Portal>
           <div className="fixed left-1/2 -translate-x-1/2 px-6 py-3 rounded-full bg-indigo-500 text-white text-sm shadow-lg shadow-indigo-500/20 animate-fade-in z-50 flex items-center gap-2 top-[max(env(safe-area-inset-top)+1rem,5rem)]">

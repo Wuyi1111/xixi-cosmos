@@ -10,6 +10,8 @@
  *   - 加 / 改"宇宙寄语"池（梦境舱里随机抽的那些诗意短句）→ COSMIC_DREAM_INTERPRETATIONS
  *   - 改"称号徽章"门槛和名字（送暖几次解锁哪个徽章）→ TITLES
  *   - 加 / 删可选头像 emoji → AVATAR_EMOJIS
+ *   - 改"明日"tab 的温柔建议（emoji + 主标题 + 副文）→ TOMORROW_SUGGESTIONS
+ *   - 加 / 改星愿池商品 → WISH_PRODUCTS；改别人许过的愿望示例 → MOCK_WISHES
  *
  * 这个文件全是纯数据，没有逻辑，改起来安全。
  */
@@ -97,6 +99,20 @@ export const TITLES = [
 
 // 头像可选 emoji
 export const AVATAR_EMOJIS = ['🪐', '🌙', '⭐', '🌟', '✨', '💫', '🌠', '🌌', '☄️', '🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘', '🛸', '🚀', '🌈', '☁️', '🦄'];
+
+// "明日" tab 的温柔建议 —— 不是任务，是几颗用户随手就能拾起的小光点。
+// 原则：不逼用户改变，只陪着慢慢变好。
+// 加新建议直接在数组里追加即可；想换文案改 main / sub 字段。
+export const TOMORROW_SUGGESTIONS = [
+  { id: 'meal',    emoji: '🍚', main: '好好吃一顿饭',          sub: '慢一点，给胃和心都一些空气。' },
+  { id: 'walk',    emoji: '🌿', main: '散步十五分钟',          sub: '走一段路，看一眼你没注意过的天空。' },
+  { id: 'no',      emoji: '✋', main: '拒绝一件正在消耗你的事', sub: '把今晚的力气，留给真正在乎的事情。' },
+  { id: 'pause',   emoji: '⏳', main: '给自己留二十分钟',      sub: '不刷手机，不被任何人打扰。' },
+  { id: 'book',    emoji: '📖', main: '翻开一本想读的书',      sub: '哪怕只读三页，也算把它从书架上接住。' },
+  { id: 'tidy',    emoji: '✨', main: '整理一个小角落',        sub: '让一处空间为你重新呼吸。' },
+  { id: 'reach',   emoji: '💌', main: '联系一个让你舒服的人',  sub: '一句"在吗"也算抵达。' },
+  { id: 'rest',    emoji: '🌙', main: '什么也不做，好好休息',  sub: '休息也是一种被允许的完成。' },
+];
 
 // 星愿池 — 睡眠相关商品（mock 数据，价格用星尘 + 元两种单位）
 // 真接通后端 / 支付时，再把这里换成接口拉取
