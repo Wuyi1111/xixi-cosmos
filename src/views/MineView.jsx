@@ -21,12 +21,15 @@
  */
 
 import { useState } from 'react';
-import { Settings, Edit3, X, Compass, Sparkles, ChevronRight } from 'lucide-react';
+import { Settings, Edit3, X, Compass, Sparkles, ChevronRight, AlertTriangle } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import QuizWidget from '../widgets/QuizWidget.jsx';
 import SettingsPanel from './SettingsPanel.jsx';
 import WishPoolView from './WishPoolView.jsx';
 import { TITLES, AVATAR_EMOJIS } from '../constants.js';
+
+// 星愿池访问密码
+const WISH_POOL_PASSWORD = '186638';
 
 // --- 页面 4：我的 (Mine) ---
 export default function MineView({ isDark, theme, setTheme, userData, setUserData, saveUserData }) {
@@ -34,6 +37,9 @@ export default function MineView({ isDark, theme, setTheme, userData, setUserDat
   const [showQuiz, setShowQuiz] = useState(false);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [showWishPool, setShowWishPool] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState(false);
   const [nameDraft, setNameDraft] = useState(userData.displayName || '星星旅人');
   const [emojiDraft, setEmojiDraft] = useState(userData.avatarEmoji || '🪐');
 
@@ -52,6 +58,24 @@ export default function MineView({ isDark, theme, setTheme, userData, setUserDat
     const trimmed = (nameDraft || '').trim().slice(0, 20) || '星星旅人';
     saveUserData({ ...userData, displayName: trimmed, avatarEmoji: emojiDraft });
     setShowProfileEdit(false);
+  };
+
+  const handleWishPoolClick = () => {
+    setShowPasswordModal(true);
+    setPasswordInput('');
+    setPasswordError(false);
+  };
+
+  const handlePasswordSubmit = (e) => {
+    if (e) e.preventDefault();
+    if (passwordInput === WISH_POOL_PASSWORD) {
+      setShowPasswordModal(false);
+      setPasswordInput('');
+      setPasswordError(false);
+      setShowWishPool(true);
+    } else {
+      setPasswordError(true);
+    }
   };
 
   if (showSettings) {
@@ -238,7 +262,7 @@ export default function MineView({ isDark, theme, setTheme, userData, setUserDat
           <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>累计夜晚</p>
         </div>
         <button
-          onClick={() => setShowWishPool(true)}
+          onClick={handleWishPoolClick}
           className={`border-x active:scale-95 transition-transform relative group ${isDark ? 'border-gray-800 hover:bg-white/[0.02]' : 'border-gray-100 hover:bg-gray-50/60'} -my-1 py-1 rounded`}
           aria-label="进入星愿池"
         >
@@ -279,6 +303,51 @@ export default function MineView({ isDark, theme, setTheme, userData, setUserDat
           })}
         </div>
       </div>
+
+      {/* 星愿池密码验证弹窗 */}
+      {showPasswordModal && (
+        <Portal>
+          <div className={`fixed inset-0 z-[70] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setShowPasswordModal(false)}>
+            <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`} onClick={e => e.stopPropagation()}>
+              <button onClick={() => setShowPasswordModal(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-200"><X size={20} /></button>
+              <h3 className="text-lg font-medium mb-4 text-center">星愿池</h3>
+              <form onSubmit={handlePasswordSubmit} className="space-y-3">
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <AlertTriangle size={12} />
+                  <span>请输入访问密码</span>
+                </div>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={passwordInput}
+                  onChange={(e) => { setPasswordInput(e.target.value); if (passwordError) setPasswordError(false); }}
+                  placeholder="请输入访问密码"
+                  className={`w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-colors ${
+                    isDark
+                      ? 'bg-black/30 border border-gray-700 focus:border-indigo-500 text-gray-200 placeholder-gray-600'
+                      : 'bg-white border border-gray-200 focus:border-indigo-400 text-gray-800 placeholder-gray-400'
+                  } ${passwordError ? 'border-rose-400 focus:border-rose-400' : ''}`}
+                />
+                {passwordError && (
+                  <p className="text-[11px] text-rose-400">密码错误，请重试</p>
+                )}
+                <button
+                  type="submit"
+                  disabled={!passwordInput}
+                  className={`w-full py-2.5 rounded-xl text-sm font-medium transition-colors active:scale-95 ${
+                    passwordInput
+                      ? 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                      : (isDark ? 'bg-gray-800 text-gray-600' : 'bg-gray-200 text-gray-400')
+                  }`}
+                >
+                  进入星愿池
+                </button>
+              </form>
+            </div>
+          </div>
+        </Portal>
+      )}
 
     </div>
   );
