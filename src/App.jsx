@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-// 请在顶部的 import 列表中增加 Bug, RotateCcw, Zap, Beaker 图标
-import { Moon, Wind, Music, Sparkles, Send, Heart, Settings, User, Compass, CheckCircle2, X, ChevronRight, Info, Cloud, AlertTriangle, ChevronDown, Calendar, Loader2, Star, Trash2, Edit3, ChevronUp, Plus, Search, Radio, ChevronLeft, Bug, RotateCcw, Zap, Beaker } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Moon, Wind, Music, Sparkles, Send, Heart, Settings, User, Compass, CheckCircle2, X, ChevronRight, Info, Cloud, AlertTriangle, ChevronDown, Calendar, Loader2, Star, Trash2, Edit3, ChevronUp, Plus, Search, Radio, ChevronLeft, Bug, RotateCcw, Zap } from 'lucide-react';
+
+// 将 fixed inset-0 类全屏 modal 渲染到 <body>，避开 <main> transform 树的影响
+function Portal({ children }) {
+  if (typeof document === 'undefined') return null;
+  return createPortal(children, document.body);
+}
 
 // --- 全局常量及模拟数据 ---
 
@@ -56,6 +62,23 @@ const MILESTONES = [
   { id: 6, days: 60, name: '宁静星系', desc: '整体极慢自转' }
 ];
 
+// 本地"宇宙寄语"池：替代之前对外发请求的 AI 解梦，确保隐私协议承诺
+// "所有梦境只在本机处理、不离开你的设备"始终成立
+const COSMIC_DREAM_INTERPRETATIONS = [
+  '在你心海最深处，有一颗未被命名的星正在自转。这场梦只是它发出的微光。',
+  '梦境是潜意识写给你的情诗——不用读懂每一行，只需感谢它愿意书写。',
+  '今夜你触碰到了平行宇宙的边界。带回那一缕惊奇，把疲惫留在那里。',
+  '梦中的画面，是白日里没来得及说完的话，宇宙替你接续了下去。',
+  '不要急着解读这场梦。先让它像潮水一样退去，留下被它打磨过的你。',
+  '当你忘记一个梦的细节，那是宇宙在帮你保管它最柔软的部分。',
+  '梦中的人和事，是你生命中曾真诚拥抱过的碎片，它们在向你致意。',
+  '哪怕这场梦让你慌乱，醒来时世界依然温柔——这就是夜晚的善意。',
+  '潜意识从不撒谎，它只是用比喻说话。给自己一些时间慢慢翻译。',
+  '你梦到的不是预言，而是你内心愿意去往的方向。',
+  '今夜你的灵魂去过远方，又安全回到了枕边。这本身就已足够。',
+  '梦境是你和自己最诚实的一次对话。无论说了什么，都值得被温柔接住。',
+];
+
 const TITLES = [
   { id: 'starter', title: '星辰初学者', count: 5, icon: '🌟' },
   { id: 'comforter', title: '温暖使者', count: 20, icon: '💫' },
@@ -70,11 +93,6 @@ const TITLES = [
 const styles = `
   @keyframes fade-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
   .animate-fade-in { animation: fade-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-  
-  @keyframes theme-transition {
-    0% { background-color: var(--bg-start); color: var(--text-start); }
-    100% { background-color: var(--bg-end); color: var(--text-end); }
-  }
 
   @keyframes float {
     0% { transform: translateY(0px); }
@@ -241,8 +259,7 @@ export default function App() {
     };
 
     saveUserData(newData);
-    // 打卡后强制进入深色沉浸模式
-    setTheme('dark');
+    // 不再强制切换主题；保留用户在设置里选择的明暗偏好
   };
 
   const isDark = theme === 'dark' || (theme === 'auto' && (new Date().getHours() >= 18 || new Date().getHours() < 6));
@@ -707,28 +724,31 @@ function TonightView({ isDark, hasCheckedInToday, onCheckIn, userData, saveUserD
 
       {/* 点击星轨弹出的详情 Modal */}
       {selectedTrackRecord && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`}>
-          <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`}>
-            <button onClick={() => setSelectedTrackRecord(null)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-200"><X size={20} /></button>
-            <div className="text-center mb-6">
-              <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center text-3xl mb-3 ${isDark ? 'bg-[#1f1f2e]' : 'bg-indigo-50'}`}>
-                {EMOTIONS.find(e => e.id === selectedTrackRecord.moodId)?.symbol}
+        <Portal>
+          <div className={`fixed inset-0 z-50 flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`}>
+            <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`}>
+              <button onClick={() => setSelectedTrackRecord(null)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-200"><X size={20} /></button>
+              <div className="text-center mb-6">
+                <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center text-3xl mb-3 ${isDark ? 'bg-[#1f1f2e]' : 'bg-indigo-50'}`}>
+                  {EMOTIONS.find(e => e.id === selectedTrackRecord.moodId)?.symbol}
+                </div>
+                <h3 className="text-lg font-medium">{selectedTrackRecord.moodName}</h3>
+                <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {selectedTrackRecord.date} {selectedTrackRecord.timeStr && `· ${selectedTrackRecord.timeStr}`}
+                </p>
               </div>
-              <h3 className="text-lg font-medium">{selectedTrackRecord.moodName}</h3>
-              <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                {selectedTrackRecord.date} {selectedTrackRecord.timeStr && `· ${selectedTrackRecord.timeStr}`}
-              </p>
-            </div>
-            
-            <div className={`p-4 rounded-2xl text-sm font-light leading-relaxed ${isDark ? 'bg-[#1f1f2e] text-gray-300' : 'bg-gray-50 text-gray-700'}`}>
-              "{selectedTrackRecord.whisper || '这一夜很安静，宇宙只留下了你呼吸的回声。'}"
+
+              <div className={`p-4 rounded-2xl text-sm font-light leading-relaxed ${isDark ? 'bg-[#1f1f2e] text-gray-300' : 'bg-gray-50 text-gray-700'}`}>
+                "{selectedTrackRecord.whisper || '这一夜很安静，宇宙只留下了你呼吸的回声。'}"
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
 
       {/* 展开的完整日历视图 */}
       {showCalendar && (
+        <Portal>
         <div className={`fixed inset-0 z-[60] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setShowCalendar(false)}>
           <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`} onClick={e => e.stopPropagation()}>
             <button onClick={() => setShowCalendar(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-200"><X size={20} /></button>
@@ -794,6 +814,7 @@ function TonightView({ isDark, hasCheckedInToday, onCheckIn, userData, saveUserD
             </div>
           </div>
         </div>
+        </Portal>
       )}
 
       {/* 梦境舱组件 */}
@@ -821,62 +842,32 @@ function DreamCard({ isDark, userData, saveUserData, currentDateStr }) {
 
   const dreamLogs = userData.dreamLogs || [];
 
-  const handleInterpret = async () => {
+  const handleInterpret = () => {
     if (!dreamInput.trim()) return;
     setIsInterpreting(true);
 
-    const apiKey = ""; 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-    const payload = {
-      contents: [{ parts: [{ text: `请帮我解读这个梦境：${dreamInput}` }] }],
-      systemInstruction: { parts: [{ text: "你是息息宇宙的梦境守护者。用温柔、充满宇宙浪漫感、诗意、治愈的语言解读用户的梦境。篇幅控制在100字左右，不要长篇大论。" }] }
-    };
+    // 本地随机抽一句宇宙寄语，模拟一段"接收宇宙信号"的等待
+    const text = COSMIC_DREAM_INTERPRETATIONS[
+      Math.floor(Math.random() * COSMIC_DREAM_INTERPRETATIONS.length)
+    ];
 
-    try {
-      const delays = [1000, 2000, 4000, 8000];
-      let data;
-      for (let i = 0; i < 5; i++) {
-        try {
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-          if (!res.ok) throw new Error('API error');
-          data = await res.json();
-          break;
-        } catch(err) {
-          if (i === 4) throw err;
-          await new Promise(r => setTimeout(r, delays[i]));
-        }
-      }
-
-      const interpretationText = data?.candidates?.[0]?.content?.parts?.[0]?.text 
-        || "宇宙的信号遇到了一点扰动，但无论梦见什么，那都是潜意识给你的温柔馈赠。";
-
+    setTimeout(() => {
       const newLog = {
         id: Date.now(),
         date: currentDateStr,
         dream: dreamInput,
-        interpretation: interpretationText,
-        isFavorite: false
+        interpretation: text,
+        isFavorite: false,
       };
-
       saveUserData({
         ...userData,
-        dreamLogs: [newLog, ...dreamLogs]
+        dreamLogs: [newLog, ...dreamLogs],
       });
-      
       setDreamInput('');
       setIsWriting(false);
-      setExpandedId(newLog.id); 
-
-    } catch (err) {
-      console.error(err);
-      alert("连接宇宙信号失败，请稍后再试。");
-    } finally {
+      setExpandedId(newLog.id);
       setIsInterpreting(false);
-    }
+    }, 900);
   };
 
   const toggleFavorite = (id, e) => {
@@ -960,9 +951,9 @@ function DreamCard({ isDark, userData, saveUserData, currentDateStr }) {
               }`}
             >
               {isInterpreting ? (
-                <><Loader2 size={16} className="animate-spin" /> 正在连线星云解读...</>
+                <><Loader2 size={16} className="animate-spin" /> 正在接收宇宙寄语...</>
               ) : (
-                <><Sparkles size={16} /> 保存并让 AI 解读</>
+                <><Sparkles size={16} /> 保存并接收宇宙寄语</>
               )}
             </button>
           </div>
@@ -1032,7 +1023,7 @@ function DreamCard({ isDark, userData, saveUserData, currentDateStr }) {
                               </div>
                               <div className="relative p-4 rounded-xl border bg-gradient-to-br from-purple-500/10 to-indigo-500/5 shadow-inner">
                                 <Sparkles size={14} className={`absolute top-3 right-3 ${isDark ? 'text-purple-400/50' : 'text-purple-400'}`} />
-                                <p className={`text-[10px] mb-1.5 font-medium ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>宇宙的解读</p>
+                                <p className={`text-[10px] mb-1.5 font-medium ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>宇宙的寄语</p>
                                 <p className={`text-xs leading-relaxed ${isDark ? 'text-purple-100/90' : 'text-purple-900/90'}`}>
                                   {log.interpretation}
                                 </p>
@@ -1060,25 +1051,27 @@ function DreamCard({ isDark, userData, saveUserData, currentDateStr }) {
       </div>
 
       {deleteConfirmId && (
-        <div className={`fixed inset-0 z-[60] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={cancelDelete}>
-          <div className={`w-full max-w-xs p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative text-center`} onClick={e => e.stopPropagation()}>
-            <div className="mx-auto w-12 h-12 mb-4 rounded-full flex items-center justify-center bg-red-500/10 text-red-500">
-              <AlertTriangle size={24} />
-            </div>
-            <h3 className={`text-lg font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>确认消散</h3>
-            <p className={`text-xs mb-6 leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              确定要执行消散操作吗？此操作不可撤销。
-            </p>
-            <div className="flex gap-3">
-              <button onClick={cancelDelete} className={`flex-1 py-3 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-[#1f1f2e] hover:bg-[#262638] text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}>
-                取消
-              </button>
-              <button onClick={confirmDelete} className="flex-1 py-3 rounded-xl text-sm font-medium bg-red-500 hover:bg-red-600 text-white transition-colors shadow-lg shadow-red-500/20 active:scale-95">
-                确认
-              </button>
+        <Portal>
+          <div className={`fixed inset-0 z-[60] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={cancelDelete}>
+            <div className={`w-full max-w-xs p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative text-center`} onClick={e => e.stopPropagation()}>
+              <div className="mx-auto w-12 h-12 mb-4 rounded-full flex items-center justify-center bg-red-500/10 text-red-500">
+                <AlertTriangle size={24} />
+              </div>
+              <h3 className={`text-lg font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>确认消散</h3>
+              <p className={`text-xs mb-6 leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                确定要执行消散操作吗？此操作不可撤销。
+              </p>
+              <div className="flex gap-3">
+                <button onClick={cancelDelete} className={`flex-1 py-3 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-[#1f1f2e] hover:bg-[#262638] text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}>
+                  取消
+                </button>
+                <button onClick={confirmDelete} className="flex-1 py-3 rounded-xl text-sm font-medium bg-red-500 hover:bg-red-600 text-white transition-colors shadow-lg shadow-red-500/20 active:scale-95">
+                  确认
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
     </section>
   );
@@ -1095,21 +1088,23 @@ function BreathingWidget({ isDark, onClose }) {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in" style={{ backgroundColor: isDark ? '#0f0f1a' : '#f8fafc' }}>
-      <button onClick={onClose} className="absolute right-6 p-2 rounded-full bg-gray-800/20 text-gray-400 top-[max(env(safe-area-inset-top)+0.5rem,2.5rem)]">
-        <X size={24} />
-      </button>
-      <div className="flex flex-col items-center justify-center h-full space-y-16">
-        <div className="relative w-64 h-64 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full bg-indigo-500/20 breathe-circle"></div>
-          <div className="absolute inset-4 rounded-full bg-indigo-400/20 breathe-circle" style={{ animationDelay: '0.2s' }}></div>
-          <div className={`z-10 text-2xl font-light tracking-widest ${isDark ? 'text-white' : 'text-gray-800'} transition-opacity duration-1000`}>
-            {phase}
+    <Portal>
+      <div data-no-pull-refresh="true" className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in" style={{ backgroundColor: isDark ? '#0f0f1a' : '#f8fafc' }}>
+        <button onClick={onClose} className="absolute right-6 p-2 rounded-full bg-gray-800/20 text-gray-400 top-[max(env(safe-area-inset-top)+0.5rem,2.5rem)]">
+          <X size={24} />
+        </button>
+        <div className="flex flex-col items-center justify-center h-full space-y-16">
+          <div className="relative w-64 h-64 flex items-center justify-center">
+            <div className="absolute inset-0 rounded-full bg-indigo-500/20 breathe-circle"></div>
+            <div className="absolute inset-4 rounded-full bg-indigo-400/20 breathe-circle" style={{ animationDelay: '0.2s' }}></div>
+            <div className={`z-10 text-2xl font-light tracking-widest ${isDark ? 'text-white' : 'text-gray-800'} transition-opacity duration-1000`}>
+              {phase}
+            </div>
           </div>
+          <p className={`text-sm font-light ${isDark ? 'text-gray-400' : 'text-gray-500'} tracking-widest`}>跟随光环的节奏</p>
         </div>
-        <p className={`text-sm font-light ${isDark ? 'text-gray-400' : 'text-gray-500'} tracking-widest`}>跟随光环的节奏</p>
       </div>
-    </div>
+    </Portal>
   );
 }
 
@@ -1181,7 +1176,7 @@ function TreeholeView({ isDark, userData, saveUserData, currentDateStr }) {
       id: Date.now(),
       date: currentDateStr,
       text: whisperText,
-      emotion: selectedTag || '无轨星尘',
+      emotion: selectedTag || '无名星尘',
       visibility: visibility, // 保存可见度设置
       isFavorite: false
     };
@@ -1474,32 +1469,36 @@ function TreeholeView({ isDark, userData, saveUserData, currentDateStr }) {
 
       {/* 顶部发射成功提示 */}
       {showToast && (
-        <div className="fixed left-1/2 -translate-x-1/2 px-6 py-3 rounded-full bg-indigo-500 text-white text-sm shadow-lg shadow-indigo-500/20 animate-fade-in z-50 flex items-center gap-2 top-[max(env(safe-area-inset-top)+1rem,5rem)]">
-          <Send size={14} /> 信号已抵达深空
-        </div>
+        <Portal>
+          <div className="fixed left-1/2 -translate-x-1/2 px-6 py-3 rounded-full bg-indigo-500 text-white text-sm shadow-lg shadow-indigo-500/20 animate-fade-in z-50 flex items-center gap-2 top-[max(env(safe-area-inset-top)+1rem,5rem)]">
+            <Send size={14} /> 信号已封存进我的信号
+          </div>
+        </Portal>
       )}
 
       {/* 自定义心语消散确认弹窗 */}
       {deleteConfirmId && (
-        <div className={`fixed inset-0 z-[60] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setDeleteConfirmId(null)}>
-          <div className={`w-full max-w-xs p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative text-center`} onClick={e => e.stopPropagation()}>
-            <div className="mx-auto w-12 h-12 mb-4 rounded-full flex items-center justify-center bg-red-500/10 text-red-500">
-              <AlertTriangle size={24} />
-            </div>
-            <h3 className={`text-lg font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>确认消散</h3>
-            <p className={`text-xs mb-6 leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              确定要让这段信号消散在宇宙中吗？此操作不可撤销。
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => setDeleteConfirmId(null)} className={`flex-1 py-3 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-[#1f1f2e] hover:bg-[#262638] text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}>
-                保留
-              </button>
-              <button onClick={confirmDeleteWhisper} className="flex-1 py-3 rounded-xl text-sm font-medium bg-red-500 hover:bg-red-600 text-white transition-colors shadow-lg shadow-red-500/20 active:scale-95">
-                消散
-              </button>
+        <Portal>
+          <div className={`fixed inset-0 z-[60] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setDeleteConfirmId(null)}>
+            <div className={`w-full max-w-xs p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative text-center`} onClick={e => e.stopPropagation()}>
+              <div className="mx-auto w-12 h-12 mb-4 rounded-full flex items-center justify-center bg-red-500/10 text-red-500">
+                <AlertTriangle size={24} />
+              </div>
+              <h3 className={`text-lg font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>确认消散</h3>
+              <p className={`text-xs mb-6 leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                确定要让这段信号消散在宇宙中吗？此操作不可撤销。
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setDeleteConfirmId(null)} className={`flex-1 py-3 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-[#1f1f2e] hover:bg-[#262638] text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}>
+                  保留
+                </button>
+                <button onClick={confirmDeleteWhisper} className="flex-1 py-3 rounded-xl text-sm font-medium bg-red-500 hover:bg-red-600 text-white transition-colors shadow-lg shadow-red-500/20 active:scale-95">
+                  消散
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
     </div>
   );
@@ -1509,7 +1508,14 @@ function TreeholeView({ isDark, userData, saveUserData, currentDateStr }) {
 function GalaxyView({ isDark, userData, saveUserData, currentDateStr }) {
   const [selectedMilestone, setSelectedMilestone] = useState(null);
 
-  const currentMilestone = MILESTONES.slice().reverse().find(m => userData.totalDays >= m.days) || MILESTONES[0];
+  // 找到当前已解锁的最高阶段（同时拿到它在 MILESTONES 数组里的索引，作为正确的阶段编号）
+  const currentMilestoneIndex = (() => {
+    for (let i = MILESTONES.length - 1; i >= 0; i--) {
+      if (userData.totalDays >= MILESTONES[i].days) return i;
+    }
+    return 0;
+  })();
+  const currentMilestone = MILESTONES[currentMilestoneIndex];
   const milestoneIcons = ['🌌', '🌫️', '⭐', '🪐', '💫', '🌗', '🌀'];
 
   // === 光晕跟随手指：RAF 多层缓动，模拟云雾散开 ===
@@ -1650,7 +1656,7 @@ function GalaxyView({ isDark, userData, saveUserData, currentDateStr }) {
 
         <div className="space-y-1 z-10 px-6 text-center pointer-events-none">
           <span className={`text-[10px] px-3 py-1 rounded-full border ${isDark ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-indigo-100 text-indigo-600 border-indigo-200'}`}>
-            阶段 {Math.min(7, Math.max(1, Math.floor(days / 7) + 1))}：{currentMilestone.name}
+            阶段 {currentMilestoneIndex + 1}：{currentMilestone.name}
           </span>
           <p className={`text-xs pt-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{currentMilestone.desc}</p>
         </div>
@@ -1730,21 +1736,23 @@ function GalaxyView({ isDark, userData, saveUserData, currentDateStr }) {
 
       {/* 点击里程碑弹出的详情 Modal */}
       {selectedMilestone && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`}>
-          <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative text-center`}>
-            <button onClick={() => setSelectedMilestone(null)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-200"><X size={20} /></button>
-            <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center text-3xl mb-3 ${isDark ? 'bg-[#1f1f2e]' : 'bg-indigo-50'}`}>
-              {milestoneIcons[selectedMilestone.id]}
-            </div>
-            <h3 className="text-lg font-medium mb-1">{selectedMilestone.name}</h3>
-            <p className={`text-xs mb-4 ${isDark ? 'text-indigo-400' : 'text-indigo-500'}`}>
-              {userData.totalDays >= selectedMilestone.days ? '已唤醒该形态' : `还需要累计 ${selectedMilestone.days - userData.totalDays} 天即可唤醒`}
-            </p>
-            <div className={`p-4 rounded-2xl text-sm font-light leading-relaxed ${isDark ? 'bg-[#1f1f2e] text-gray-300' : 'bg-gray-50 text-gray-700'}`}>
-              "{selectedMilestone.desc}"
+        <Portal>
+          <div className={`fixed inset-0 z-50 flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`}>
+            <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative text-center`}>
+              <button onClick={() => setSelectedMilestone(null)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-200"><X size={20} /></button>
+              <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center text-3xl mb-3 ${isDark ? 'bg-[#1f1f2e]' : 'bg-indigo-50'}`}>
+                {milestoneIcons[selectedMilestone.id]}
+              </div>
+              <h3 className="text-lg font-medium mb-1">{selectedMilestone.name}</h3>
+              <p className={`text-xs mb-4 ${isDark ? 'text-indigo-400' : 'text-indigo-500'}`}>
+                {userData.totalDays >= selectedMilestone.days ? '已唤醒该形态' : `还需要累计 ${selectedMilestone.days - userData.totalDays} 天即可唤醒`}
+              </p>
+              <div className={`p-4 rounded-2xl text-sm font-light leading-relaxed ${isDark ? 'bg-[#1f1f2e] text-gray-300' : 'bg-gray-50 text-gray-700'}`}>
+                "{selectedMilestone.desc}"
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
     </div>
   );
@@ -1791,11 +1799,12 @@ function QuizWidget({ isDark, onClose, onComplete }) {
   };
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]' : 'bg-[#f8fafc]'} animate-fade-in`}>
+    <Portal>
+    <div data-no-pull-refresh="true" className={`fixed inset-0 z-50 flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]' : 'bg-[#f8fafc]'} animate-fade-in`}>
       <button onClick={onClose} className="absolute right-6 p-2 text-gray-400 hover:text-gray-200 top-[max(env(safe-area-inset-top)+0.5rem,2.5rem)]">
         <X size={24} />
       </button>
-      
+
       <div className="w-full max-w-sm space-y-8">
         <div className="space-y-2">
           <p className={`text-center text-xs tracking-widest ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
@@ -1830,6 +1839,7 @@ function QuizWidget({ isDark, onClose, onComplete }) {
         </div>
       </div>
     </div>
+    </Portal>
   );
 }
 
@@ -1914,6 +1924,7 @@ function MineView({ isDark, theme, setTheme, userData, setUserData, saveUserData
 
       {/* 编辑个人资料弹窗 */}
       {showProfileEdit && (
+        <Portal>
         <div className={`fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setShowProfileEdit(false)}>
           <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`} onClick={(e) => e.stopPropagation()}>
             <button onClick={() => setShowProfileEdit(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-200"><X size={20} /></button>
@@ -1980,8 +1991,9 @@ function MineView({ isDark, theme, setTheme, userData, setUserData, saveUserData
             </button>
           </div>
         </div>
+        </Portal>
       )}
-      
+
       {/* 睡眠性格测试区 (状态驱动展示) */}
       {!personalityData ? (
         <div 
@@ -2709,23 +2721,26 @@ function SettingsPanel({ isDark, theme, setTheme, userData, saveUserData, onClos
 
       {/* === 隐私守护协议弹窗 === */}
       {showPrivacyModal && (
+        <Portal>
         <div className={`fixed inset-0 z-[70] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/90' : 'bg-[#f8fafc]/90'} backdrop-blur-sm animate-fade-in`} onClick={() => setShowPrivacyModal(false)}>
           <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`} onClick={e => e.stopPropagation()}>
             <button onClick={() => setShowPrivacyModal(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-200"><X size={20} /></button>
             <h3 className="text-lg font-medium mb-4 text-center">隐私守护协议</h3>
             <div className={`space-y-4 text-sm font-light leading-relaxed max-h-72 overflow-y-auto no-scrollbar ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-              <p><strong>1. 信息的温柔对待</strong><br/>你在宇宙中留下的每一句心语、每一次情绪打卡，都仅存储在你的设备本地（LocalStorage），我们不会收集或窥探你的内心世界。</p>
-              <p><strong>2. 树洞的匿名法则</strong><br/>当你将心语发射至「微澜」树洞时，它们将化作无名星尘，抹去所有身份标识，仅传递温暖本身。</p>
-              <p><strong>3. 梦境守护机制</strong><br/>对于您使用"潜意识梦境舱"进行的 AI 梦境解读，内容将采用无标识加密通道发送至解析节点，且仅为瞬时处理，不在云端做任何永久归档保存。</p>
+              <p><strong>1. 信息的温柔对待</strong><br/>你在宇宙中留下的每一句心语、每一次情绪打卡、每一段梦境，都仅存储在你的设备本地（浏览器 LocalStorage），我们没有任何服务器，也无法收集或窥探你的内心世界。</p>
+              <p><strong>2. 树洞的匿名法则</strong><br/>你写下的心语会保存在你自己设备上的"我的信号"里。当前版本「星际回音」展示的是示例内容，并未接入任何远程服务，也没有把你的内容发送出去。</p>
+              <p><strong>3. 梦境完全本机处理</strong><br/>「潜意识梦境舱」的"宇宙寄语"完全由你设备上的本地代码生成，不向任何外部接口发送你的梦境内容。</p>
               <p><strong>4. 数据控制权</strong><br/>你可以随时在「存储与隐私」中导出备份、导入恢复，或一键清除所有运行数据，让你的宇宙归于最初的虚空。</p>
-              <p><strong>5. 无第三方追踪</strong><br/>本应用不集成任何第三方分析、广告或追踪 SDK。打开你的浏览器开发者工具，你能看到的所有网络请求都仅与版本更新检查有关。</p>
+              <p><strong>5. 网络请求范围</strong><br/>本应用不集成第三方分析、广告或追踪 SDK。App 唯一的对外请求是检查更新（拉取部署目录下的 <code>version.json</code>），不携带任何个人数据。</p>
             </div>
           </div>
         </div>
+        </Portal>
       )}
 
       {/* --- 自定义确认弹窗 Modal --- */}
       {confirmDialog && (
+        <Portal>
         <div className={`fixed inset-0 z-[70] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setConfirmDialog(null)}>
           <div className={`w-full max-w-xs p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative text-center`} onClick={e => e.stopPropagation()}>
             <div className="mx-auto w-12 h-12 mb-4 rounded-full flex items-center justify-center bg-indigo-500/10 text-indigo-500">
@@ -2745,10 +2760,12 @@ function SettingsPanel({ isDark, theme, setTheme, userData, saveUserData, onClos
             </div>
           </div>
         </div>
+        </Portal>
       )}
 
       {/* --- 自定义信息提示弹窗 Modal --- */}
       {alertDialog && (
+        <Portal>
         <div className={`fixed inset-0 z-[70] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setAlertDialog(null)}>
           <div className={`w-full max-w-xs p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative text-center`} onClick={e => e.stopPropagation()}>
             <div className="mx-auto w-12 h-12 mb-4 rounded-full flex items-center justify-center bg-indigo-500/10 text-indigo-400">
@@ -2763,6 +2780,7 @@ function SettingsPanel({ isDark, theme, setTheme, userData, saveUserData, onClos
             </button>
           </div>
         </div>
+        </Portal>
       )}
     </div>
   );
