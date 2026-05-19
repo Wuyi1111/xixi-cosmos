@@ -106,3 +106,44 @@ input[type="range"].font-scale-slider::-moz-range-thumb {
   cursor: pointer;
   border: none;
 }
+
+/* === App-level keyframes（从 App.jsx 的 inline <style> 搬过来） === */
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0px); }
+}
+.animate-float { animation: float 4s ease-in-out infinite; }
+
+@keyframes breathe {
+  0%, 100% { transform: scale(0.85); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 1; box-shadow: 0 0 40px rgba(99, 102, 241, 0.4); }
+}
+.breathe-circle { animation: breathe 8s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+
+@keyframes emit-particle {
+  0% { transform: translateY(0) scale(1) translateX(0); opacity: 1; }
+  100% { transform: translateY(-150px) scale(0) translateX(var(--tx)); opacity: 0; }
+}
+.particle {
+  position: absolute;
+  animation: emit-particle 1s ease-out forwards;
+  pointer-events: none;
+}
+
+/* 星系动画 */
+@keyframes spin-slow { 100% { transform: rotate(360deg); } }
+.galaxy-spin { animation: spin-slow 40s linear infinite; }
+
+/* 隐藏滚动条 */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
