@@ -61,7 +61,7 @@ export default function MineView({ isDark, theme, setTheme, userData, setUserDat
         displayName: '星海旅人',
         avatarEmoji: '🪐',
         fontScale: 1.0,
-        totalDays: 0, continuousDays: 0, stardust: 0, totalHugs: 0, huggedWhispers: [], checkInHistory: [], dreamLogs: [], myWhispers: [], personality: null, dailyPosts: 0, lastPostDate: '', reminderEnabled: false, reminderTime: '22:30'
+        totalDays: 0, continuousDays: 0, stardust: 0, totalHugs: 0, huggedWhispers: [], tomorrowDoneTotal: 0, tomorrowDoneToday: { date: '', ids: [] }, checkInHistory: [], dreamLogs: [], myWhispers: [], personality: null, dailyPosts: 0, lastPostDate: '', reminderEnabled: false, reminderTime: '22:30'
       });
       setShowSettings(false);
     }}/>;

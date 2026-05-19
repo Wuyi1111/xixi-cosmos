@@ -44,6 +44,8 @@ export default function App() {
     stardust: 0,
     totalHugs: 0,
     huggedWhispers: [],
+    tomorrowDoneTotal: 0,                 // "明日"建议累计完成次数（永远 +）
+    tomorrowDoneToday: { date: '', ids: [] }, // 今日已完成的建议 id 列表（次日自动重置）
     checkInHistory: [],
     dreamLogs: [],
     myWhispers: [],
@@ -77,6 +79,10 @@ export default function App() {
       if (!parsed.avatarEmoji) parsed.avatarEmoji = '🪐';
       if (typeof parsed.fontScale !== 'number') parsed.fontScale = 1.0;
       if (!Array.isArray(parsed.huggedWhispers)) parsed.huggedWhispers = [];
+      if (typeof parsed.tomorrowDoneTotal !== 'number') parsed.tomorrowDoneTotal = 0;
+      if (!parsed.tomorrowDoneToday || typeof parsed.tomorrowDoneToday !== 'object') {
+        parsed.tomorrowDoneToday = { date: '', ids: [] };
+      }
       setUserData(parsed);
     }
     const savedTheme = localStorage.getItem('xixi_cosmos_theme') || 'light';
@@ -205,6 +211,10 @@ export default function App() {
               if (!parsed.avatarEmoji) parsed.avatarEmoji = '🪐';
               if (typeof parsed.fontScale !== 'number') parsed.fontScale = 1.0;
               if (!Array.isArray(parsed.huggedWhispers)) parsed.huggedWhispers = [];
+              if (typeof parsed.tomorrowDoneTotal !== 'number') parsed.tomorrowDoneTotal = 0;
+              if (!parsed.tomorrowDoneToday || typeof parsed.tomorrowDoneToday !== 'object') {
+                parsed.tomorrowDoneToday = { date: '', ids: [] };
+              }
               setUserData(parsed);
             }
           } catch {}
