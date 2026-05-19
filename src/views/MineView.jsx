@@ -34,7 +34,7 @@ export default function MineView({ isDark, theme, setTheme, userData, setUserDat
   const [showQuiz, setShowQuiz] = useState(false);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [showWishPool, setShowWishPool] = useState(false);
-  const [nameDraft, setNameDraft] = useState(userData.displayName || '星海旅人');
+  const [nameDraft, setNameDraft] = useState(userData.displayName || '星星旅人');
   const [emojiDraft, setEmojiDraft] = useState(userData.avatarEmoji || '🪐');
 
   const unlockedTitles = TITLES.filter(t => userData.totalHugs >= t.count);
@@ -44,12 +44,12 @@ export default function MineView({ isDark, theme, setTheme, userData, setUserDat
   const displayPersonalityName = personalityData?.name || (typeof userData.personality === 'string' ? userData.personality : '尚未探测内宇宙');
 
   const openProfileEdit = () => {
-    setNameDraft(userData.displayName || '星海旅人');
+    setNameDraft(userData.displayName || '星星旅人');
     setEmojiDraft(userData.avatarEmoji || '🪐');
     setShowProfileEdit(true);
   };
   const saveProfile = () => {
-    const trimmed = (nameDraft || '').trim().slice(0, 20) || '星海旅人';
+    const trimmed = (nameDraft || '').trim().slice(0, 20) || '星星旅人';
     saveUserData({ ...userData, displayName: trimmed, avatarEmoji: emojiDraft });
     setShowProfileEdit(false);
   };
@@ -58,7 +58,7 @@ export default function MineView({ isDark, theme, setTheme, userData, setUserDat
     return <SettingsPanel isDark={isDark} theme={theme} setTheme={setTheme} userData={userData} saveUserData={saveUserData} onClose={() => setShowSettings(false)} onReset={() => {
       setUserData({
         id: 'TR755',
-        displayName: '星海旅人',
+        displayName: '星星旅人',
         avatarEmoji: '🪐',
         fontScale: 1.0,
         totalDays: 0, continuousDays: 0, stardust: 0, totalHugs: 0, huggedWhispers: [], tomorrowDoneTotal: 0, tomorrowDoneToday: { date: '', ids: [] }, checkInHistory: [], dreamLogs: [], myWhispers: [], personality: null, dailyPosts: 0, lastPostDate: '', reminderEnabled: false, reminderTime: '22:30'
@@ -89,7 +89,7 @@ export default function MineView({ isDark, theme, setTheme, userData, setUserDat
           </div>
           <div>
             <h2 className="text-lg font-medium mb-1 flex items-center gap-1.5">
-              {userData.displayName || '星海旅人'}
+              {userData.displayName || '星星旅人'}
               <span className={`text-xs font-normal ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>#{userData.id}</span>
               <Edit3 size={12} className="text-gray-400" />
             </h2>
@@ -115,7 +115,7 @@ export default function MineView({ isDark, theme, setTheme, userData, setUserDat
                 <div className={`w-20 h-20 rounded-full flex items-center justify-center text-5xl ${isDark ? 'bg-[#0f0f1a] border border-indigo-500/30' : 'bg-indigo-50 border border-indigo-100'}`}>
                   {emojiDraft}
                 </div>
-                <p className="text-base font-medium">{(nameDraft || '').trim() || '星海旅人'} <span className={`text-xs ml-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>#{userData.id}</span></p>
+                <p className="text-base font-medium">{(nameDraft || '').trim() || '星星旅人'} <span className={`text-xs ml-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>#{userData.id}</span></p>
               </div>
 
               <div className="mb-4">
@@ -142,7 +142,7 @@ export default function MineView({ isDark, theme, setTheme, userData, setUserDat
                   value={nameDraft}
                   onChange={(e) => setNameDraft(e.target.value)}
                   maxLength={20}
-                  placeholder="星海旅人"
+                  placeholder="星星旅人"
                   className={`w-full px-4 py-3 rounded-xl text-sm outline-none transition-colors ${
                     isDark
                       ? 'bg-[#0f0f1a] border border-gray-800 focus:border-indigo-500 text-gray-200 placeholder-gray-600'

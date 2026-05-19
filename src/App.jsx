@@ -36,7 +36,7 @@ export default function App() {
 
   const [userData, setUserData] = useState({
     id: 'TR755',                  // 固定编号，不可改
-    displayName: '星海旅人',
+    displayName: '星星旅人',
     avatarEmoji: '🪐',
     fontScale: 1.0,
     totalDays: 0,
@@ -75,7 +75,7 @@ export default function App() {
       if (!parsed.dreamLogs) parsed.dreamLogs = [];
       if (!parsed.myWhispers) parsed.myWhispers = [];
       parsed.id = 'TR755';
-      if (!parsed.displayName) parsed.displayName = '星海旅人';
+      if (!parsed.displayName) parsed.displayName = '星星旅人';
       if (!parsed.avatarEmoji) parsed.avatarEmoji = '🪐';
       if (typeof parsed.fontScale !== 'number') parsed.fontScale = 1.0;
       if (!Array.isArray(parsed.huggedWhispers)) parsed.huggedWhispers = [];
@@ -207,7 +207,7 @@ export default function App() {
             if (saved) {
               const parsed = JSON.parse(saved);
               parsed.id = 'TR755';
-              if (!parsed.displayName) parsed.displayName = '星海旅人';
+              if (!parsed.displayName) parsed.displayName = '星星旅人';
               if (!parsed.avatarEmoji) parsed.avatarEmoji = '🪐';
               if (typeof parsed.fontScale !== 'number') parsed.fontScale = 1.0;
               if (!Array.isArray(parsed.huggedWhispers)) parsed.huggedWhispers = [];
