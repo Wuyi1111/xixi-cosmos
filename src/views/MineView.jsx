@@ -1,3 +1,24 @@
+/**
+ * MineView.jsx — "我的"页面（个人主页）。
+ *
+ * 屏幕从上到下：
+ *   1) 头像区（emoji + 用户名 + #ID + 当前称号 + 性格）+ 右上角设置齿轮
+ *   2) 性格测试入口（已测过显示卡片，未测显示 +30 星尘的引导）
+ *   3) 三宫格统计：累计夜晚 / 星尘 / 传递温暖
+ *   4) 称号徽章网格（6 个，按 totalHugs 渐进解锁）
+ *
+ * 改什么：
+ *   - **改头像编辑弹窗的样式 / 字段 → 这里 showProfileEdit 那块**
+ *   - 改可选头像 emoji 列表（默认 22 个星体）→ src/constants.js 的 AVATAR_EMOJIS
+ *   - 改用户名最大长度（默认 20）→ 这里 saveProfile 的 slice(0, 20) + input maxLength
+ *   - 改徽章解锁门槛 / 名字 / 图标 → src/constants.js 的 TITLES
+ *   - 改首次性格测试的奖励星尘（默认 30）→ 这里 onComplete 处的 30
+ *   - 改人格描述本身 → src/constants.js 的 COSMIC_PERSONALITIES
+ *
+ * 注意：#TR755 是固定 ID，所有用户都看到这个编号，UI 上有"不可修改"标签。
+ *      想改这个 ID 默认值，去 src/App.jsx 的 userData 初值 + 初始化迁移。
+ */
+
 import { useState } from 'react';
 import { Settings, Edit3, X, Compass, Sparkles, ChevronRight } from 'lucide-react';
 import Portal from '../components/Portal.jsx';

@@ -1,3 +1,32 @@
+/**
+ * SettingsPanel.jsx — "我的"右上齿轮打开的设置页。
+ *
+ * 顶到底分组：
+ *   1) 视觉主题：浅色 / 深色 / 跟随系统
+ *   2) 整体字号：滑动条 0.85x ~ 1.30x（影响 html font-size）
+ *   3) 系统语言：只读显示 navigator.language
+ *   4) 账号与安全：复制星际编号 / 导出数据 JSON / 导入数据 JSON
+ *   5) 睡眠守护：睡前提醒开关 + 时间（注意：当前没有真的推送，只是 UI 占位）
+ *   6) 存储与隐私：本地用量统计 / 隐私协议弹窗 / 清空所有数据
+ *   7) 关于息息：版本号 / 构建时间 / 检查更新按钮
+ *   8) 开发者测试控制台：密码 186638 → 时空跃迁 / 注入温暖 / 撤销打卡 / 重置 / 毁灭重生
+ *
+ * 改什么：
+ *   - **改开发者控制台密码 → 顶部 DEV_CONSOLE_PASSWORD 常量**
+ *   - 改字号滑动条范围（默认 0.85-1.30）→ "整体字号"区块 input min/max
+ *   - 改数据导出文件名 / 结构 → handleExportData
+ *   - 改数据导入校验逻辑（目前只检查 parsed.userData 存在）→ handleImportFile
+ *   - 改"清空所有数据"的二次确认文案 → handleClearAll
+ *   - 改"检查更新"行为（目前对比 buildTime / version）→ handleCheckVersion
+ *   - 加 / 改开发者测试按钮（mock 数据、撤销操作等）→ handleFillMockData /
+ *     injectHugs / resetTodayCheckIn / resetPersonality / resetTreeholeLimits
+ *   - 改隐私协议正文 → 文件底部 showPrivacyModal 那块
+ *
+ * 内部还有两个通用 modal：confirmDialog（红色危险确认）和 alertDialog（提示）。
+ * 想做新的"先确认再执行"按钮，直接 setConfirmDialog({ title, message, onConfirm })
+ * 就行，不用自己再写一套 modal。
+ */
+
 import { useState, useEffect, useRef } from 'react';
 import { X, Compass, User, ChevronDown, ChevronUp, ChevronRight, Trash2, Loader2, RotateCcw, Zap, Bug, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import Portal from '../components/Portal.jsx';

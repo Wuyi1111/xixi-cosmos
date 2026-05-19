@@ -1,3 +1,23 @@
+/**
+ * TreeholeView.jsx — "微澜"树洞，三栏 tab：星际回音 / 发射台 / 我的信号。
+ *
+ * 三个 mode：
+ *   - 'browse' 星际回音：浏览 5 条示例心语，每张卡底部"送出温暖"心形按钮
+ *   - 'emit'   发射台：选标签 + 写心语 + 选可见度 + 发射（每日上限 5 条）
+ *   - 'mine'   我的信号：搜索 / 展开 / 收藏 / 删除自己发过的心语
+ *
+ * 改什么：
+ *   - 改"星际回音"展示的 5 条示例 → src/constants.js 的 MOCK_WHISPERS
+ *   - 改发射台的预设波段标签 → src/constants.js 的 PRESET_TAGS
+ *   - 改每日发射上限（默认 5 次）→ 这里 postsLeft 那行的 5
+ *   - 改"送出温暖"心形点亮 / 取消交互、粒子动效 → handleToggleHug
+ *   - 改发射成功后的 toast 文案 → 文件底部 showToast 那块
+ *   - 改"我的信号"的搜索 / 展开 / 删除交互 → mode === 'mine' 分支
+ *
+ * 注意：当前没有后端，"散落星海"和"深空折叠"两个可见度选项目前只是 UI 标签，
+ *      心语全都只保存在本地。要做真"匿名公开"得自己加后端。
+ */
+
 import { useState, useEffect, useRef } from 'react';
 import { Radio, Heart, Search, X, Star, ChevronDown, Trash2, Send, AlertTriangle } from 'lucide-react';
 import Portal from '../components/Portal.jsx';

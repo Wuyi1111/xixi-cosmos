@@ -1,3 +1,27 @@
+/**
+ * TonightView.jsx — 首页"此刻"。
+ *
+ * 屏幕从上到下：
+ *   1) 标题"息息·宇宙"
+ *   2) 安神助手（折叠 / 展开）→ 舒缓调息 / 宇宙白噪音
+ *   3) 核心打卡区：未打卡 → 三阶段（召唤 → 网格选情绪 → 写心语 → 安放）
+ *                  已打卡 → "夜航已启程"状态卡
+ *   4) 本周星轨印记（7 天小日历）+ "全月星轨"按钮 → 月历 modal
+ *   5) 潜意识梦境舱（DreamCard）
+ *
+ * 改什么：
+ *   - 改打卡的三阶段交互、动画、文案 → 这里 selectedMood / isMoodSelectorOpen 分支
+ *   - 改"夜航已启程"状态卡（图标 / 文案 / 连签徽章）→ 这里 hasCheckedInToday 分支
+ *   - 改 6 个情绪选项（图标、颜色、安慰语）→ src/constants.js 的 EMOTIONS
+ *   - 改本周 / 全月日历布局 → 这里 currentWeekDays / showCalendar 区块
+ *   - "舒缓调息"按钮的具体功能 → src/widgets/BreathingWidget.jsx
+ *   - "宇宙白噪音"按钮（目前是占位，没接音乐）→ 这里给它加 onClick
+ *
+ * 不在这里改：
+ *   - 打卡后给多少星尘 / 连签 bonus → src/App.jsx 的 handleCheckIn()
+ *   - 梦境舱本身的交互 → src/widgets/DreamCard.jsx
+ */
+
 import React, { useState, useEffect } from 'react';
 import { Music, Wind, Moon, Sparkles, Compass, ChevronDown, X, Edit3, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import Portal from '../components/Portal.jsx';

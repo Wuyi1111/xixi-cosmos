@@ -1,3 +1,12 @@
+/**
+ * utils.js — 纯函数工具，无副作用。
+ *
+ * - formatBytes(bytes): 把字节数变成 "12.34 KB" / "1.20 MB" 这种可读字符串
+ * - getLanguageLabel(): 读 navigator.language，返回 { code, label }（如 zh-CN → "简体中文"）
+ *
+ * 加新的小工具函数也放这里。
+ */
+
 // 把字节数格式化为 KB / MB
 export function formatBytes(bytes) {
   if (bytes < 1024) return `${bytes} B`;

@@ -1,3 +1,31 @@
+/**
+ * GalaxyView.jsx — "星系"成长图谱。
+ *
+ * 屏幕从上到下：
+ *   1) 头部统计："连续驻留 N 夜晚" + "星尘数量"
+ *   2) 星系可视化卡：根据 totalDays 渐进解锁层级
+ *      0 天：紫色弥散云团
+ *      1 天：+ 颜色渐变内核
+ *      7 天：+ 中央太阳
+ *      14 天：+ 倾斜星环
+ *      21 天：+ 公转伴星
+ *      30 天：+ 第二条逆时针轨道
+ *      60 天：+ 整体自转晕染
+ *   3) 星轨里程碑印记：7 个徽章卡片（点击弹出详情）
+ *
+ * 改什么：
+ *   - 加 / 改阶段、改解锁天数 → src/constants.js 的 MILESTONES
+ *     （注意 milestoneIcons 数组里 emoji 顺序要和 MILESTONES.id 对齐）
+ *   - 调光晕跟随手指的灵敏度 / 阻尼 → layersRef 三层的 factor / scaleFactor / dragScale
+ *   - 改光晕拖动的最大偏移半径（默认 60px）→ MAX_OFFSET
+ *   - 改各阶段的具体视觉（颜色 / 大小 / 动画）→ renderGalaxyVisual 里
+ *     `days >= N && (...)` 的条件块
+ *
+ * 性能注意：useEffect 里的 RAF 循环 60fps 一直跑，即使光晕在中心也每帧重写
+ *          transform。在 galaxy tab 切走时 effect cleanup 会停。可以加
+ *          "已静止则停 RAF" 短路再 wake，但目前无感知问题。
+ */
+
 import { useState, useEffect, useRef } from 'react';
 import { Sparkles, X } from 'lucide-react';
 import Portal from '../components/Portal.jsx';

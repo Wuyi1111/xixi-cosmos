@@ -1,3 +1,15 @@
+/**
+ * BreathingWidget.jsx — 呼吸训练全屏。
+ *
+ * 从"此刻 → 安神助手 → 舒缓调息"打开。中央双层光环 + "吸气 / 呼气"文字交替。
+ *
+ * 改什么：
+ *   - 改吸 / 呼切换节奏 → 这里 setInterval 的 4000ms
+ *   - 改光环动画（缩放、颜色、节拍）→ src/index.css 里的
+ *     @keyframes breathe / .breathe-circle（注意保持周期与上面 4000ms 协调）
+ *   - 改文案"吸气 / 呼气 / 跟随光环的节奏" → 这里 JSX
+ */
+
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import Portal from '../components/Portal.jsx';

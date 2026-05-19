@@ -1,3 +1,20 @@
+/**
+ * DreamCard.jsx — "潜意识梦境舱"卡片，挂在 TonightView 底部。
+ *
+ * 用户写一段梦 → 点"保存并接收宇宙寄语" → 本地随机抽一句寄语，存进
+ * userData.dreamLogs。所有处理在本机，不发送到任何远程接口。
+ *
+ * 改什么：
+ *   - 改 / 加宇宙寄语池（让随机抽更丰富）→ src/constants.js 的 COSMIC_DREAM_INTERPRETATIONS
+ *   - 改"伪 AI 等待时间"（默认 900ms）→ handleInterpret 里的 setTimeout
+ *   - 改梦境最大长度（默认 300 字）→ textarea 的 maxLength
+ *   - 改文案（"潜意识梦境舱" / "保存并接收宇宙寄语" / "宇宙的寄语" 等）→ 这里 JSX
+ *   - 改单条梦境的交互（展开 / 收藏 / 编辑 / 删除）→ toggleFavorite / startEdit / triggerDelete
+ *
+ * 注意：编辑一条梦的内容时，对应的"宇宙寄语"不会自动重新生成，这是有意的
+ *      （保留首次记下时的那句寄语，避免覆盖。要做"重新摇一签"，加一个新按钮）。
+ */
+
 import { useState } from 'react';
 import { Cloud, Plus, Loader2, Sparkles, Star, ChevronDown, Edit3, Trash2, AlertTriangle } from 'lucide-react';
 import Portal from '../components/Portal.jsx';

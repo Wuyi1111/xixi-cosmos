@@ -1,3 +1,16 @@
+/**
+ * QuizWidget.jsx — 睡眠特质 MBTI 16 型测试，10 道题。
+ *
+ * 从"我的 → 探索内宇宙特质"卡片打开。每题二选一，最后聚合成
+ * 4 字母 MBTI 类型（如 INFP），查 COSMIC_PERSONALITIES 给出人格名 + 描述。
+ *
+ * 改什么：
+ *   - 加 / 删 / 改测试题目（题面 + 两个选项 + 倾向字母）→ 这里 questions 数组
+ *   - 改最终人格的名字、标签、文案 → src/constants.js 的 COSMIC_PERSONALITIES
+ *   - 改 4 维聚合算法（哪些题对应哪个维度）→ handleSelect 里的 count(...) 比较
+ *   - 改首测奖励星尘数（默认 30）→ src/views/MineView.jsx 的 onComplete 处
+ */
+
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import Portal from '../components/Portal.jsx';

@@ -1,3 +1,24 @@
+/**
+ * App.jsx — 应用最外壳 + 全局 state。
+ *
+ * 这里只做三件事：
+ *   1) 持有全部全局 state（userData / theme / activeTab）+ localStorage 读写 / 迁移
+ *   2) 下拉刷新逻辑（仅刷新当前 tab）
+ *   3) tab 路由切换（此刻 / 微澜 / 星系 / 我的）
+ *
+ * 改什么：
+ *   - 改 userData 字段、加新字段、写迁移 → 这里 useState 初值 + 初始化 useEffect
+ *   - 改打卡奖励规则（连签 bonus / 星尘换算）→ handleCheckIn()
+ *   - 调整下拉刷新阻尼或阈值 → useEffect 内 onTouchMove / onTouchEnd
+ *   - 加 / 改 / 删 tab 本身 → 同步改 main 里的条件渲染 + nav 里的 TabButton
+ *   - 加全局装饰光晕（深色背景的紫色 blur）→ "fixed inset-0 pointer-events-none" 那块
+ *
+ * 不在这里改：
+ *   - 单个 tab 的内容 → 去对应的 src/views/*.jsx
+ *   - 主题颜色 / keyframes → src/index.css
+ *   - 常量数据 → src/constants.js
+ */
+
 import { useState, useEffect, useRef } from 'react';
 import { Moon, Wind, Sparkles, User, Loader2, ChevronUp, ChevronDown } from 'lucide-react';
 

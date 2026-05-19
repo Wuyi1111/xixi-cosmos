@@ -1,3 +1,19 @@
+/**
+ * constants.js — 全局常量与示例数据。
+ *
+ * 改什么来这里：
+ *   - 改打卡用的 6 个情绪选项（图标、颜色、安慰语）→ EMOTIONS
+ *   - 改发心语时的预设标签（"今天有件小事让我开心"等）→ PRESET_TAGS
+ *   - 改"星际回音"展示的 5 条示例心语 → MOCK_WHISPERS
+ *   - 改性格测试 16 型的名字、标签、描述 → COSMIC_PERSONALITIES
+ *   - 改成长里程碑（每个阶段叫什么、要几天解锁）→ MILESTONES
+ *   - 加 / 改"宇宙寄语"池（梦境舱里随机抽的那些诗意短句）→ COSMIC_DREAM_INTERPRETATIONS
+ *   - 改"称号徽章"门槛和名字（送暖几次解锁哪个徽章）→ TITLES
+ *   - 加 / 删可选头像 emoji → AVATAR_EMOJIS
+ *
+ * 这个文件全是纯数据，没有逻辑，改起来安全。
+ */
+
 // --- 全局常量及模拟数据 ---
 
 export const EMOTIONS = [
