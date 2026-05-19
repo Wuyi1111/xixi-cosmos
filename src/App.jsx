@@ -273,7 +273,7 @@ export default function App() {
       </div>
 
       <main
-        className="relative z-10 px-4 max-w-md mx-auto min-h-screen pt-[max(env(safe-area-inset-top),0.75rem)] pb-[calc(env(safe-area-inset-bottom)+6rem)]"
+        className="relative z-10 px-4 max-w-md mx-auto min-h-screen pt-[max(env(safe-area-inset-top),0.75rem)] pb-[calc(env(safe-area-inset-bottom)+6.5rem)]"
         style={{
           transform: pullDistance > 0 ? `translateY(${pullDistance}px)` : undefined,
           transition: pullActive.current ? 'none' : 'transform 0.3s ease',
@@ -325,7 +325,7 @@ export default function App() {
       </main>
 
       <nav className={`fixed bottom-0 w-full z-50 transition-colors duration-500 ${isDark ? 'bg-[#13131a]/90 border-[#2a2a35]' : 'bg-white/90 border-gray-200'} backdrop-blur-md border-t pb-[env(safe-area-inset-bottom)]`}>
-        <div className="max-w-md mx-auto flex justify-around items-center h-20 px-4">
+        <div className="max-w-md mx-auto flex justify-around items-center h-[5.5rem] px-2">
           <TabButton id="tonight" icon={Moon} label="此刻" active={activeTab === 'tonight'} onClick={() => setActiveTab('tonight')} isDark={isDark} />
           <TabButton id="treehole" icon={Wind} label="微澜" active={activeTab === 'treehole'} onClick={() => setActiveTab('treehole')} isDark={isDark} />
           <TabButton id="galaxy" icon={Sparkles} label="星系" active={activeTab === 'galaxy'} onClick={() => setActiveTab('galaxy')} isDark={isDark} />
