@@ -23,7 +23,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Music, Wind, Moon, Sparkles, Compass, ChevronDown, X, Edit3, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Music, Wind, Moon, Sparkles, ChevronDown, X, Edit3, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import BreathingWidget from '../widgets/BreathingWidget.jsx';
 import DreamCard from '../widgets/DreamCard.jsx';
@@ -43,6 +43,18 @@ export default function TonightView({ isDark, hasCheckedInToday, onCheckIn, user
 
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date(currentDateStr));
+
+  // 卡片点击反馈：递增就触发一次 tap-flash 动画（key 变化让动画重跑）
+  const [tapFlashKey, setTapFlashKey] = useState(0);
+  const handleCardTap = () => {
+    if (isMoodSelectorOpen || selectedMood) return;
+    // iOS 大多不支持，Android 微震动；不支持的浏览器无副作用
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(15);
+    }
+    setTapFlashKey(k => k + 1);
+    setIsMoodSelectorOpen(true);
+  };
 
   const moodData = selectedMood ? EMOTIONS.find(e => e.id === selectedMood) : null;
   const lastRecord = userData.checkInHistory[0];
@@ -143,15 +155,25 @@ export default function TonightView({ isDark, hasCheckedInToday, onCheckIn, user
           selectedMood
             ? (isDark ? 'bg-[#1a1a24] shadow-2xl' : 'bg-white shadow-xl')
             : (isDark
-                ? 'bg-gradient-to-br from-[#1f1f2e] to-[#1a1a28] border-indigo-500/40 hover:border-indigo-400/60 cursor-pointer shadow-[0_0_40px_rgba(99,102,241,0.12)]'
-                : 'bg-gradient-to-br from-indigo-50/80 to-white border-indigo-200 hover:border-indigo-300 cursor-pointer shadow-lg shadow-indigo-500/10')
+                ? 'bg-gradient-to-br from-[#1f1f2e] to-[#1a1a28] border-indigo-500/40 hover:border-indigo-400/60 cursor-pointer shadow-[0_0_40px_rgba(99,102,241,0.12)] active:scale-[0.97]'
+                : 'bg-gradient-to-br from-indigo-50/80 to-white border-indigo-200 hover:border-indigo-300 cursor-pointer shadow-lg shadow-indigo-500/10 active:scale-[0.97]')
         }`}
         style={{
            borderColor: selectedMood ? `${moodData.color}30` : '',
            boxShadow: selectedMood ? `0 10px 40px -10px ${moodData.color}15` : ''
         }}
-        onClick={() => !isMoodSelectorOpen && !selectedMood && setIsMoodSelectorOpen(true)}
+        onClick={handleCardTap}
         >
+          {/* 点击反馈：径向闪光（每次 tap 重新挂载 div 让动画从头跑） */}
+          {!selectedMood && tapFlashKey > 0 && (
+            <div
+              key={tapFlashKey}
+              className="absolute inset-0 rounded-[32px] pointer-events-none animate-tap-flash"
+              style={{
+                background: 'radial-gradient(circle at center, rgba(99,102,241,0.25) 0%, transparent 65%)',
+              }}
+            />
+          )}
           {selectedMood && (
             <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl opacity-[0.08] pointer-events-none transition-all duration-1000" style={{ backgroundColor: moodData.color }}></div>
           )}
@@ -159,13 +181,34 @@ export default function TonightView({ isDark, hasCheckedInToday, onCheckIn, user
           <div className="p-6 relative z-10">
             {!selectedMood && !isMoodSelectorOpen && (
               <div className="animate-fade-in flex flex-col justify-center items-center text-center py-3 group">
-                {/* 罗盘 + 柔光晕：用 animate-pulse 慢呼吸 + animate-float 微浮，把视线拉过来 */}
-                <div className="relative mb-5">
-                  <div className={`absolute inset-0 -m-3 rounded-full blur-2xl ${isDark ? 'bg-indigo-500/30' : 'bg-indigo-400/30'} animate-pulse`}></div>
-                  <Compass
-                    size={44}
-                    className={`relative animate-float transition-transform duration-500 group-hover:rotate-45 ${isDark ? 'text-indigo-300' : 'text-indigo-500'}`}
-                  />
+                {/* 粒子扩散：12 颗 indigo 粒子从中心 radiate，配合中央核 + 模糊光晕，把视线拉过来 */}
+                <div className="relative w-20 h-20 flex items-center justify-center mb-4">
+                  {/* 外圈柔光晕 */}
+                  <div className={`absolute inset-0 rounded-full blur-2xl ${isDark ? 'bg-indigo-500/35' : 'bg-indigo-400/40'} animate-pulse`}></div>
+
+                  {/* 12 颗粒子：每颗带 --dx/--dy 指向不同角度，错开延迟形成连绵喷涌 */}
+                  {Array.from({ length: 12 }).map((_, i) => {
+                    const angle = (i / 12) * Math.PI * 2;
+                    const r = 34; // 粒子最远漂到中心外 34px
+                    return (
+                      <span
+                        key={i}
+                        className={`absolute top-1/2 left-1/2 w-1.5 h-1.5 rounded-full ${isDark ? 'bg-indigo-200' : 'bg-indigo-500'}`}
+                        style={{
+                          '--dx': `${Math.cos(angle) * r}px`,
+                          '--dy': `${Math.sin(angle) * r}px`,
+                          boxShadow: '0 0 6px rgba(99,102,241,0.7)',
+                          animation: 'particle-burst 2.4s ease-out infinite',
+                          animationDelay: `${i * 0.2}s`,
+                        }}
+                      />
+                    );
+                  })}
+
+                  {/* 中央核：缓慢呼吸 */}
+                  <div className={`relative w-3 h-3 rounded-full ${isDark ? 'bg-indigo-100' : 'bg-indigo-500'} animate-pulse`}
+                       style={{ boxShadow: '0 0 14px rgba(99,102,241,0.8)' }}
+                  ></div>
                 </div>
 
                 {/* 主问句：放大、加重，作为核心引导 */}

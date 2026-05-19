@@ -28,7 +28,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { X, Compass, User, ChevronDown, ChevronUp, ChevronRight, Trash2, Loader2, RotateCcw, Zap, Bug, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { X, Compass, User, Moon, Info, ChevronDown, ChevronUp, ChevronRight, Trash2, Loader2, RotateCcw, Zap, Bug, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import { APP_VERSION, BUILD_TIME } from '../version.js';
 import { formatBytes, getLanguageLabel } from '../utils.js';
@@ -36,10 +36,48 @@ import { formatBytes, getLanguageLabel } from '../utils.js';
 // 开发者测试控制台访问密码
 const DEV_CONSOLE_PASSWORD = '186638';
 
+// 下拉栏：title 是常驻条，children 折叠展开
+// 用 grid-rows 0fr ↔ 1fr 做平滑高度过渡（不需要测量子元素高度）
+function Section({ id, title, icon: Icon, isDark, isOpen, onToggle, children, danger }) {
+  return (
+    <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
+      <button
+        onClick={() => onToggle(id)}
+        className={`w-full px-4 py-3.5 flex items-center justify-between transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'}`}
+        aria-expanded={isOpen}
+      >
+        <span className={`text-sm font-medium flex items-center gap-2 ${danger ? 'text-indigo-500' : ''}`}>
+          {Icon && <Icon size={14} className={danger ? 'text-indigo-500' : (isDark ? 'text-gray-400' : 'text-gray-500')} />}
+          {title}
+        </span>
+        <ChevronRight size={16} className={`text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-90' : ''}`} />
+      </button>
+      <div className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+        <div className="overflow-hidden">
+          <div className={`px-4 pb-4 pt-2 border-t ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // 设置面板：集合全部用户偏好 + 开发者控制台
 export default function SettingsPanel({ isDark, theme, setTheme, userData, saveUserData, onClose, onReset }) {
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [alertDialog, setAlertDialog] = useState(null);
+
+  // 下拉栏开合：默认全部收起（首屏干净）；用户点哪个开哪个
+  const [openSections, setOpenSections] = useState(() => new Set());
+  const toggleSection = (id) => {
+    setOpenSections(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   // 关于息息（版本检查）
   const [versionCheckState, setVersionCheckState] = useState('idle');
@@ -255,9 +293,8 @@ export default function SettingsPanel({ isDark, theme, setTheme, userData, saveU
         </button>
       </div>
 
-      <div>
-        <h3 className="text-xs text-gray-500 mb-2 px-2">视觉主题</h3>
-        <div className={`p-1 rounded-2xl flex ${isDark ? 'bg-[#171724]' : 'bg-gray-200/50'}`}>
+      <Section id="theme" title="视觉主题" isDark={isDark} isOpen={openSections.has('theme')} onToggle={toggleSection}>
+        <div className={`p-1 rounded-2xl flex ${isDark ? 'bg-[#0f0f1a]' : 'bg-gray-100'}`}>
           {['light', 'dark', 'auto'].map((t) => (
             <button
               key={t}
@@ -272,12 +309,11 @@ export default function SettingsPanel({ isDark, theme, setTheme, userData, saveU
             </button>
           ))}
         </div>
-      </div>
+      </Section>
 
       {/* === 整体字号 === */}
-      <div className="pt-4">
-        <h3 className="text-xs text-gray-500 mb-2 px-2">整体字号</h3>
-        <div className={`p-4 rounded-2xl ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
+      <Section id="font" title="整体字号" isDark={isDark} isOpen={openSections.has('font')} onToggle={toggleSection}>
+        <div>
           <div className="flex items-center justify-between mb-3">
             <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>偏小</span>
             <span className="text-base font-medium">示例文字 · Aa</span>
@@ -308,29 +344,22 @@ export default function SettingsPanel({ isDark, theme, setTheme, userData, saveU
             恢复默认 (100%)
           </button>
         </div>
-      </div>
+      </Section>
 
       {/* === 系统语言 === */}
-      <div className="pt-4">
-        <h3 className="text-xs text-gray-500 mb-2 px-2">系统语言</h3>
-        <div className={`p-4 rounded-2xl ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Compass size={16} className="text-gray-400" />
-              <div>
-                <p className="text-sm">{language.label}</p>
-                <p className="text-[11px] text-gray-500 mt-0.5">{language.code} · 跟随浏览器设置</p>
-              </div>
-            </div>
-            <span className={`text-[10px] px-2 py-1 rounded-md ${isDark ? 'bg-indigo-500/10 text-indigo-300' : 'bg-indigo-50 text-indigo-500'}`}>自动</span>
+      <Section id="lang" title="系统语言" icon={Compass} isDark={isDark} isOpen={openSections.has('lang')} onToggle={toggleSection}>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm">{language.label}</p>
+            <p className="text-[11px] text-gray-500 mt-0.5">{language.code} · 跟随浏览器设置</p>
           </div>
+          <span className={`text-[10px] px-2 py-1 rounded-md ${isDark ? 'bg-indigo-500/10 text-indigo-300' : 'bg-indigo-50 text-indigo-500'}`}>自动</span>
         </div>
-      </div>
+      </Section>
 
       {/* === 账号与安全 === */}
-      <div className="pt-4">
-        <h3 className="text-xs text-gray-500 mb-2 px-2">账号与安全</h3>
-        <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
+      <Section id="account" title="账号与安全" icon={User} isDark={isDark} isOpen={openSections.has('account')} onToggle={toggleSection}>
+        <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#0f0f1a]' : 'bg-gray-50/60'}`}>
           <div className={`p-4 flex items-center justify-between border-b ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
             <div className="flex items-center gap-3">
               <User size={16} className="text-gray-400" />
@@ -371,14 +400,13 @@ export default function SettingsPanel({ isDark, theme, setTheme, userData, saveU
             onChange={handleImportFile}
           />
         </div>
-        <p className="text-[11px] text-gray-500 mt-2 px-2">
+        <p className="text-[11px] text-gray-500 mt-2">
           数据仅存于本机，导出文件即唯一备份，请妥善保管。
         </p>
-      </div>
+      </Section>
 
-      <div className="pt-4">
-        <h3 className="text-xs text-gray-500 mb-2 px-2">睡眠守护</h3>
-        <div className={`p-4 rounded-2xl space-y-4 ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
+      <Section id="reminder" title="睡眠守护" icon={Moon} isDark={isDark} isOpen={openSections.has('reminder')} onToggle={toggleSection}>
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-sm">睡前提醒</span>
             <button
@@ -401,12 +429,11 @@ export default function SettingsPanel({ isDark, theme, setTheme, userData, saveU
             </div>
           )}
         </div>
-      </div>
+      </Section>
 
       {/* === 存储与隐私 === */}
-      <div className="pt-4">
-        <h3 className="text-xs text-gray-500 mb-2 px-2">存储与隐私</h3>
-        <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
+      <Section id="privacy" title="存储与隐私" icon={Trash2} isDark={isDark} isOpen={openSections.has('privacy')} onToggle={toggleSection}>
+        <div className={`rounded-2xl overflow-hidden ${isDark ? 'bg-[#0f0f1a]' : 'bg-gray-50/60'}`}>
           <div className={`p-4 border-b ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm">本地存储用量</span>
@@ -452,15 +479,14 @@ export default function SettingsPanel({ isDark, theme, setTheme, userData, saveU
             <ChevronRight size={16} className="text-red-400/50" />
           </button>
         </div>
-        <p className="text-[11px] text-gray-500 mt-2 px-2">
+        <p className="text-[11px] text-gray-500 mt-2">
           清空操作不可撤销，建议先导出备份。
         </p>
-      </div>
+      </Section>
 
       {/* === 关于息息 === */}
-      <div className="pt-4">
-        <h3 className="text-xs text-gray-500 mb-2 px-2">关于息息</h3>
-        <div className={`p-4 rounded-2xl ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
+      <Section id="about" title="关于息息" icon={Info} isDark={isDark} isOpen={openSections.has('about')} onToggle={toggleSection}>
+        <div>
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-medium text-sm">
               息
@@ -520,22 +546,21 @@ export default function SettingsPanel({ isDark, theme, setTheme, userData, saveU
             </div>
           )}
         </div>
-      </div>
+      </Section>
 
       {/* 开发者测试控制台 */}
-      <div className={`pt-8 space-y-4 border-t ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
-        <h3 className="text-xs text-indigo-500 mb-2 px-2 flex items-center gap-1.5 font-medium">
-          <Bug size={14} /> 开发者测试控制台
-          {devUnlocked && (
+      <Section id="dev" title="开发者测试控制台" icon={Bug} isDark={isDark} isOpen={openSections.has('dev')} onToggle={toggleSection} danger>
+        {devUnlocked && (
+          <div className="flex justify-end mb-3">
             <button
               onClick={() => { setDevUnlocked(false); setDevPasswordInput(''); setDevPasswordError(false); }}
-              className="ml-auto text-[10px] font-normal text-gray-500 hover:text-indigo-400 underline-offset-2 hover:underline"
+              className="text-[10px] font-normal text-gray-500 hover:text-indigo-400 underline-offset-2 hover:underline"
               title="锁定控制台"
             >
               锁定
             </button>
-          )}
-        </h3>
+          </div>
+        )}
 
         {!devUnlocked ? (
           <form
@@ -616,7 +641,7 @@ export default function SettingsPanel({ isDark, theme, setTheme, userData, saveU
         </button>
         </>
         )}
-      </div>
+      </Section>
 
       {/* === 隐私守护协议弹窗 === */}
       {showPrivacyModal && (
