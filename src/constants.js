@@ -97,3 +97,29 @@ export const TITLES = [
 
 // 头像可选 emoji
 export const AVATAR_EMOJIS = ['🪐', '🌙', '⭐', '🌟', '✨', '💫', '🌠', '🌌', '☄️', '🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘', '🛸', '🚀', '🌈', '☁️', '🦄'];
+
+// 星愿池 — 睡眠相关商品（mock 数据，价格用星尘 + 元两种单位）
+// 真接通后端 / 支付时，再把这里换成接口拉取
+export const WISH_PRODUCTS = [
+  { id: 'oil',    emoji: '🌿', name: '薰衣草助眠精油', spec: '30 ml', stardust: 89,  price: 79 },
+  { id: 'pillow', emoji: '🛏️', name: '凉感记忆枕',     spec: '颈椎友好',  stardust: 269, price: 239 },
+  { id: 'phones', emoji: '🎧', name: '白噪音助眠耳机', spec: '蓝牙降噪',  stardust: 199, price: 169 },
+  { id: 'lamp',   emoji: '🌙', name: '月光床头灯',     spec: '渐亮唤醒',  stardust: 159, price: 139 },
+  { id: 'mask',   emoji: '👁️', name: '真丝助眠眼罩',   spec: '桑蚕丝',    stardust: 49,  price: 45  },
+  { id: 'candle', emoji: '🕯️', name: '雪松香薰蜡烛',   spec: '8 oz',     stardust: 79,  price: 69  },
+  { id: 'blanket',emoji: '☁️', name: '重力毯',         spec: '4 kg 静谧蓝', stardust: 399, price: 359 },
+  { id: 'tea',    emoji: '🍯', name: '助眠草本茶',     spec: '30 包',    stardust: 39,  price: 35  },
+];
+
+// 别人许下的愿望（mock 数据，模拟真实社区氛围）
+// productId 对应 WISH_PRODUCTS 的 id
+export const MOCK_WISHES = [
+  { id: 1, userName: '星海旅人', userId: 'TR0312', avatar: '🌌', productId: 'mask',    wish: '最近睡得太轻了，希望它能帮我屏蔽掉清晨的光。', daysAgo: 3, joined: 12 },
+  { id: 2, userName: '星海旅人', userId: 'TR1989', avatar: '🌠', productId: 'oil',     wish: '送给我妈，她最近失眠很严重。',               daysAgo: 0, joined: 5  },
+  { id: 3, userName: '星海旅人', userId: 'TR0007', avatar: '🪐', productId: 'pillow',  wish: '换了三个枕头都不行，希望这是最后一个。',     daysAgo: 2, joined: 8  },
+  { id: 4, userName: '星海旅人', userId: 'TR2024', avatar: '☄️', productId: 'phones',  wish: '室友打呼太大，每晚都崩溃。',                 daysAgo: 1, joined: 23 },
+  { id: 5, userName: '星海旅人', userId: 'TR0411', avatar: '🌙', productId: 'tea',     wish: '想试试不靠药物的方式入睡。',                 daysAgo: 4, joined: 7  },
+  { id: 6, userName: '星海旅人', userId: 'TR8888', avatar: '✨', productId: 'blanket', wish: '听说像被温柔抱住一样，今天好想被抱抱。',     daysAgo: 7, joined: 41 },
+  { id: 7, userName: '星海旅人', userId: 'TR0521', avatar: '💫', productId: 'lamp',    wish: '不喜欢闹钟突然响起，希望被晨光慢慢叫醒。',   daysAgo: 2, joined: 16 },
+  { id: 8, userName: '星海旅人', userId: 'TR1101', avatar: '🌟', productId: 'candle',  wish: '想找回小时候在森林里露营的味道。',           daysAgo: 5, joined: 9  },
+];

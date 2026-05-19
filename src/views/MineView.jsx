@@ -14,6 +14,7 @@
  *   - 改徽章解锁门槛 / 名字 / 图标 → src/constants.js 的 TITLES
  *   - 改首次性格测试的奖励星尘（默认 30）→ 这里 onComplete 处的 30
  *   - 改人格描述本身 → src/constants.js 的 COSMIC_PERSONALITIES
+ *   - 三宫格里的"星尘"格点击进入星愿池商城 → showWishPool 早期 return
  *
  * 注意：#TR755 是固定 ID，所有用户都看到这个编号，UI 上有"不可修改"标签。
  *      想改这个 ID 默认值，去 src/App.jsx 的 userData 初值 + 初始化迁移。
@@ -24,6 +25,7 @@ import { Settings, Edit3, X, Compass, Sparkles, ChevronRight } from 'lucide-reac
 import Portal from '../components/Portal.jsx';
 import QuizWidget from '../widgets/QuizWidget.jsx';
 import SettingsPanel from './SettingsPanel.jsx';
+import WishPoolView from './WishPoolView.jsx';
 import { TITLES, AVATAR_EMOJIS } from '../constants.js';
 
 // --- 页面 4：我的 (Mine) ---
@@ -31,6 +33,7 @@ export default function MineView({ isDark, theme, setTheme, userData, setUserDat
   const [showSettings, setShowSettings] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [showWishPool, setShowWishPool] = useState(false);
   const [nameDraft, setNameDraft] = useState(userData.displayName || '星海旅人');
   const [emojiDraft, setEmojiDraft] = useState(userData.avatarEmoji || '🪐');
 
@@ -70,6 +73,10 @@ export default function MineView({ isDark, theme, setTheme, userData, setUserDat
       saveUserData({ ...userData, personality: resultObj, stardust: userData.stardust + earnedStardust });
       setShowQuiz(false);
     }}/>;
+  }
+
+  if (showWishPool) {
+    return <WishPoolView isDark={isDark} userData={userData} onClose={() => setShowWishPool(false)} />;
   }
 
   return (
@@ -230,10 +237,17 @@ export default function MineView({ isDark, theme, setTheme, userData, setUserDat
           <p className="text-xl font-medium mb-1">{userData.totalDays}</p>
           <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>累计夜晚</p>
         </div>
-        <div className={`border-x ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
-          <p className="text-xl font-medium mb-1 text-indigo-400">{userData.stardust}</p>
-          <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>星尘</p>
-        </div>
+        <button
+          onClick={() => setShowWishPool(true)}
+          className={`border-x active:scale-95 transition-transform relative group ${isDark ? 'border-gray-800 hover:bg-white/[0.02]' : 'border-gray-100 hover:bg-gray-50/60'} -my-1 py-1 rounded`}
+          aria-label="进入星愿池"
+        >
+          <p className="text-xl font-medium mb-1 text-indigo-400 flex items-center justify-center gap-1">
+            {userData.stardust}
+            <ChevronRight size={12} className="text-indigo-400/60 group-hover:translate-x-0.5 transition-transform" />
+          </p>
+          <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>星尘 · 去星愿池</p>
+        </button>
         <div>
           <p className="text-xl font-medium mb-1 text-pink-400">{userData.totalHugs}</p>
           <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>传递温暖</p>
