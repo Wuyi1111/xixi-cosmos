@@ -111,7 +111,7 @@ export default function TonightView({ isDark, hasCheckedInToday, onCheckIn, user
         )}
       </section>
 
-      {/* 核心打卡交互区：情绪胶囊 */}
+      {/* 核心打卡交互区：情绪胶囊（首页主 CTA，所以做得明显一点） */}
       {hasCheckedInToday ? (
         <section className={`p-8 rounded-[32px] text-center relative overflow-hidden transition-colors border ${isDark ? 'bg-[#1a1a24] border-indigo-500/20 shadow-[0_0_30px_rgba(99,102,241,0.05)]' : 'bg-gradient-to-b from-indigo-50/80 to-white border-indigo-100 shadow-sm'}`}>
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -142,7 +142,9 @@ export default function TonightView({ isDark, hasCheckedInToday, onCheckIn, user
         <section className={`transition-all duration-700 ease-in-out rounded-[32px] relative overflow-hidden border ${
           selectedMood
             ? (isDark ? 'bg-[#1a1a24] shadow-2xl' : 'bg-white shadow-xl')
-            : (isDark ? 'bg-[#1f1f2e] border-indigo-500/20 hover:border-indigo-500/40 cursor-pointer shadow-[0_0_20px_rgba(99,102,241,0.05)]' : 'bg-white border-indigo-100 hover:border-indigo-300 cursor-pointer shadow-sm')
+            : (isDark
+                ? 'bg-gradient-to-br from-[#1f1f2e] to-[#1a1a28] border-indigo-500/40 hover:border-indigo-400/60 cursor-pointer shadow-[0_0_40px_rgba(99,102,241,0.12)]'
+                : 'bg-gradient-to-br from-indigo-50/80 to-white border-indigo-200 hover:border-indigo-300 cursor-pointer shadow-lg shadow-indigo-500/10')
         }`}
         style={{
            borderColor: selectedMood ? `${moodData.color}30` : '',
@@ -156,21 +158,40 @@ export default function TonightView({ isDark, hasCheckedInToday, onCheckIn, user
 
           <div className="p-6 relative z-10">
             {!selectedMood && !isMoodSelectorOpen && (
-              <div className="animate-fade-in flex flex-col justify-center items-center text-center min-h-[120px] group">
-                <Compass size={32} className={`mb-4 opacity-40 transition-transform duration-500 group-hover:rotate-45 ${isDark ? 'text-indigo-400' : 'text-indigo-500'}`} />
-                <p className={`text-sm font-light leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                  闭上眼睛，深呼吸。今夜，你的内心是何种风景？
+              <div className="animate-fade-in flex flex-col justify-center items-center text-center py-3 group">
+                {/* 罗盘 + 柔光晕：用 animate-pulse 慢呼吸 + animate-float 微浮，把视线拉过来 */}
+                <div className="relative mb-5">
+                  <div className={`absolute inset-0 -m-3 rounded-full blur-2xl ${isDark ? 'bg-indigo-500/30' : 'bg-indigo-400/30'} animate-pulse`}></div>
+                  <Compass
+                    size={44}
+                    className={`relative animate-float transition-transform duration-500 group-hover:rotate-45 ${isDark ? 'text-indigo-300' : 'text-indigo-500'}`}
+                  />
+                </div>
+
+                {/* 主问句：放大、加重，作为核心引导 */}
+                <p className={`text-base font-medium leading-relaxed mb-1.5 ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
+                  今夜，你的内心是何种风景？
                 </p>
-                <p className={`text-[10px] mt-5 opacity-60 flex items-center gap-1 ${isDark ? 'text-indigo-300' : 'text-indigo-500'}`}>
-                  点击展开星象，记录此刻 <ChevronDown size={12} className="animate-bounce" />
+                <p className={`text-xs font-light ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  闭上眼睛，深呼吸
                 </p>
+
+                {/* 真正"长得像按钮"的 CTA，告诉用户点这里 */}
+                <div className={`mt-5 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all group-hover:scale-[1.03] ${
+                  isDark
+                    ? 'bg-indigo-500/20 text-indigo-200 border border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.25)]'
+                    : 'bg-indigo-500/10 text-indigo-600 border border-indigo-200 shadow-sm'
+                }`}>
+                  <span>记录今夜星象</span>
+                  <ChevronDown size={14} className="animate-bounce" />
+                </div>
               </div>
             )}
 
             {isMoodSelectorOpen && (
               <div className="animate-fade-in space-y-5 py-2">
                  <div className="flex justify-between items-center px-1">
-                   <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>校准你的情绪波段...</span>
+                   <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>选一颗最像今夜的你</span>
                    <button onClick={(e) => { e.stopPropagation(); setIsMoodSelectorOpen(false); }} className="p-1 rounded-full hover:bg-gray-500/10 text-gray-400 hover:text-gray-200 transition-colors"><X size={16}/></button>
                  </div>
                  <div className="grid grid-cols-3 gap-3">
