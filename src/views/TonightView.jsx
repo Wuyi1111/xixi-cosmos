@@ -33,7 +33,7 @@ import { EMOTIONS } from '../constants.js';
 export default function TonightView({ isDark, hasCheckedInToday, onCheckIn, userData, saveUserData, currentDateStr }) {
   const [selectedMood, setSelectedMood] = useState(null);
   const [whisper, setWhisper] = useState('');
-  const [comfortText, setComfortText] = useState('闭上眼睛，深呼吸。今夜，你的内心是何种风景？');
+  const [comfortText, setComfortText] = useState('此刻，你的内心是何种风景？');
 
   const [isAidExpanded, setIsAidExpanded] = useState(false);
   const [isMoodSelectorOpen, setIsMoodSelectorOpen] = useState(false);
@@ -212,20 +212,17 @@ export default function TonightView({ isDark, hasCheckedInToday, onCheckIn, user
                 </div>
 
                 {/* 主问句：放大、加重，作为核心引导 */}
-                <p className={`text-base font-medium leading-relaxed mb-1.5 ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
-                  今夜，你的内心是何种风景？
-                </p>
-                <p className={`text-xs font-light ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  闭上眼睛，深呼吸
+                <p className={`text-base font-medium leading-relaxed mb-4 ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
+                  此刻，你的内心是何种风景？
                 </p>
 
                 {/* 真正"长得像按钮"的 CTA，告诉用户点这里 */}
-                <div className={`mt-5 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all group-hover:scale-[1.03] ${
+                <div className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all group-hover:scale-[1.03] ${
                   isDark
                     ? 'bg-indigo-500/20 text-indigo-200 border border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.25)]'
                     : 'bg-indigo-500/10 text-indigo-600 border border-indigo-200 shadow-sm'
                 }`}>
-                  <span>记录今夜星象</span>
+                  <span>记录此刻</span>
                   <ChevronDown size={14} className="animate-bounce" />
                 </div>
               </div>
@@ -234,7 +231,7 @@ export default function TonightView({ isDark, hasCheckedInToday, onCheckIn, user
             {isMoodSelectorOpen && (
               <div className="animate-fade-in space-y-5 py-2">
                  <div className="flex justify-between items-center px-1">
-                   <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>选一颗最像今夜的你</span>
+                   <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>选一颗最像此刻的你</span>
                    <button onClick={(e) => { e.stopPropagation(); setIsMoodSelectorOpen(false); }} className="p-1 rounded-full hover:bg-gray-500/10 text-gray-400 hover:text-gray-200 transition-colors"><X size={16}/></button>
                  </div>
                  <div className="grid grid-cols-3 gap-3">

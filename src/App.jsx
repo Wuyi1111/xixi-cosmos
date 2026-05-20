@@ -27,6 +27,7 @@ import TonightView from './views/TonightView.jsx';
 import TreeholeView from './views/TreeholeView.jsx';
 import GalaxyView from './views/GalaxyView.jsx';
 import MineView from './views/MineView.jsx';
+import SplashScreen from './components/SplashScreen.jsx';
 import { EMOTIONS } from './constants.js';
 
 // --- 主应用组件：全局 state + pull-to-refresh + 路由壳 ---
@@ -57,6 +58,21 @@ export default function App() {
   });
 
   const [currentDateStr, setCurrentDateStr] = useState(new Date().toDateString());
+
+  // 启动页状态：仅在每日首次打开时显示
+  const [showSplash, setShowSplash] = useState(() => {
+    const lastSplashDate = localStorage.getItem('xixi_cosmos_splash_date');
+    const today = new Date().toDateString();
+    if (lastSplashDate !== today) {
+      localStorage.setItem('xixi_cosmos_splash_date', today);
+      return true;
+    }
+    return false;
+  });
+
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -239,18 +255,27 @@ export default function App() {
   }, [pullDistance, refreshing]);
 
   return (
-    <div className={`min-h-screen transition-colors duration-1000 ${isDark ? 'dark bg-[#0f0f1a] text-[#f1f5f9]' : 'bg-[#f8fafc] text-[#1e293b]'}`}>
-      {/* 下拉刷新指示器 */}
-      {(pullDistance > 0 || refreshing) && (
-        <div
-          className="fixed left-0 right-0 z-[60] flex items-center justify-center pointer-events-none"
-          style={{
-            top: 'env(safe-area-inset-top)',
-            height: refreshing ? '60px' : `${pullDistance}px`,
-            transition: pullActive.current ? 'none' : 'height 0.3s ease',
-          }}
-        >
-          <div className={`flex items-center gap-2 text-xs ${isDark ? 'text-indigo-300' : 'text-indigo-500'}`}>
+    <>
+      {/* 启动页 */}
+      {showSplash && (
+        <SplashScreen
+          isDark={isDark}
+          onComplete={handleSplashComplete}
+        />
+      )}
+
+      <div className={`min-h-screen transition-colors duration-1000 ${isDark ? 'dark bg-[#0f0f1a] text-[#f1f5f9]' : 'bg-[#f8fafc] text-[#1e293b]'}`}>
+        {/* 下拉刷新指示器 */}
+        {(pullDistance > 0 || refreshing) && (
+          <div
+            className="fixed left-0 right-0 z-[60] flex items-center justify-center pointer-events-none"
+            style={{
+              top: 'env(safe-area-inset-top)',
+              height: refreshing ? '60px' : `${pullDistance}px`,
+              transition: pullActive.current ? 'none' : 'height 0.3s ease',
+            }}
+          >
+            <div className={`flex items-center gap-2 text-xs ${isDark ? 'text-indigo-300' : 'text-indigo-500'}`}>
             {refreshing ? (
               <><Loader2 size={16} className="animate-spin" /> 正在刷新…</>
             ) : pullDistance > 60 ? (
@@ -333,5 +358,6 @@ export default function App() {
         </div>
       </nav>
     </div>
+    </>
   );
 }
