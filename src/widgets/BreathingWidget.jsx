@@ -147,68 +147,103 @@ export default function BreathingWidget({ isDark, onClose }) {
   if (screen === 'setup') {
     return (
       <Portal>
-        <div data-no-pull-refresh="true" className="fixed inset-0 z-50 flex flex-col animate-fade-in" style={{ backgroundColor: isDark ? '#0f0f1a' : '#f8fafc' }}>
-          <div className="flex justify-between items-center px-6 pt-[max(env(safe-area-inset-top)+0.5rem,2.5rem)] pb-4">
-            <div></div>
-            <h1 className="text-lg font-medium tracking-wider">舒缓调息</h1>
-            <button onClick={onClose} className="p-2 rounded-full text-gray-400">
-              <X size={24} />
-            </button>
-          </div>
+        <div data-no-pull-refresh="true" className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in">
+          {/* 半透明遮罩层 */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
-          <div className="flex-1 flex flex-col justify-center px-6 space-y-10">
-            {/* 时长选择 */}
-            <div className="space-y-4">
-              <h2 className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>时长</h2>
-              <div className="grid grid-cols-3 gap-3">
-                {DURATION_OPTIONS.map((opt, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setDuration(opt.value)}
-                    className={`py-3 rounded-2xl text-sm font-medium transition-all ${
-                      duration === opt.value
-                        ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30'
-                        : isDark
-                        ? 'bg-[#171724] text-gray-400 border border-gray-800'
-                        : 'bg-gray-50 text-gray-600 border border-gray-200'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+          {/* 卡片容器 */}
+          <div className={`relative w-full max-w-sm flex flex-col rounded-[28px] overflow-hidden shadow-2xl ${isDark ? 'bg-[#171724] shadow-black/50' : 'bg-white shadow-gray-200/50'}`}>
+            {/* 顶部装饰区 */}
+            <div className={`relative px-6 pt-[max(env(safe-area-inset-top)+1rem,1.5rem)] pb-6 ${isDark ? 'bg-[#1f1f2e]' : 'bg-indigo-50/50'}`}>
+              {/* 关闭按钮 */}
+              <button
+                onClick={onClose}
+                className={`absolute top-[max(env(safe-area-inset-top)+1rem,1.5rem)] right-6 p-2 rounded-full transition-colors ${isDark ? 'text-gray-400 hover:text-gray-200 hover:bg-white/10' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
+              >
+                <X size={20} />
+              </button>
+
+              {/* 标题与图标 */}
+              <div className="flex flex-col items-center pt-4 space-y-3">
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center ${isDark ? 'bg-indigo-500/20' : 'bg-indigo-100'}`}>
+                  <span className="text-2xl">🌬️</span>
+                </div>
+                <div className="text-center">
+                  <h1 className={`text-lg font-medium tracking-wider ${isDark ? 'text-white' : 'text-gray-800'}`}>舒缓调息</h1>
+                  <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>跟随呼吸，回归平静</p>
+                </div>
               </div>
             </div>
 
-            {/* 速率选择 */}
-            <div className="space-y-4">
-              <h2 className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>速率</h2>
-              <div className="grid grid-cols-3 gap-3">
-                {RATE_OPTIONS.map((opt, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setRateOption(idx)}
-                    className={`py-3 rounded-2xl text-sm font-medium transition-all ${
-                      rateOption === idx
-                        ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30'
-                        : isDark
-                        ? 'bg-[#171724] text-gray-400 border border-gray-800'
-                        : 'bg-gray-50 text-gray-600 border border-gray-200'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+            {/* 选项区 */}
+            <div className="flex-1 px-6 py-8 space-y-8">
+              {/* 时长选择 */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className={`w-1 h-4 rounded-full bg-indigo-500`} />
+                  <h2 className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>时长</h2>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {DURATION_OPTIONS.map((opt, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setDuration(opt.value)}
+                      className={`relative py-3.5 rounded-2xl text-sm font-medium transition-all duration-300 ${
+                        duration === opt.value
+                          ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30 scale-[1.02]'
+                          : isDark
+                          ? 'bg-[#1f1f2e] text-gray-400 border border-gray-800 hover:border-gray-700 hover:bg-[#262638]'
+                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:border-indigo-200 hover:bg-white hover:shadow-sm'
+                      }`}
+                    >
+                      {opt.label}
+                      {duration === opt.value && (
+                        <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full bg-indigo-400 border-2 ${isDark ? 'border-[#171724]' : 'border-white'}`} />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 速率选择 */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className={`w-1 h-4 rounded-full bg-indigo-500`} />
+                  <h2 className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>速率</h2>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {RATE_OPTIONS.map((opt, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setRateOption(idx)}
+                      className={`relative py-3.5 rounded-2xl text-sm font-medium transition-all duration-300 ${
+                        rateOption === idx
+                          ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30 scale-[1.02]'
+                          : isDark
+                          ? 'bg-[#1f1f2e] text-gray-400 border border-gray-800 hover:border-gray-700 hover:bg-[#262638]'
+                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:border-indigo-200 hover:bg-white hover:shadow-sm'
+                      }`}
+                    >
+                      {opt.label}
+                      {rateOption === idx && (
+                        <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full bg-indigo-400 border-2 ${isDark ? 'border-[#171724]' : 'border-white'}`} />
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="px-6 pb-[max(env(safe-area-inset-bottom)+1rem,2rem)] pt-4">
-            <button
-              onClick={startPractice}
-              className="w-full py-4 rounded-2xl text-white font-medium bg-indigo-500 hover:bg-indigo-600 transition-all active:scale-95 shadow-lg shadow-indigo-500/30"
-            >
-              开始
-            </button>
+            {/* 底部按钮区 */}
+            <div className={`px-6 pb-[max(env(safe-area-inset-bottom)+1rem,1.5rem)] pt-2 ${isDark ? 'bg-[#1f1f2e]' : 'bg-indigo-50/50'}`}>
+              <button
+                onClick={startPractice}
+                className="w-full py-4 rounded-2xl text-white font-medium tracking-wider bg-indigo-500 hover:bg-indigo-600 transition-all active:scale-95 shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2"
+              >
+                <span>开始练习</span>
+                <span className="text-lg">🧘</span>
+              </button>
+            </div>
           </div>
         </div>
       </Portal>
