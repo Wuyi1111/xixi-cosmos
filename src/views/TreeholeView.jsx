@@ -30,7 +30,7 @@ import { MOCK_WHISPERS, PRESET_TAGS, TOMORROW_SUGGESTIONS } from '../constants.j
 const MODES = ['browse', 'emit', 'tomorrow'];
 const MODE_LABELS = { browse: '星际回音', emit: '发射台', tomorrow: '明日' };
 const SWIPE_THRESHOLD_RATIO = 0.2; // 拖过容器 20% 宽就切到下一页
-const SPOTS_COUNT = 3; // 每天光点数量
+const SPOTS_COUNT = 4; // 默认光点数量
 
 // 从任务池中随机抽取指定数量的任务
 const getRandomSuggestions = (count, excludeIds = []) => {
@@ -203,7 +203,7 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
   // 获取今日光点（如果没有则生成）
   const getTodaySpots = () => {
     const saved = userData.tomorrowSpots;
-    if (saved?.date === currentDateStr && saved?.spots?.length === SPOTS_COUNT) {
+    if (saved?.date === currentDateStr && saved?.spots?.length >= SPOTS_COUNT) {
       return saved.spots;
     }
     // 生成新的光点
@@ -252,8 +252,22 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
     });
   };
 
-  const handleSkip = (spotId) => {
-    updateSpot(spotId, { status: 'skipped', suggestion: null, type: 'empty' });
+  const handleAddNewSpot = () => {
+    const usedIds = todaySpots
+      .filter(s => s.type === 'random' && s.suggestion)
+      .map(s => s.suggestion.id);
+    const newSuggestion = getRandomSuggestions(1, usedIds)[0];
+    const newSpot = {
+      id: `spot_${Date.now()}_${todaySpots.length}`,
+      type: 'random',
+      suggestion: newSuggestion || null,
+      customText: '',
+      status: 'pending',
+    };
+    saveUserData({
+      ...userData,
+      tomorrowSpots: { date: currentDateStr, spots: [...todaySpots, newSpot] }
+    });
   };
 
   const handleRefresh = (spotId) => {
@@ -510,7 +524,8 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
 
   // === 明日页面：光点机制 ===
   const renderTomorrow = () => {
-    const progress = SPOTS_COUNT > 0 ? Math.round((doneCount / SPOTS_COUNT) * 100) : 0;
+    const totalSpots = todaySpots.length;
+    const progress = totalSpots > 0 ? Math.round((doneCount / totalSpots) * 100) : 0;
 
     return (
       <div className="space-y-5">
@@ -545,7 +560,7 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
 
             <h2 className="text-xl font-light mb-2 tracking-wide">轻轻陪你走向明天</h2>
             <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              今天有 {SPOTS_COUNT} 颗小光点等你拾起，<br/>
+              今天有 {totalSpots} 颗小光点等你拾起，<br/>
               不是任务，只是温柔的陪伴。
             </p>
 
@@ -571,8 +586,6 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
         <div className="space-y-3">
           {todaySpots.map((spot, index) => {
             const isDone = spot.status === 'done';
-            const isSkipped = spot.status === 'skipped';
-            const isEmpty = spot.type === 'empty';
             const isCustom = spot.type === 'custom';
             const suggestion = spot.suggestion;
 
@@ -582,8 +595,6 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
                 className={`p-5 rounded-[24px] transition-all duration-500 ${
                   isDone
                     ? (isDark ? 'bg-[#13131a]/60 border border-emerald-500/20' : 'bg-emerald-50/50 border border-emerald-200/50')
-                    : isSkipped
-                    ? (isDark ? 'bg-[#171724]/40 border border-white/5' : 'bg-gray-50/30 border border-gray-100/50')
                     : (isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm')
                 }`}
               >
@@ -591,16 +602,11 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-indigo-500/15 text-indigo-300' : 'bg-indigo-50 text-indigo-600'}`}>
-                      光点 {index + 1}/{SPOTS_COUNT}
+                      光点 {index + 1}/{totalSpots}
                     </span>
                     {isDone && (
                       <span className={`text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 ${isDark ? 'bg-emerald-500/15 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
                         <CheckCircle2 size={8} /> 已完成
-                      </span>
-                    )}
-                    {isSkipped && (
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                        已跳过
                       </span>
                     )}
                   </div>
@@ -620,34 +626,6 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
                       <p className={`text-[11px] ${isDark ? 'text-emerald-400/60' : 'text-emerald-600/60'}`}>
                         谢谢你，这颗光点已经被你拾起
                       </p>
-                    </div>
-                  </div>
-                ) : isSkipped ? (
-                  // 已跳过状态 - 可以重新随机或自定义
-                  <div className="space-y-3">
-                    <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                      这颗光点被轻轻放走了，你想换一颗吗？
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleRefresh(spot.id)}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
-                          isDark ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25' : 'bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100'
-                        }`}
-                      >
-                        <RefreshCw size={12} /> 换一颗
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowCustomInput(true);
-                          setCustomText('');
-                        }}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
-                          isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
-                        }`}
-                      >
-                        <Plus size={12} /> 自己写
-                      </button>
                     </div>
                   </div>
                 ) : isCustom ? (
@@ -719,12 +697,15 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
                         <RefreshCw size={12} /> 换一换
                       </button>
                       <button
-                        onClick={() => handleSkip(spot.id)}
+                        onClick={() => {
+                          setShowCustomInput(true);
+                          setCustomText('');
+                        }}
                         className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
-                          isDark ? 'bg-white/5 text-gray-500 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-400 border border-gray-200 hover:bg-gray-100'
+                          isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
                         }`}
                       >
-                        跳过
+                        <Plus size={12} /> 自己写
                       </button>
                     </div>
                   </div>
@@ -760,6 +741,18 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
               </div>
             );
           })}
+        </div>
+
+        {/* 底部添加按钮 */}
+        <div className="flex justify-center pt-2">
+          <button
+            onClick={handleAddNewSpot}
+            className={`flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-all active:scale-95 ${
+              isDark ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25 hover:shadow-lg hover:shadow-indigo-500/20' : 'bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100 hover:shadow-lg hover:shadow-indigo-500/20'
+            }`}
+          >
+            <Plus size={16} /> 添加光点
+          </button>
         </div>
 
         {/* 底部温馨语句 */}
