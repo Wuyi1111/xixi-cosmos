@@ -254,6 +254,7 @@ export default function BreathingWidget({ isDark, onClose }) {
   if (screen === 'practice') {
     const scale = isPaused ? 0.7 : phase === '吸气' ? 1.3 : 0.7;
     const opacity = isPaused ? 0.5 : phase === '吸气' ? 1 : 0.6;
+    const progress = duration > 0 ? ((duration - remainingTime) / duration) * 100 : 0;
 
     return (
       <Portal>
@@ -264,24 +265,46 @@ export default function BreathingWidget({ isDark, onClose }) {
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
-          {/* 顶部计时器 */}
-          <div className="absolute top-[max(env(safe-area-inset-top)+1rem,3rem)]">
-            <span className={`text-2xl font-light tracking-widest ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-              {formatTime(remainingTime)}
-            </span>
+          {/* 顶部区域 */}
+          <div className="absolute top-[max(env(safe-area-inset-top)+1rem,3rem)] flex flex-col items-center space-y-3">
+            {/* 计时器 */}
+            <div className={`px-6 py-2 rounded-full ${isDark ? 'bg-[#171724]' : 'bg-white'} shadow-sm`}>
+              <span className={`text-2xl font-light tracking-widest tabular-nums ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                {formatTime(remainingTime)}
+              </span>
+            </div>
+            {/* 进度条 */}
+            <div className={`w-32 h-1 rounded-full overflow-hidden ${isDark ? 'bg-[#171724]' : 'bg-gray-200'}`}>
+              <div
+                className="h-full rounded-full bg-indigo-500 transition-all duration-1000 ease-linear"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </div>
 
           {/* 宇宙之花/光晕动画 */}
-          <div className="relative w-72 h-72 flex items-center justify-center">
-            {/* 外层光晕 */}
+          <div className="relative w-80 h-80 flex items-center justify-center">
+            {/* 最外层光晕 */}
             <div
               className="absolute inset-0 rounded-full transition-all duration-1000 ease-in-out"
               style={{
-                transform: `scale(${isPaused ? 0.6 : phase === '吸气' ? 1.4 : 0.8})`,
-                opacity: isPaused ? 0.3 : 0.2,
+                transform: `scale(${isPaused ? 0.5 : phase === '吸气' ? 1.5 : 0.7})`,
+                opacity: isPaused ? 0.15 : 0.12,
                 background: isDark
-                  ? 'radial-gradient(circle, rgba(99,102,241,0.4) 0%, transparent 70%)'
-                  : 'radial-gradient(circle, rgba(99,102,241,0.3) 0%, transparent 70%)',
+                  ? 'radial-gradient(circle, rgba(99,102,241,0.5) 0%, transparent 70%)'
+                  : 'radial-gradient(circle, rgba(99,102,241,0.4) 0%, transparent 70%)',
+              }}
+            />
+
+            {/* 外层光晕 */}
+            <div
+              className="absolute inset-2 rounded-full transition-all duration-1000 ease-in-out"
+              style={{
+                transform: `scale(${isPaused ? 0.55 : phase === '吸气' ? 1.35 : 0.75})`,
+                opacity: isPaused ? 0.25 : 0.2,
+                background: isDark
+                  ? 'radial-gradient(circle, rgba(139,92,246,0.4) 0%, transparent 65%)'
+                  : 'radial-gradient(circle, rgba(139,92,246,0.3) 0%, transparent 65%)',
               }}
             />
 
@@ -289,48 +312,74 @@ export default function BreathingWidget({ isDark, onClose }) {
             <div
               className="absolute inset-6 rounded-full transition-all duration-1000 ease-in-out"
               style={{
-                transform: `scale(${isPaused ? 0.65 : phase === '吸气' ? 1.25 : 0.75})`,
-                opacity: isPaused ? 0.4 : 0.5,
+                transform: `scale(${isPaused ? 0.6 : phase === '吸气' ? 1.2 : 0.8})`,
+                opacity: isPaused ? 0.35 : 0.4,
                 background: isDark
-                  ? 'radial-gradient(circle, rgba(139,92,246,0.5) 0%, transparent 60%)'
-                  : 'radial-gradient(circle, rgba(139,92,246,0.3) 0%, transparent 60%)',
+                  ? 'radial-gradient(circle, rgba(167,139,250,0.5) 0%, transparent 60%)'
+                  : 'radial-gradient(circle, rgba(167,139,250,0.35) 0%, transparent 60%)',
+              }}
+            />
+
+            {/* 内层光晕 */}
+            <div
+              className="absolute inset-10 rounded-full transition-all duration-1000 ease-in-out"
+              style={{
+                transform: `scale(${isPaused ? 0.65 : phase === '吸气' ? 1.1 : 0.85})`,
+                opacity: isPaused ? 0.45 : 0.55,
+                background: isDark
+                  ? 'radial-gradient(circle, rgba(196,181,253,0.5) 0%, rgba(139,92,246,0.2) 50%, transparent 70%)'
+                  : 'radial-gradient(circle, rgba(196,181,253,0.4) 0%, rgba(139,92,246,0.15) 50%, transparent 70%)',
               }}
             />
 
             {/* 核心光晕 */}
             <div
-              className="absolute inset-12 rounded-full transition-all duration-1000 ease-in-out"
+              className="absolute inset-14 rounded-full transition-all duration-1000 ease-in-out"
               style={{
                 transform: `scale(${scale})`,
                 opacity: opacity,
                 background: isDark
-                  ? 'radial-gradient(circle, rgba(165,180,252,0.6) 0%, rgba(99,102,241,0.3) 50%, transparent 70%)'
-                  : 'radial-gradient(circle, rgba(165,180,252,0.5) 0%, rgba(99,102,241,0.2) 50%, transparent 70%)',
+                  ? 'radial-gradient(circle, rgba(221,214,254,0.6) 0%, rgba(165,180,252,0.3) 40%, rgba(99,102,241,0.1) 70%, transparent 80%)'
+                  : 'radial-gradient(circle, rgba(221,214,254,0.5) 0%, rgba(165,180,252,0.25) 40%, rgba(99,102,241,0.08) 70%, transparent 80%)',
               }}
             />
 
             {/* 相位文字 */}
-            <span className={`z-10 text-3xl font-light tracking-widest transition-all duration-300 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-              {isPaused ? '暂停' : phase}
-            </span>
+            <div className="z-10 flex flex-col items-center space-y-2">
+              <span className={`text-4xl font-light tracking-[0.2em] transition-all duration-500 ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                {isPaused ? '暂停' : phase}
+              </span>
+              {!isPaused && (
+                <span className={`text-xs tracking-wider transition-all duration-500 ${isDark ? 'text-indigo-300/70' : 'text-indigo-500/60'}`}>
+                  {phase === '吸气' ? '慢慢吸气...' : '缓缓呼气...'}
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* 暂停按钮 */}
-          <button
-            onClick={togglePause}
-            className={`absolute bottom-[max(env(safe-area-inset-bottom)+4rem,6rem)] p-4 rounded-full transition-all ${
-              isDark
-                ? 'bg-white/10 text-gray-300 hover:bg-white/20'
-                : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-            }`}
-          >
-            {isPaused ? <Play size={28} /> : <Pause size={28} />}
-          </button>
+          {/* 底部控制区 */}
+          <div className="absolute bottom-[max(env(safe-area-inset-bottom)+1rem,3rem)] flex flex-col items-center space-y-6">
+            {/* 暂停按钮 */}
+            <button
+              onClick={togglePause}
+              className={`p-4 rounded-full transition-all duration-300 shadow-lg ${
+                isPaused
+                  ? isDark
+                    ? 'bg-indigo-500 text-white shadow-indigo-500/30 hover:bg-indigo-600'
+                    : 'bg-indigo-500 text-white shadow-indigo-500/30 hover:bg-indigo-600'
+                  : isDark
+                  ? 'bg-[#171724] text-gray-300 border border-gray-800 hover:border-indigo-500/30 hover:bg-[#1f1f2e]'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:border-indigo-200 hover:shadow-md'
+              }`}
+            >
+              {isPaused ? <Play size={24} /> : <Pause size={24} />}
+            </button>
 
-          {/* 下滑提示 */}
-          <div className="absolute bottom-[max(env(safe-area-inset-bottom)+1rem,3rem)] flex flex-col items-center opacity-60">
-            <ChevronDown size={20} className={`animate-bounce ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
-            <span className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>下滑结束</span>
+            {/* 下滑提示 */}
+            <div className="flex flex-col items-center opacity-50">
+              <ChevronDown size={18} className={`animate-bounce ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+              <span className={`text-[10px] mt-1 tracking-wider ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>下滑结束</span>
+            </div>
           </div>
         </div>
       </Portal>
