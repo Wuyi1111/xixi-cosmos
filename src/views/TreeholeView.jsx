@@ -23,13 +23,21 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { Radio, Heart, Search, X, Star, ChevronDown, Trash2, Send, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Radio, Heart, Search, X, Star, ChevronDown, Trash2, Send, AlertTriangle, CheckCircle2, RefreshCw, Plus, BookOpen } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import { MOCK_WHISPERS, PRESET_TAGS, TOMORROW_SUGGESTIONS } from '../constants.js';
 
 const MODES = ['browse', 'emit', 'tomorrow'];
 const MODE_LABELS = { browse: '星际回音', emit: '发射台', tomorrow: '明日' };
 const SWIPE_THRESHOLD_RATIO = 0.2; // 拖过容器 20% 宽就切到下一页
+const SPOTS_COUNT = 3; // 每天光点数量
+
+// 从任务池中随机抽取指定数量的任务
+const getRandomSuggestions = (count, excludeIds = []) => {
+  const available = TOMORROW_SUGGESTIONS.filter(s => !excludeIds.includes(s.id));
+  const shuffled = [...available].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+};
 
 export default function TreeholeView({ isDark, userData, saveUserData, currentDateStr }) {
   const [mode, setMode] = useState('browse');
@@ -41,6 +49,11 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedWhisperId, setExpandedWhisperId] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+
+  // 明日页面状态
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customText, setCustomText] = useState('');
+  const [showHistory, setShowHistory] = useState(false);
 
   const textareaRef = useRef(null);
 
@@ -185,6 +198,93 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
     w.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
     w.emotion.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // === 明日页面逻辑 ===
+  // 获取今日光点（如果没有则生成）
+  const getTodaySpots = () => {
+    const saved = userData.tomorrowSpots;
+    if (saved?.date === currentDateStr && saved?.spots?.length === SPOTS_COUNT) {
+      return saved.spots;
+    }
+    // 生成新的光点
+    const spots = Array.from({ length: SPOTS_COUNT }, (_, i) => ({
+      id: `spot_${Date.now()}_${i}`,
+      type: 'random',
+      suggestion: getRandomSuggestions(1)[0] || null,
+      customText: '',
+      status: 'pending', // pending | done | skipped
+    }));
+    saveUserData({
+      ...userData,
+      tomorrowSpots: { date: currentDateStr, spots }
+    });
+    return spots;
+  };
+
+  const todaySpots = getTodaySpots();
+  const doneCount = todaySpots.filter(s => s.status === 'done').length;
+
+  const updateSpot = (spotId, updates) => {
+    const newSpots = todaySpots.map(s => s.id === spotId ? { ...s, ...updates } : s);
+    saveUserData({
+      ...userData,
+      tomorrowSpots: { date: currentDateStr, spots: newSpots }
+    });
+  };
+
+  const handleDone = (spotId) => {
+    const spot = todaySpots.find(s => s.id === spotId);
+    if (!spot || spot.status === 'done') return;
+
+    // 添加到历史记录
+    const historyEntry = {
+      id: Date.now(),
+      date: currentDateStr,
+      text: spot.type === 'custom' ? spot.customText : (spot.suggestion?.main || ''),
+      emoji: spot.type === 'custom' ? '✨' : (spot.suggestion?.emoji || '✨'),
+    };
+
+    saveUserData({
+      ...userData,
+      tomorrowDoneTotal: (userData.tomorrowDoneTotal || 0) + 1,
+      tomorrowSpots: { date: currentDateStr, spots: todaySpots.map(s => s.id === spotId ? { ...s, status: 'done' } : s) },
+      tomorrowHistory: [historyEntry, ...(userData.tomorrowHistory || [])],
+    });
+  };
+
+  const handleSkip = (spotId) => {
+    updateSpot(spotId, { status: 'skipped', suggestion: null, type: 'empty' });
+  };
+
+  const handleRefresh = (spotId) => {
+    const usedIds = todaySpots
+      .filter(s => s.type === 'random' && s.suggestion && s.id !== spotId)
+      .map(s => s.suggestion.id);
+    const newSuggestion = getRandomSuggestions(1, usedIds)[0];
+    updateSpot(spotId, { suggestion: newSuggestion || null });
+  };
+
+  const handleAddCustom = (spotId) => {
+    if (!customText.trim()) return;
+    updateSpot(spotId, {
+      type: 'custom',
+      customText: customText.trim(),
+      suggestion: null,
+      status: 'pending'
+    });
+    setCustomText('');
+    setShowCustomInput(false);
+  };
+
+  const handleClearCustom = (spotId) => {
+    const newSuggestion = getRandomSuggestions(1)[0];
+    updateSpot(spotId, {
+      type: 'random',
+      customText: '',
+      suggestion: newSuggestion || null,
+      status: 'pending'
+    });
+  };
 
   // === 三个页面内容 ===
   const renderBrowse = () => (
@@ -408,28 +508,9 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
     </div>
   );
 
-  // === "明日"完成态：今日 ids 仅当日有效，total 永久累加 ===
-  const todayDoneIds = userData.tomorrowDoneToday?.date === currentDateStr
-    ? (userData.tomorrowDoneToday.ids || [])
-    : [];
-  const tomorrowDoneTotal = userData.tomorrowDoneTotal || 0;
-
-  const handleMarkTomorrowDone = (id) => {
-    if (todayDoneIds.includes(id)) return; // 同一条今日不重复计数
-    saveUserData({
-      ...userData,
-      tomorrowDoneTotal: tomorrowDoneTotal + 1,
-      tomorrowDoneToday: {
-        date: currentDateStr,
-        ids: [...todayDoneIds, id],
-      },
-    });
-  };
-
+  // === 明日页面：光点机制 ===
   const renderTomorrow = () => {
-    const progress = TOMORROW_SUGGESTIONS.length > 0
-      ? Math.round((todayDoneIds.length / TOMORROW_SUGGESTIONS.length) * 100)
-      : 0;
+    const progress = SPOTS_COUNT > 0 ? Math.round((doneCount / SPOTS_COUNT) * 100) : 0;
 
     return (
       <div className="space-y-5">
@@ -447,86 +528,238 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
                 </div>
                 <p className={`text-[10px] tracking-[0.2em] ${isDark ? 'text-indigo-300' : 'text-indigo-500'}`}>TOMORROW</p>
               </div>
-              {tomorrowDoneTotal > 0 && (
-                <span className={`text-[10px] px-2.5 py-1 rounded-full flex items-center gap-1 ${isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'}`}>
-                  <CheckCircle2 size={10} /> 已完成 {tomorrowDoneTotal} 次
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {(userData.tomorrowDoneTotal || 0) > 0 && (
+                  <span className={`text-[10px] px-2.5 py-1 rounded-full flex items-center gap-1 ${isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'}`}>
+                    <CheckCircle2 size={10} /> 已完成 {userData.tomorrowDoneTotal} 次
+                  </span>
+                )}
+                <button
+                  onClick={() => setShowHistory(true)}
+                  className={`text-[10px] px-2.5 py-1 rounded-full flex items-center gap-1 transition-colors ${isDark ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25' : 'bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100'}`}
+                >
+                  <BookOpen size={10} /> 我的光点
+                </button>
+              </div>
             </div>
 
             <h2 className="text-xl font-light mb-2 tracking-wide">轻轻陪你走向明天</h2>
             <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              这些不是任务，只是几颗你随手就能拾起的小光点。<br/>
-              可以试试，也可以放着。
+              今天有 {SPOTS_COUNT} 颗小光点等你拾起，<br/>
+              不是任务，只是温柔的陪伴。
             </p>
 
             {/* 今日进度 */}
-            {todayDoneIds.length > 0 && (
-              <div className="mt-4 space-y-2">
-                <div className="flex justify-between items-center">
-                  <p className={`text-[11px] ${isDark ? 'text-emerald-300' : 'text-emerald-600'}`}>
-                    今天已经拾起了 {todayDoneIds.length} 颗 · 谢谢你照顾了自己
-                  </p>
-                  <span className={`text-[10px] font-medium ${isDark ? 'text-emerald-300/70' : 'text-emerald-600/70'}`}>{progress}%</span>
-                </div>
-                <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-[#13131a]' : 'bg-gray-100'}`}>
-                  <div
-                    className="h-full rounded-full bg-emerald-500 transition-all duration-700 ease-out"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
+            <div className="mt-4 space-y-2">
+              <div className="flex justify-between items-center">
+                <p className={`text-[11px] ${doneCount > 0 ? (isDark ? 'text-emerald-300' : 'text-emerald-600') : (isDark ? 'text-gray-500' : 'text-gray-400')}`}>
+                  {doneCount > 0 ? `今天已经拾起了 ${doneCount} 颗 · 谢谢你照顾了自己` : '还没有拾起光点，慢慢来'}
+                </p>
+                <span className={`text-[10px] font-medium ${isDark ? 'text-emerald-300/70' : 'text-emerald-600/70'}`}>{progress}%</span>
               </div>
-            )}
+              <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-[#13131a]' : 'bg-gray-100'}`}>
+                <div
+                  className="h-full rounded-full bg-emerald-500 transition-all duration-700 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* 建议列表卡片 */}
-        <div className={`p-5 rounded-[28px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm'}`}>
-          <div className="space-y-2">
-            {TOMORROW_SUGGESTIONS.map((s, index) => {
-              const done = todayDoneIds.includes(s.id);
-              const isLast = index === TOMORROW_SUGGESTIONS.length - 1;
-              return (
-                <div
-                  key={s.id}
-                  className={`flex items-center gap-3 p-3.5 rounded-2xl transition-all duration-500 ${
-                    done
-                      ? (isDark ? 'bg-[#13131a]/80' : 'bg-gray-50/80')
-                      : (isDark ? 'bg-[#1f1f2e] hover:bg-[#262638]' : 'bg-gray-50/50 hover:bg-white hover:shadow-sm')
-                  } ${!isLast ? (isDark ? 'border-b border-white/5' : 'border-b border-gray-100') : ''}`}
-                >
-                  {/* Emoji 图标 */}
-                  <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all duration-500 ${done ? 'opacity-40 grayscale' : ''} ${isDark ? 'bg-[#171724]' : 'bg-white'} shadow-sm`}>
-                    {s.emoji}
-                  </div>
+        {/* 光点列表 */}
+        <div className="space-y-3">
+          {todaySpots.map((spot, index) => {
+            const isDone = spot.status === 'done';
+            const isSkipped = spot.status === 'skipped';
+            const isEmpty = spot.type === 'empty';
+            const isCustom = spot.type === 'custom';
+            const suggestion = spot.suggestion;
 
-                  {/* 文字内容 */}
-                  <div className={`flex-1 min-w-0 transition-all duration-500 ${done ? 'opacity-50' : ''}`}>
-                    <p className={`text-sm font-medium mb-0.5 ${done ? (isDark ? 'text-gray-500 line-through' : 'text-gray-400 line-through') : (isDark ? 'text-gray-100' : 'text-gray-800')}`}>
-                      {s.main}
-                    </p>
-                    <p className={`text-[11px] leading-relaxed ${done ? (isDark ? 'text-gray-600' : 'text-gray-400') : (isDark ? 'text-gray-400' : 'text-gray-500')}`}>
-                      {s.sub}
-                    </p>
+            return (
+              <div
+                key={spot.id}
+                className={`p-5 rounded-[24px] transition-all duration-500 ${
+                  isDone
+                    ? (isDark ? 'bg-[#13131a]/60 border border-emerald-500/20' : 'bg-emerald-50/50 border border-emerald-200/50')
+                    : isSkipped
+                    ? (isDark ? 'bg-[#171724]/40 border border-white/5' : 'bg-gray-50/30 border border-gray-100/50')
+                    : (isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm')
+                }`}
+              >
+                {/* 光点头部 */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-indigo-500/15 text-indigo-300' : 'bg-indigo-50 text-indigo-600'}`}>
+                      光点 {index + 1}/{SPOTS_COUNT}
+                    </span>
+                    {isDone && (
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 ${isDark ? 'bg-emerald-500/15 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
+                        <CheckCircle2 size={8} /> 已完成
+                      </span>
+                    )}
+                    {isSkipped && (
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        已跳过
+                      </span>
+                    )}
                   </div>
-
-                  {/* 完成按钮 */}
-                  <button
-                    onClick={() => handleMarkTomorrowDone(s.id)}
-                    disabled={done}
-                    aria-label={done ? '今天已完成' : `把"${s.main}"标记为完成`}
-                    className={`shrink-0 ml-1 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[11px] font-medium transition-all duration-300 active:scale-95 ${
-                      done
-                        ? (isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 cursor-default' : 'bg-emerald-50 text-emerald-600 border border-emerald-200 cursor-default')
-                        : (isDark ? 'bg-indigo-500/15 text-indigo-200 border border-indigo-500/40 hover:bg-indigo-500 hover:text-white hover:shadow-lg hover:shadow-indigo-500/30' : 'bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-500 hover:text-white hover:shadow-lg hover:shadow-indigo-500/30')
-                    }`}
-                  >
-                    {done ? <><CheckCircle2 size={12} /> 已完成</> : <><CheckCircle2 size={12} /> 完成</>}
-                  </button>
                 </div>
-              );
-            })}
-          </div>
+
+                {/* 光点内容 */}
+                {isDone ? (
+                  // 已完成状态
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-emerald-500/20' : 'bg-emerald-100'}`}>
+                      {isCustom ? '✨' : (suggestion?.emoji || '✨')}
+                    </div>
+                    <div className="flex-1">
+                      <p className={`text-sm font-medium ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>
+                        {isCustom ? spot.customText : (suggestion?.main || '')}
+                      </p>
+                      <p className={`text-[11px] ${isDark ? 'text-emerald-400/60' : 'text-emerald-600/60'}`}>
+                        谢谢你，这颗光点已经被你拾起
+                      </p>
+                    </div>
+                  </div>
+                ) : isSkipped ? (
+                  // 已跳过状态 - 可以重新随机或自定义
+                  <div className="space-y-3">
+                    <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                      这颗光点被轻轻放走了，你想换一颗吗？
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleRefresh(spot.id)}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
+                          isDark ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25' : 'bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100'
+                        }`}
+                      >
+                        <RefreshCw size={12} /> 换一颗
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowCustomInput(true);
+                          setCustomText('');
+                        }}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
+                          isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Plus size={12} /> 自己写
+                      </button>
+                    </div>
+                  </div>
+                ) : isCustom ? (
+                  // 自定义任务
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'} shadow-sm`}>
+                        ✨
+                      </div>
+                      <div className="flex-1">
+                        <p className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
+                          {spot.customText}
+                        </p>
+                        <p className={`text-[11px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                          这是你自己写下的光点
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleDone(spot.id)}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
+                          isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25' : 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100'
+                        }`}
+                      >
+                        <CheckCircle2 size={12} /> 完成
+                      </button>
+                      <button
+                        onClick={() => handleClearCustom(spot.id)}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
+                          isDark ? 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        <RefreshCw size={12} /> 换成随机的
+                      </button>
+                    </div>
+                  </div>
+                ) : suggestion ? (
+                  // 随机推荐任务
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'} shadow-sm`}>
+                        {suggestion.emoji}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
+                          {suggestion.main}
+                        </p>
+                        <p className={`text-[11px] leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {suggestion.sub}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleDone(spot.id)}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
+                          isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25' : 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100'
+                        }`}
+                      >
+                        <CheckCircle2 size={12} /> 完成
+                      </button>
+                      <button
+                        onClick={() => handleRefresh(spot.id)}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
+                          isDark ? 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        <RefreshCw size={12} /> 换一换
+                      </button>
+                      <button
+                        onClick={() => handleSkip(spot.id)}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
+                          isDark ? 'bg-white/5 text-gray-500 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-400 border border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        跳过
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  // 空状态 - 等待用户选择
+                  <div className="space-y-3">
+                    <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                      这颗光点还是空的，你想怎么填满它？
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleRefresh(spot.id)}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
+                          isDark ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25' : 'bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100'
+                        }`}
+                      >
+                        <RefreshCw size={12} /> 随机一颗
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowCustomInput(true);
+                          setCustomText('');
+                        }}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
+                          isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        <Plus size={12} /> 自己写
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* 底部温馨语句 */}
@@ -535,6 +768,87 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
             明天醒来时，记得只是先睁开眼，剩下的慢慢来。
           </p>
         </div>
+
+        {/* 自定义输入弹窗 */}
+        {showCustomInput && (
+          <Portal>
+            <div className={`fixed inset-0 z-[60] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setShowCustomInput(false)}>
+              <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`} onClick={e => e.stopPropagation()}>
+                <button onClick={() => setShowCustomInput(false)} className={`absolute top-4 right-4 p-1 rounded-full ${isDark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-600'}`}>
+                  <X size={18} />
+                </button>
+                <h3 className={`text-lg font-medium mb-4 ${isDark ? 'text-white' : 'text-gray-800'}`}>写下你的光点</h3>
+                <textarea
+                  className={`w-full p-4 rounded-2xl resize-none h-24 text-sm focus:outline-none transition-all ${
+                    isDark ? 'bg-[#1f1f2e] text-gray-200 placeholder-gray-600 border border-gray-800' : 'bg-gray-50 text-gray-800 placeholder-gray-400 border border-gray-200'
+                  }`}
+                  placeholder="想为自己做一件什么事..."
+                  value={customText}
+                  onChange={e => setCustomText(e.target.value)}
+                />
+                <button
+                  onClick={() => {
+                    const emptySpot = todaySpots.find(s => s.type === 'empty' || s.status === 'skipped');
+                    if (emptySpot && customText.trim()) {
+                      handleAddCustom(emptySpot.id);
+                    }
+                  }}
+                  disabled={!customText.trim()}
+                  className={`w-full mt-4 py-3 rounded-2xl font-medium transition-all active:scale-95 ${
+                    customText.trim()
+                      ? 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                      : (isDark ? 'bg-[#1f1f2e] text-gray-600 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed')
+                  }`}
+                >
+                  添加光点
+                </button>
+              </div>
+            </div>
+          </Portal>
+        )}
+
+        {/* 历史记录弹窗 */}
+        {showHistory && (
+          <Portal>
+            <div className={`fixed inset-0 z-[60] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setShowHistory(false)}>
+              <div className={`w-full max-w-sm max-h-[80vh] overflow-y-auto p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`} onClick={e => e.stopPropagation()}>
+                <button onClick={() => setShowHistory(false)} className={`absolute top-4 right-4 p-1 rounded-full ${isDark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-600'}`}>
+                  <X size={18} />
+                </button>
+                <h3 className={`text-lg font-medium mb-1 ${isDark ? 'text-white' : 'text-gray-800'}`}>我的光点记录</h3>
+                <p className={`text-xs mb-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                  你拾起的每一颗光点，都在这里发光
+                </p>
+
+                {(userData.tomorrowHistory || []).length === 0 ? (
+                  <div className={`py-10 text-center text-xs ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                    还没有拾起过光点，慢慢来
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {Object.entries(
+                      (userData.tomorrowHistory || []).reduce((acc, item) => {
+                        if (!acc[item.date]) acc[item.date] = [];
+                        acc[item.date].push(item);
+                        return acc;
+                      }, {})
+                    ).map(([date, items]) => (
+                      <div key={date} className="space-y-2">
+                        <p className={`text-[10px] font-medium ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{date}</p>
+                        {items.map(item => (
+                          <div key={item.id} className={`flex items-center gap-2 p-3 rounded-xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
+                            <span className="text-lg">{item.emoji}</span>
+                            <span className={`text-sm ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{item.text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </Portal>
+        )}
       </div>
     );
   };
