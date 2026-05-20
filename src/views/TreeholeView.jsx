@@ -30,7 +30,7 @@ import { MOCK_WHISPERS, PRESET_TAGS, TOMORROW_SUGGESTIONS } from '../constants.j
 const MODES = ['browse', 'emit', 'tomorrow'];
 const MODE_LABELS = { browse: '星际回音', emit: '发射台', tomorrow: '明日' };
 const SWIPE_THRESHOLD_RATIO = 0.2; // 拖过容器 20% 宽就切到下一页
-const SPOTS_COUNT = 4; // 默认光点数量
+const SPOTS_COUNT = 3; // 默认光点数量
 
 // 从任务池中随机抽取指定数量的任务
 const getRandomSuggestions = (count, excludeIds = []) => {
@@ -253,14 +253,10 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
   };
 
   const handleAddNewSpot = () => {
-    const usedIds = todaySpots
-      .filter(s => s.type === 'random' && s.suggestion)
-      .map(s => s.suggestion.id);
-    const newSuggestion = getRandomSuggestions(1, usedIds)[0];
     const newSpot = {
       id: `spot_${Date.now()}_${todaySpots.length}`,
-      type: 'random',
-      suggestion: newSuggestion || null,
+      type: 'empty',
+      suggestion: null,
       customText: '',
       status: 'pending',
     };
@@ -275,7 +271,7 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
       .filter(s => s.type === 'random' && s.suggestion && s.id !== spotId)
       .map(s => s.suggestion.id);
     const newSuggestion = getRandomSuggestions(1, usedIds)[0];
-    updateSpot(spotId, { suggestion: newSuggestion || null });
+    updateSpot(spotId, { type: 'random', suggestion: newSuggestion || null });
   };
 
   const handleAddCustom = (spotId) => {
@@ -781,7 +777,7 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
                 />
                 <button
                   onClick={() => {
-                    const emptySpot = todaySpots.find(s => s.type === 'empty' || s.status === 'skipped');
+                    const emptySpot = todaySpots.find(s => s.type === 'empty');
                     if (emptySpot && customText.trim()) {
                       handleAddCustom(emptySpot.id);
                     }
