@@ -426,81 +426,118 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
     });
   };
 
-  const renderTomorrow = () => (
-    <div className="space-y-5">
-      {/* 头 */}
-      <div className={`p-6 rounded-[28px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a24] to-[#171724] border border-indigo-500/15' : 'bg-gradient-to-br from-indigo-50/70 to-white border border-indigo-100'}`}>
-        <div className="absolute -top-8 -right-6 w-32 h-32 rounded-full bg-amber-300/15 blur-3xl pointer-events-none"></div>
-        <div className="absolute -bottom-8 -left-6 w-24 h-24 rounded-full bg-indigo-300/15 blur-3xl pointer-events-none"></div>
+  const renderTomorrow = () => {
+    const progress = TOMORROW_SUGGESTIONS.length > 0
+      ? Math.round((todayDoneIds.length / TOMORROW_SUGGESTIONS.length) * 100)
+      : 0;
 
-        <div className="relative z-10">
-          <div className="flex justify-between items-start mb-1">
-            <p className={`text-[10px] tracking-[0.2em] ${isDark ? 'text-indigo-300' : 'text-indigo-500'}`}>TOMORROW</p>
-            {tomorrowDoneTotal > 0 && (
-              <span className={`text-[10px] px-2.5 py-1 rounded-full flex items-center gap-1 ${isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'}`}>
-                <CheckCircle2 size={10} /> 已完成 {tomorrowDoneTotal} 次
-              </span>
+    return (
+      <div className="space-y-5">
+        {/* 头部卡片 */}
+        <div className={`p-6 rounded-[28px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a24] to-[#171724] border border-indigo-500/15' : 'bg-gradient-to-br from-indigo-50/70 to-white border border-indigo-100'}`}>
+          <div className="absolute -top-8 -right-6 w-32 h-32 rounded-full bg-amber-300/15 blur-3xl pointer-events-none"></div>
+          <div className="absolute -bottom-8 -left-6 w-24 h-24 rounded-full bg-indigo-300/15 blur-3xl pointer-events-none"></div>
+
+          <div className="relative z-10">
+            {/* 顶部标签与进度 */}
+            <div className="flex justify-between items-start mb-3">
+              <div className="flex items-center gap-2">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? 'bg-indigo-500/20' : 'bg-indigo-100'}`}>
+                  <span className="text-base">🌅</span>
+                </div>
+                <p className={`text-[10px] tracking-[0.2em] ${isDark ? 'text-indigo-300' : 'text-indigo-500'}`}>TOMORROW</p>
+              </div>
+              {tomorrowDoneTotal > 0 && (
+                <span className={`text-[10px] px-2.5 py-1 rounded-full flex items-center gap-1 ${isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'}`}>
+                  <CheckCircle2 size={10} /> 已完成 {tomorrowDoneTotal} 次
+                </span>
+              )}
+            </div>
+
+            <h2 className="text-xl font-light mb-2 tracking-wide">轻轻陪你走向明天</h2>
+            <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              这些不是任务，只是几颗你随手就能拾起的小光点。<br/>
+              可以试试，也可以放着。
+            </p>
+
+            {/* 今日进度 */}
+            {todayDoneIds.length > 0 && (
+              <div className="mt-4 space-y-2">
+                <div className="flex justify-between items-center">
+                  <p className={`text-[11px] ${isDark ? 'text-emerald-300' : 'text-emerald-600'}`}>
+                    今天已经拾起了 {todayDoneIds.length} 颗 · 谢谢你照顾了自己
+                  </p>
+                  <span className={`text-[10px] font-medium ${isDark ? 'text-emerald-300/70' : 'text-emerald-600/70'}`}>{progress}%</span>
+                </div>
+                <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-[#13131a]' : 'bg-gray-100'}`}>
+                  <div
+                    className="h-full rounded-full bg-emerald-500 transition-all duration-700 ease-out"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
             )}
           </div>
-          <h2 className="text-xl font-light mb-2">轻轻陪你走向明天</h2>
-          <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-            这些不是任务，只是几颗你随手就能拾起的小光点。<br/>
-            可以试试，也可以放着。
+        </div>
+
+        {/* 建议列表卡片 */}
+        <div className={`p-5 rounded-[28px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm'}`}>
+          <div className="space-y-2">
+            {TOMORROW_SUGGESTIONS.map((s, index) => {
+              const done = todayDoneIds.includes(s.id);
+              const isLast = index === TOMORROW_SUGGESTIONS.length - 1;
+              return (
+                <div
+                  key={s.id}
+                  className={`flex items-center gap-3 p-3.5 rounded-2xl transition-all duration-500 ${
+                    done
+                      ? (isDark ? 'bg-[#13131a]/80' : 'bg-gray-50/80')
+                      : (isDark ? 'bg-[#1f1f2e] hover:bg-[#262638]' : 'bg-gray-50/50 hover:bg-white hover:shadow-sm')
+                  } ${!isLast ? (isDark ? 'border-b border-white/5' : 'border-b border-gray-100') : ''}`}
+                >
+                  {/* Emoji 图标 */}
+                  <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all duration-500 ${done ? 'opacity-40 grayscale' : ''} ${isDark ? 'bg-[#171724]' : 'bg-white'} shadow-sm`}>
+                    {s.emoji}
+                  </div>
+
+                  {/* 文字内容 */}
+                  <div className={`flex-1 min-w-0 transition-all duration-500 ${done ? 'opacity-50' : ''}`}>
+                    <p className={`text-sm font-medium mb-0.5 ${done ? (isDark ? 'text-gray-500 line-through' : 'text-gray-400 line-through') : (isDark ? 'text-gray-100' : 'text-gray-800')}`}>
+                      {s.main}
+                    </p>
+                    <p className={`text-[11px] leading-relaxed ${done ? (isDark ? 'text-gray-600' : 'text-gray-400') : (isDark ? 'text-gray-400' : 'text-gray-500')}`}>
+                      {s.sub}
+                    </p>
+                  </div>
+
+                  {/* 完成按钮 */}
+                  <button
+                    onClick={() => handleMarkTomorrowDone(s.id)}
+                    disabled={done}
+                    aria-label={done ? '今天已完成' : `把"${s.main}"标记为完成`}
+                    className={`shrink-0 ml-1 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[11px] font-medium transition-all duration-300 active:scale-95 ${
+                      done
+                        ? (isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 cursor-default' : 'bg-emerald-50 text-emerald-600 border border-emerald-200 cursor-default')
+                        : (isDark ? 'bg-indigo-500/15 text-indigo-200 border border-indigo-500/40 hover:bg-indigo-500 hover:text-white hover:shadow-lg hover:shadow-indigo-500/30' : 'bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-500 hover:text-white hover:shadow-lg hover:shadow-indigo-500/30')
+                    }`}
+                  >
+                    {done ? <><CheckCircle2 size={12} /> 已完成</> : <><CheckCircle2 size={12} /> 完成</>}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 底部温馨语句 */}
+        <div className={`p-4 rounded-2xl text-center ${isDark ? 'bg-[#171724]/50 border border-white/5' : 'bg-indigo-50/30 border border-indigo-100/50'}`}>
+          <p className={`text-[11px] leading-relaxed ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+            明天醒来时，记得只是先睁开眼，剩下的慢慢来。
           </p>
-          {todayDoneIds.length > 0 && (
-            <p className={`text-[11px] mt-3 ${isDark ? 'text-emerald-300' : 'text-emerald-600'}`}>
-              今天已经拾起了 {todayDoneIds.length} 颗 · 谢谢你照顾了自己。
-            </p>
-          )}
         </div>
       </div>
-
-      {/* 建议条目 */}
-      <div className="space-y-2.5">
-        {TOMORROW_SUGGESTIONS.map((s) => {
-          const done = todayDoneIds.includes(s.id);
-          return (
-            <div
-              key={s.id}
-              className={`flex items-center gap-3 p-4 rounded-2xl transition-all duration-500 ${
-                done
-                  ? (isDark ? 'bg-[#13131a] opacity-50' : 'bg-gray-50 opacity-55')
-                  : (isDark ? 'bg-[#171724] hover:bg-[#1c1c2a]' : 'bg-white hover:bg-gray-50 shadow-sm')
-              }`}
-            >
-              <span className={`text-3xl shrink-0 leading-none mt-0.5 transition-all duration-500 ${done ? 'grayscale' : ''}`}>
-                {s.emoji}
-              </span>
-              <div className={`flex-1 min-w-0 transition-all duration-500 ${done ? 'grayscale' : ''}`}>
-                <p className={`text-sm font-medium mb-1 ${done ? (isDark ? 'text-gray-500 line-through' : 'text-gray-400 line-through') : (isDark ? 'text-gray-100' : 'text-gray-800')}`}>
-                  {s.main}
-                </p>
-                <p className={`text-xs leading-relaxed font-light ${done ? (isDark ? 'text-gray-600' : 'text-gray-400') : (isDark ? 'text-gray-400' : 'text-gray-500')}`}>
-                  {s.sub}
-                </p>
-              </div>
-              <button
-                onClick={() => handleMarkTomorrowDone(s.id)}
-                disabled={done}
-                aria-label={done ? '今天已完成' : `把"${s.main}"标记为完成`}
-                className={`shrink-0 ml-1 flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
-                  done
-                    ? (isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 cursor-default' : 'bg-emerald-50 text-emerald-600 border border-emerald-200 cursor-default')
-                    : (isDark ? 'bg-indigo-500/15 text-indigo-200 border border-indigo-500/40 hover:bg-indigo-500/25' : 'bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100')
-                }`}
-              >
-                {done ? <><CheckCircle2 size={11} /> 已完成</> : '完成'}
-              </button>
-            </div>
-          );
-        })}
-      </div>
-
-      <p className={`text-center text-[11px] pt-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-        明天醒来时，记得只是先睁开眼，剩下的慢慢来。
-      </p>
-    </div>
-  );
+    );
+  };
 
   // === 渲染 ===
   return (
