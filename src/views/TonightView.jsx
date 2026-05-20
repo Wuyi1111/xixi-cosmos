@@ -78,6 +78,7 @@ export default function TonightView({ isDark, hasCheckedInToday, onCheckIn, user
     // 延迟让渐变动画显示出来，再重置状态
     setTimeout(() => {
       setIsAwake(false);
+      setSelectedMood(null);
       // 调用父组件的重置打卡状态函数
       onCheckIn(null, null, true); // 第三个参数表示重置
     }, 800);
