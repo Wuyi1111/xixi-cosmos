@@ -23,7 +23,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Music, Wind, Moon, Sparkles, ChevronDown, X, Edit3, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Music, Wind, Moon, Sparkles, ChevronDown, X, Edit3, Calendar, ChevronLeft, ChevronRight, Sun } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import BreathingWidget from '../widgets/BreathingWidget.jsx';
 import DreamCard from '../widgets/DreamCard.jsx';
@@ -54,6 +54,33 @@ export default function TonightView({ isDark, hasCheckedInToday, onCheckIn, user
     }
     setTapFlashKey(k => k + 1);
     setIsMoodSelectorOpen(true);
+  };
+
+  // 新增：星尘提示显示状态
+  const [showStardust, setShowStardust] = useState(true);
+  // 新增：是否是"睡醒了"状态（太阳图标）
+  const [isAwake, setIsAwake] = useState(false);
+
+  // 3秒后隐藏星尘提示
+  useEffect(() => {
+    if (hasCheckedInToday && showStardust) {
+      const timer = setTimeout(() => {
+        setShowStardust(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [hasCheckedInToday, showStardust]);
+
+  // 点击月亮/太阳的处理
+  const handleMoonClick = () => {
+    setIsAwake(true);
+    // 延迟一小段时间让动画效果显示出来，再重置状态
+    setTimeout(() => {
+      setIsAwake(false);
+      setShowStardust(true);
+      // 调用父组件的重置打卡状态函数
+      onCheckIn(null, null, true); // 第三个参数表示重置
+    }, 500);
   };
 
   const moodData = selectedMood ? EMOTIONS.find(e => e.id === selectedMood) : null;
@@ -128,8 +155,15 @@ export default function TonightView({ isDark, hasCheckedInToday, onCheckIn, user
         <section className={`p-8 rounded-[32px] text-center relative overflow-hidden transition-colors border ${isDark ? 'bg-[#1a1a24] border-indigo-500/20 shadow-[0_0_30px_rgba(99,102,241,0.05)]' : 'bg-gradient-to-b from-indigo-50/80 to-white border-indigo-100 shadow-sm'}`}>
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-          <div className="w-20 h-20 mx-auto bg-indigo-500/10 rounded-full flex items-center justify-center mb-6 relative">
-            <Moon size={36} className="text-indigo-400 animate-float" />
+          <div 
+            className="w-20 h-20 mx-auto bg-indigo-500/10 rounded-full flex items-center justify-center mb-6 relative cursor-pointer hover:scale-105 transition-transform duration-300"
+            onClick={handleMoonClick}
+          >
+            {isAwake ? (
+              <Sun size={36} className="text-yellow-500" />
+            ) : (
+              <Moon size={36} className="text-indigo-400 animate-float" />
+            )}
             <div className="absolute inset-0 border-2 border-indigo-400/20 rounded-full animate-ping" style={{ animationDuration: '3s' }}></div>
             {userData.continuousDays >= 3 && (
               <div className="absolute -top-1 -right-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-md transform rotate-12">
@@ -139,11 +173,15 @@ export default function TonightView({ isDark, hasCheckedInToday, onCheckIn, user
           </div>
 
           <h2 className="text-xl font-medium mb-2 tracking-wide">夜航已启程</h2>
-          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'} mb-6`}>
+          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'} ${showStardust ? 'mb-6' : 'mb-2'}`}>
             你已在宇宙中连续驻留了 <span className="text-indigo-400 font-medium text-base">{userData.continuousDays}</span> 个夜晚
           </p>
 
-          <div className={`p-4 rounded-2xl inline-block ${isDark ? 'bg-black/20 border border-white/5' : 'bg-white border border-indigo-50 shadow-sm'}`}>
+          <div 
+            className={`p-4 rounded-2xl inline-block transition-opacity duration-1000 ${
+              showStardust ? 'opacity-100' : 'opacity-0'
+            } ${isDark ? 'bg-black/20 border border-white/5' : 'bg-white border border-indigo-50 shadow-sm'}`}
+          >
             <p className="text-xs flex items-center justify-center gap-2">
               <Sparkles size={14} className="text-indigo-400" />
               本次探索收集 <span className="text-indigo-400 font-medium">+{lastRecord?.stardustEarned || 10}</span> 星尘
