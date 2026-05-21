@@ -332,18 +332,27 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
 
   // 4. 超新星/脉冲星 — 横向滑动轮播
   const SupernovaSection = () => {
+    const entries = MOCK_WHISPERS;
+    const total = entries.length;
     const [activeIndex, setActiveIndex] = useState(0);
     const scrollRef = useRef(null);
     const isScrollingRef = useRef(false);
     const scrollTimeoutRef = useRef(null);
     const CARD_WIDTH = 292; // 276px + 16px gap
 
-    const scrollToIndex = (index) => {
+    const scrollToRealIndex = useCallback((realIndex, smooth = true) => {
       if (!scrollRef.current) return;
       const containerWidth = scrollRef.current.offsetWidth;
-      const offset = index * CARD_WIDTH - (containerWidth - 276) / 2;
-      scrollRef.current.scrollTo({ left: offset, behavior: 'smooth' });
-    };
+      const offset = realIndex * CARD_WIDTH - (containerWidth - 276) / 2;
+      scrollRef.current.scrollTo({ left: offset, behavior: smooth ? 'smooth' : 'auto' });
+    }, []);
+
+    const setActiveAndScroll = useCallback((virtualIndex) => {
+      const clamped = Math.max(0, Math.min(total - 1, virtualIndex));
+      setActiveIndex(clamped);
+      const realIndex = total + clamped;
+      scrollToRealIndex(realIndex, true);
+    }, [total, scrollToRealIndex]);
 
     useEffect(() => {
       const el = scrollRef.current;
@@ -354,9 +363,19 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
         const containerWidth = el.offsetWidth;
         const scrollLeft = el.scrollLeft;
         const center = scrollLeft + containerWidth / 2;
-        const newIndex = Math.round((center - containerWidth / 2 + 276 / 2) / CARD_WIDTH);
-        const clamped = Math.max(0, Math.min(MOCK_WHISPERS.length - 1, newIndex));
-        if (clamped !== activeIndex) setActiveIndex(clamped);
+        const realIndex = Math.round((center - containerWidth / 2 + 276 / 2) / CARD_WIDTH);
+
+        if (realIndex < total) {
+          const jumpIndex = realIndex + total;
+          el.scrollTo({ left: jumpIndex * CARD_WIDTH - (containerWidth - 276) / 2, behavior: 'auto' });
+          setActiveIndex(realIndex);
+        } else if (realIndex >= total * 2) {
+          const jumpIndex = realIndex - total;
+          el.scrollTo({ left: jumpIndex * CARD_WIDTH - (containerWidth - 276) / 2, behavior: 'auto' });
+          setActiveIndex(realIndex - total * 2);
+        } else {
+          setActiveIndex(realIndex - total);
+        }
 
         isScrollingRef.current = true;
         if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
@@ -365,16 +384,23 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
         }, 150);
       };
 
-      // 初始居中
-      const containerWidth = el.offsetWidth;
-      el.scrollLeft = 0 * CARD_WIDTH - (containerWidth - 276) / 2;
+      // 初始居中定位到中间循环区域
+      const initialRealIndex = total + 0;
+      scrollToRealIndex(initialRealIndex, false);
 
       el.addEventListener('scroll', handleScroll, { passive: true });
       return () => {
         el.removeEventListener('scroll', handleScroll);
         if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
       };
-    }, [activeIndex]);
+    }, [total, scrollToRealIndex]);
+
+    // 构建循环数据：尾部副本 + 原始数据 + 头部副本
+    const cyclicEntries = [
+      ...entries.map((w, i) => ({ ...w, virtualIndex: i, key: `tail-${w.id}` })),
+      ...entries.map((w, i) => ({ ...w, virtualIndex: i, key: `mid-${w.id}` })),
+      ...entries.map((w, i) => ({ ...w, virtualIndex: i, key: `head-${w.id}` })),
+    ];
 
     return (
       <section className="space-y-4">
@@ -390,17 +416,16 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
         <div
           ref={scrollRef}
           className="flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-4 px-4 pb-2"
-          style={{ scrollBehavior: 'smooth' }}
+          style={{ scrollBehavior: 'auto' }}
         >
-          {MOCK_WHISPERS.map((whisper, index) => {
-            const isActive = index === activeIndex;
+          {cyclicEntries.map((whisper) => {
+            const isActive = whisper.virtualIndex === activeIndex;
             return (
               <div
-                key={whisper.id}
+                key={whisper.key}
                 onClick={() => {
                   if (!isScrollingRef.current) {
-                    setActiveIndex(index);
-                    scrollToIndex(index);
+                    setActiveAndScroll(whisper.virtualIndex);
                   }
                 }}
                 className={`shrink-0 snap-center transition-all duration-300 cursor-pointer ${
@@ -436,13 +461,10 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
 
         {/* 底部指示器 */}
         <div className="flex justify-center gap-1.5">
-          {MOCK_WHISPERS.map((whisper, index) => (
+          {entries.map((whisper, index) => (
             <button
               key={whisper.id}
-              onClick={() => {
-                setActiveIndex(index);
-                scrollToIndex(index);
-              }}
+              onClick={() => setActiveAndScroll(index)}
               className={`rounded-full transition-all duration-300 ${
                 index === activeIndex
                   ? 'w-5 h-1.5 bg-amber-400'
