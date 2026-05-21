@@ -530,7 +530,13 @@ export default function TreeholeView({
 
     const handleRefreshOne = (instanceId) => {
       // 只替换当前这一条为另一条随机推荐
-      const available = TOMORROW_SUGGESTIONS.filter(s => !displayedSuggestions.find(d => d.id === s.id && d._instanceId !== instanceId));
+      // 获取当前显示的所有建议ID（排除要被替换的那一条）
+      const currentIds = displayedSuggestions
+        .filter(d => d._instanceId !== instanceId)
+        .map(d => d.id);
+      // 找出不在当前显示中的建议
+      const available = TOMORROW_SUGGESTIONS.filter(s => !currentIds.includes(s.id));
+      // 如果所有建议都已显示，则使用全部建议池
       const pool = available.length > 0 ? available : TOMORROW_SUGGESTIONS;
       const random = pool[Math.floor(Math.random() * pool.length)];
       setDisplayedSuggestions(prev =>
