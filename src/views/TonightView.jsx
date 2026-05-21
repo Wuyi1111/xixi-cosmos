@@ -12,7 +12,7 @@
  *   isDark, userData, saveUserData, onNavigate
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Radio, Heart, Gift, Compass, Sparkles, ChevronRight, Users, ChevronDown } from 'lucide-react';
 import { COSMIC_PERSONALITIES, MOCK_WHISPERS } from '../constants.js';
 import QuizWidget from '../widgets/QuizWidget.jsx';
@@ -136,78 +136,144 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
     );
   };
 
-  // 3. 星系呈现
+  // 3. 星系呈现 — 横向滑动轮播
   const GalaxySection = () => {
-    const [expanded, setExpanded] = useState(false);
     const entries = Object.entries(COSMIC_PERSONALITIES);
+    const defaultIndex = personalityType
+      ? entries.findIndex(([type]) => type === personalityType)
+      : 0;
+    const [activeIndex, setActiveIndex] = useState(Math.max(0, defaultIndex));
+    const scrollRef = useRef(null);
+    const cardWidth = 260; // 卡片宽度 + gap
+
+    const scrollToIndex = (index) => {
+      const clamped = Math.max(0, Math.min(entries.length - 1, index));
+      setActiveIndex(clamped);
+      if (scrollRef.current) {
+        const containerWidth = scrollRef.current.offsetWidth;
+        const offset = clamped * cardWidth - (containerWidth - cardWidth) / 2;
+        scrollRef.current.scrollTo({ left: offset, behavior: 'smooth' });
+      }
+    };
+
+    const handleScroll = () => {
+      if (!scrollRef.current) return;
+      const containerWidth = scrollRef.current.offsetWidth;
+      const scrollLeft = scrollRef.current.scrollLeft;
+      const center = scrollLeft + containerWidth / 2;
+      const newIndex = Math.round((center - containerWidth / 2) / cardWidth + entries.length / 2);
+      const clamped = Math.max(0, Math.min(entries.length - 1, newIndex));
+      if (clamped !== activeIndex) setActiveIndex(clamped);
+    };
+
+    useEffect(() => {
+      const el = scrollRef.current;
+      if (!el) return;
+      // 初始定位到活跃卡片居中
+      const containerWidth = el.offsetWidth;
+      const offset = activeIndex * cardWidth - (containerWidth - cardWidth) / 2;
+      el.scrollLeft = offset;
+
+      el.addEventListener('scroll', handleScroll, { passive: true });
+      return () => el.removeEventListener('scroll', handleScroll);
+    }, []);
 
     return (
       <section className="space-y-4">
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="w-full flex items-center justify-between px-2 py-2 transition-colors rounded-xl"
-        >
+        <div className="flex items-center justify-between px-2">
           <h3 className="text-sm font-medium flex items-center gap-2">
             <Users size={16} className="text-indigo-400" />
             星系图谱
           </h3>
-          <div className="flex items-center gap-2">
-            {personalityType && !expanded && (
-              <span className={`text-[10px] px-2.5 py-1 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-600'}`}>
-                你属于 {COSMIC_PERSONALITIES[personalityType]?.name}
-              </span>
-            )}
-            <ChevronDown
-              size={16}
-              className={`transition-transform duration-300 ${isDark ? 'text-gray-500' : 'text-gray-400'} ${expanded ? 'rotate-180' : ''}`}
-            />
-          </div>
-        </button>
+          {personalityType && (
+            <span className={`text-[10px] px-2.5 py-1 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-600'}`}>
+              你属于 {COSMIC_PERSONALITIES[personalityType]?.name}
+            </span>
+          )}
+        </div>
 
-        <div className={`grid transition-all duration-500 ease-in-out ${expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-          <div className="overflow-hidden">
-            <div className="grid grid-cols-2 gap-3 pb-1">
-              {entries.map(([type, data]) => {
-                const isMine = type === personalityType;
-                const count = GALAXY_COUNTS[type] || 0;
-                return (
-                  <div
-                    key={type}
-                    className={`p-4 rounded-2xl border transition-all ${
-                      isMine
-                        ? (isDark ? 'bg-indigo-900/20 border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.1)]' : 'bg-indigo-50 border-indigo-300 shadow-sm')
-                        : (isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm')
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className={`text-xs font-medium ${isMine ? (isDark ? 'text-indigo-300' : 'text-indigo-700') : (isDark ? 'text-gray-300' : 'text-gray-700')}`}>
-                        {data.name}
-                      </span>
-                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-                        {type}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-1 mb-2">
-                      {data.tags.slice(0, 2).map((tag, i) => (
-                        <span key={i} className={`text-[9px] px-1.5 py-0.5 rounded-full ${isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                    <div className={`flex items-center gap-1 text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                      <Users size={10} />
-                      <span>{count} 位旅人</span>
-                    </div>
+        {/* 轮播容器 */}
+        <div
+          ref={scrollRef}
+          className="flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-4 px-4 pb-2"
+          style={{ scrollBehavior: 'smooth' }}
+        >
+          {entries.map(([type, data], index) => {
+            const isMine = type === personalityType;
+            const count = GALAXY_COUNTS[type] || 0;
+            const isActive = index === activeIndex;
+
+            return (
+              <div
+                key={type}
+                onClick={() => scrollToIndex(index)}
+                className={`shrink-0 snap-center transition-all duration-500 cursor-pointer ${
+                  isActive ? 'scale-100 opacity-100' : 'scale-[0.88] opacity-50'
+                }`}
+                style={{ width: '228px' }}
+              >
+                <div
+                  className={`h-full p-5 rounded-[24px] border transition-all ${
+                    isMine
+                      ? (isDark ? 'bg-indigo-900/20 border-indigo-500/40 shadow-[0_0_20px_rgba(99,102,241,0.12)]' : 'bg-indigo-50 border-indigo-300 shadow-md')
+                      : (isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm')
+                  }`}
+                >
+                  {/* 顶部：类型标签 */}
+                  <div className="flex items-center justify-between mb-4">
+                    <span className={`text-[10px] font-mono px-2 py-1 rounded-md ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+                      {type}
+                    </span>
                     {isMine && (
-                      <div className={`mt-2 text-[9px] text-center py-1 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-600'}`}>
-                        ✦ 你的归属星系
-                      </div>
+                      <span className={`text-[9px] px-2 py-0.5 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-600'}`}>
+                        你的归属
+                      </span>
                     )}
                   </div>
-                );
-              })}
-            </div>
-          </div>
+
+                  {/* 人格名称 */}
+                  <h4 className={`text-lg font-medium mb-2 ${isMine ? (isDark ? 'text-indigo-300' : 'text-indigo-700') : (isDark ? 'text-gray-200' : 'text-gray-800')}`}>
+                    {data.name}
+                  </h4>
+
+                  {/* 标签 */}
+                  <div className="flex flex-wrap gap-1.5 mb-4">
+                    {data.tags.map((tag, i) => (
+                      <span key={i} className={`text-[9px] px-2 py-1 rounded-full ${isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* 描述 */}
+                  <p className={`text-[11px] leading-relaxed mb-4 line-clamp-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {data.desc}
+                  </p>
+
+                  {/* 人数 */}
+                  <div className={`flex items-center gap-1.5 text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    <Users size={10} />
+                    <span>{count.toLocaleString()} 位旅人</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 底部指示器 */}
+        <div className="flex justify-center gap-1.5">
+          {entries.map(([type], index) => (
+            <button
+              key={type}
+              onClick={() => scrollToIndex(index)}
+              className={`rounded-full transition-all duration-300 ${
+                index === activeIndex
+                  ? 'w-5 h-1.5 bg-indigo-500'
+                  : 'w-1.5 h-1.5 bg-gray-300'
+              }`}
+            />
+          ))}
         </div>
       </section>
     );
