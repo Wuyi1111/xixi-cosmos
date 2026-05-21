@@ -22,7 +22,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { Radio, Heart, Search, X, Star, ChevronDown, Trash2, Send, AlertTriangle, CheckCircle2, BookOpen, Radar, Sparkles, Compass, RefreshCw, Plus, Flame, TrendingUp } from 'lucide-react';
+import { Radio, Heart, Search, X, Star, ChevronDown, Trash2, Send, AlertTriangle, CheckCircle2, BookOpen, Radar, Sparkles, Compass, RefreshCw, Plus, Flame, TrendingUp, RotateCcw } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import { MOCK_WHISPERS, PRESET_TAGS, TOMORROW_SUGGESTIONS } from '../constants.js';
 
@@ -492,8 +492,8 @@ export default function TreeholeView({
 
   const renderTomorrow = () => {
     const followedList = userData.followedSuggestions || [];
-    const [shuffledSuggestions, setShuffledSuggestions] = useState(() =>
-      [...TOMORROW_SUGGESTIONS].sort(() => Math.random() - 0.5)
+    const [displayedSuggestions, setDisplayedSuggestions] = useState(() =>
+      TOMORROW_SUGGESTIONS.map(s => ({ ...s, _instanceId: Math.random().toString(36).slice(2) }))
     );
     const [customText, setCustomText] = useState('');
     const [showCustomInput, setShowCustomInput] = useState(false);
@@ -501,17 +501,29 @@ export default function TreeholeView({
     // 用户发布的自定义挑战
     const userChallenges = userData.userChallenges || [];
 
-    // 合并系统推荐 + 用户发布的挑战
-    const allChallenges = [
-      ...shuffledSuggestions.map(s => ({ ...s, source: 'system', followCount: Math.floor(Math.random() * 50) + 10 })),
-      ...userChallenges.map(c => ({ ...c, source: 'user', followCount: c.followers?.length || 0 })),
+    // 已跟随的任务列表（包含完成状态）
+    const myTasks = userData.myTomorrowTasks || [];
+
+    // 过滤出今天跟随的任务
+    const todayTasks = myTasks.filter(t => t.date === currentDateStr);
+    const completedTasks = todayTasks.filter(t => t.completed);
+    const progressPercent = todayTasks.length > 0 ? Math.round((completedTasks.length / todayTasks.length) * 100) : 0;
+
+    // 热度排行：按跟随次数排序（系统推荐 + 用户发布）
+    const allForHot = [
+      ...TOMORROW_SUGGESTIONS.map(s => ({ ...s, followCount: Math.floor(Math.random() * 50) + 10 })),
+      ...userChallenges.map(c => ({ ...c, followCount: (c.followers || []).length })),
     ];
+    const hotChallenges = [...allForHot].sort((a, b) => b.followCount - a.followCount).slice(0, 3);
 
-    // 热度排行：按跟随次数排序
-    const hotChallenges = [...allChallenges].sort((a, b) => b.followCount - a.followCount).slice(0, 3);
-
-    const handleRefresh = () => {
-      setShuffledSuggestions([...TOMORROW_SUGGESTIONS].sort(() => Math.random() - 0.5));
+    const handleRefreshOne = (instanceId) => {
+      // 只替换当前这一条为另一条随机推荐
+      const available = TOMORROW_SUGGESTIONS.filter(s => !displayedSuggestions.find(d => d.id === s.id && d._instanceId !== instanceId));
+      const pool = available.length > 0 ? available : TOMORROW_SUGGESTIONS;
+      const random = pool[Math.floor(Math.random() * pool.length)];
+      setDisplayedSuggestions(prev =>
+        prev.map(d => d._instanceId === instanceId ? { ...random, _instanceId: instanceId } : d)
+      );
     };
 
     const handlePublishCustom = () => {
@@ -533,12 +545,35 @@ export default function TreeholeView({
       setShowCustomInput(false);
     };
 
-    const handleFollowChallenge = (challengeId) => {
-      const isUserChallenge = challengeId.startsWith('user_');
-      if (isUserChallenge) {
-        // 用户发布的挑战
+    const handleFollowTask = (challenge) => {
+      const isSystem = !challenge.id.startsWith('user_');
+      const taskId = challenge.id;
+
+      // 检查是否已经跟随
+      if (todayTasks.find(t => t.taskId === taskId)) return;
+
+      // 添加到已跟随列表
+      const newTask = {
+        taskId,
+        date: currentDateStr,
+        completed: false,
+        emoji: challenge.emoji,
+        main: challenge.main,
+        sub: challenge.sub,
+        source: isSystem ? 'system' : 'user',
+      };
+
+      if (isSystem) {
+        const newFollowedList = [...followedList, taskId];
+        saveUserData({
+          ...userData,
+          totalFollows: (userData.totalFollows || 0) + 1,
+          followedSuggestions: newFollowedList,
+          myTomorrowTasks: [...myTasks, newTask],
+        });
+      } else {
         const newChallenges = userChallenges.map(c => {
-          if (c.id === challengeId) {
+          if (c.id === taskId) {
             const followers = c.followers || [];
             if (followers.includes(userData.id)) return c;
             return { ...c, followers: [...followers, userData.id] };
@@ -549,17 +584,33 @@ export default function TreeholeView({
           ...userData,
           totalFollows: (userData.totalFollows || 0) + 1,
           userChallenges: newChallenges,
+          myTomorrowTasks: [...myTasks, newTask],
         });
-      } else {
-        handleFollow(challengeId);
       }
+
+      if (onFollow) onFollow(taskId);
     };
 
-    const handleUnfollowChallenge = (challengeId) => {
-      const isUserChallenge = challengeId.startsWith('user_');
+    const handleToggleComplete = (taskId) => {
+      const newTasks = myTasks.map(t => {
+        if (t.taskId === taskId && t.date === currentDateStr) {
+          return { ...t, completed: !t.completed };
+        }
+        return t;
+      });
+      saveUserData({
+        ...userData,
+        myTomorrowTasks: newTasks,
+      });
+    };
+
+    const handleUnfollowTask = (taskId) => {
+      const newTasks = myTasks.filter(t => !(t.taskId === taskId && t.date === currentDateStr));
+      const isUserChallenge = taskId.startsWith('user_');
+
       if (isUserChallenge) {
         const newChallenges = userChallenges.map(c => {
-          if (c.id === challengeId) {
+          if (c.id === taskId) {
             return { ...c, followers: (c.followers || []).filter(id => id !== userData.id) };
           }
           return c;
@@ -568,22 +619,25 @@ export default function TreeholeView({
           ...userData,
           totalFollows: Math.max(0, (userData.totalFollows || 0) - 1),
           userChallenges: newChallenges,
+          myTomorrowTasks: newTasks,
         });
       } else {
-        handleUnfollow(challengeId);
+        saveUserData({
+          ...userData,
+          totalFollows: Math.max(0, (userData.totalFollows || 0) - 1),
+          followedSuggestions: followedList.filter(id => id !== taskId),
+          myTomorrowTasks: newTasks,
+        });
       }
     };
 
-    const isFollowed = (challenge) => {
-      if (challenge.source === 'user') {
-        return (challenge.followers || []).includes(userData.id);
-      }
-      return followedList.includes(challenge.id);
+    const isFollowed = (challengeId) => {
+      return todayTasks.some(t => t.taskId === challengeId);
     };
 
     return (
       <div className="space-y-6">
-        {/* 头部卡片 */}
+        {/* 头部卡片 + 进度条 */}
         <div className={`p-6 rounded-[28px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a24] to-[#171724] border border-emerald-500/15' : 'bg-gradient-to-br from-emerald-50/70 to-white border border-emerald-100'}`}>
           <div className="absolute -top-8 -right-6 w-32 h-32 rounded-full bg-amber-300/15 blur-3xl pointer-events-none"></div>
           <div className="absolute -bottom-8 -left-6 w-24 h-24 rounded-full bg-emerald-300/15 blur-3xl pointer-events-none"></div>
@@ -597,12 +651,92 @@ export default function TreeholeView({
             </div>
 
             <h2 className="text-xl font-light mb-2 tracking-wide">明日</h2>
-            <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              定下一个温柔约定，<br/>
-              或跟随一颗别人的光点。
+            <p className={`text-xs leading-relaxed mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              定下一个温柔约定，或跟随一颗别人的光点。
             </p>
+
+            {/* 进度条 */}
+            {todayTasks.length > 0 && (
+              <div className={`p-3 rounded-xl ${isDark ? 'bg-[#1f1f2e]/60' : 'bg-white/60'}`}>
+                <div className="flex justify-between text-[10px] mb-1.5">
+                  <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>
+                    今日进度 {completedTasks.length}/{todayTasks.length}
+                  </span>
+                  <span className={isDark ? 'text-emerald-300' : 'text-emerald-600'}>
+                    {progressPercent}%
+                  </span>
+                </div>
+                <div className={`h-2 rounded-full overflow-hidden ${isDark ? 'bg-[#0f0f1a]' : 'bg-gray-100'}`}>
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${
+                      progressPercent === 100
+                        ? 'bg-gradient-to-r from-emerald-400 to-amber-400'
+                        : 'bg-emerald-500'
+                    }`}
+                    style={{ width: `${progressPercent}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* 我的今日任务 */}
+        {todayTasks.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-1">
+              <CheckCircle2 size={14} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
+              <h3 className="text-sm font-medium">我的今日约定</h3>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
+                {completedTasks.length}/{todayTasks.length}
+              </span>
+            </div>
+            <div className="space-y-3">
+              {todayTasks.map((task) => (
+                <div
+                  key={task.taskId}
+                  className={`p-4 rounded-[20px] border transition-all ${
+                    task.completed
+                      ? (isDark ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50/30 border-emerald-200/50')
+                      : (isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm')
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'} shadow-sm`}>
+                      {task.completed ? '✅' : task.emoji}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium ${task.completed ? (isDark ? 'text-emerald-300 line-through opacity-60' : 'text-emerald-600 line-through opacity-60') : (isDark ? 'text-gray-100' : 'text-gray-800')}`}>
+                        {task.main}
+                      </p>
+                      <p className={`text-[11px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        {task.sub}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleToggleComplete(task.taskId)}
+                        className={`px-3 py-1.5 rounded-full text-[10px] font-medium transition-all active:scale-95 ${
+                          task.completed
+                            ? (isDark ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-100 text-emerald-600 border border-emerald-200')
+                            : (isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100')
+                        }`}
+                      >
+                        {task.completed ? '已完成' : '未完成'}
+                      </button>
+                      <button
+                        onClick={() => handleUnfollowTask(task.taskId)}
+                        className={`p-1.5 rounded-full transition-colors ${isDark ? 'text-gray-600 hover:text-red-400' : 'text-gray-400 hover:text-red-500'}`}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* 热度排行 */}
         {hotChallenges.length > 0 && (
@@ -613,7 +747,7 @@ export default function TreeholeView({
             </div>
             <div className="space-y-3">
               {hotChallenges.map((challenge, index) => {
-                const followed = isFollowed(challenge);
+                const followed = isFollowed(challenge.id);
                 return (
                   <div
                     key={challenge.id}
@@ -643,7 +777,8 @@ export default function TreeholeView({
                         </p>
                       </div>
                       <button
-                        onClick={() => followed ? handleUnfollowChallenge(challenge.id) : handleFollowChallenge(challenge.id)}
+                        onClick={() => followed ? null : handleFollowTask(challenge)}
+                        disabled={followed}
                         className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-medium transition-all active:scale-95 ${
                           followed
                             ? (isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200')
@@ -661,19 +796,13 @@ export default function TreeholeView({
           </div>
         )}
 
-        {/* 刷新 + 自定义发布 */}
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2">
-            <Compass size={14} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
-            <h3 className="text-sm font-medium">发现更多</h3>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleRefresh}
-              className={`p-2 rounded-full transition-all active:scale-90 ${isDark ? 'bg-[#171724] text-gray-400 hover:text-gray-300' : 'bg-white text-gray-500 hover:text-gray-700 shadow-sm'}`}
-            >
-              <RefreshCw size={14} />
-            </button>
+        {/* 发现更多 */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <Compass size={14} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+              <h3 className="text-sm font-medium">发现更多</h3>
+            </div>
             <button
               onClick={() => setShowCustomInput(!showCustomInput)}
               className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-medium transition-all active:scale-95 ${
@@ -686,78 +815,88 @@ export default function TreeholeView({
               发布我的
             </button>
           </div>
-        </div>
 
-        {/* 自定义输入 */}
-        {showCustomInput && (
-          <div className={`p-4 rounded-[20px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm'}`}>
-            <textarea
-              className={`w-full p-3 rounded-xl resize-none text-sm focus:outline-none transition-all ${
-                isDark
-                  ? 'bg-[#1f1f2e] text-gray-200 placeholder-gray-600 focus:ring-2 focus:ring-indigo-500/30'
-                  : 'bg-gray-50 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-indigo-400/30'
-              }`}
-              rows={2}
-              placeholder="写下你明天想做的一件小事..."
-              value={customText}
-              onChange={e => setCustomText(e.target.value)}
-            />
-            <div className="flex justify-end mt-2">
-              <button
-                onClick={handlePublishCustom}
-                disabled={!customText.trim()}
-                className={`px-4 py-2 rounded-full text-xs font-medium transition-all active:scale-95 ${
-                  customText.trim()
-                    ? 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
-                    : (isDark ? 'bg-[#1f1f2e] text-gray-600 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed')
+          {/* 自定义输入 */}
+          {showCustomInput && (
+            <div className={`p-4 rounded-[20px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm'}`}>
+              <textarea
+                className={`w-full p-3 rounded-xl resize-none text-sm focus:outline-none transition-all ${
+                  isDark
+                    ? 'bg-[#1f1f2e] text-gray-200 placeholder-gray-600 focus:ring-2 focus:ring-indigo-500/30'
+                    : 'bg-gray-50 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-indigo-400/30'
                 }`}
-              >
-                发布出去
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* 挑战列表 */}
-        <div className="space-y-3">
-          {shuffledSuggestions.map((suggestion) => {
-            const followed = followedList.includes(suggestion.id);
-            return (
-              <div
-                key={suggestion.id}
-                className={`p-4 rounded-[20px] transition-all ${
-                  followed
-                    ? (isDark ? 'bg-[#13131a]/60 border border-emerald-500/20' : 'bg-emerald-50/50 border border-emerald-200/50')
-                    : (isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm')
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'} shadow-sm`}>
-                    {suggestion.emoji}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
-                      {suggestion.main}
-                    </p>
-                    <p className={`text-[11px] leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                      {suggestion.sub}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => followed ? handleUnfollow(suggestion.id) : handleFollow(suggestion.id)}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-medium transition-all active:scale-95 ${
-                      followed
-                        ? (isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200')
-                        : (isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100')
-                    }`}
-                  >
-                    <CheckCircle2 size={10} />
-                    {followed ? '已跟随' : '跟随'}
-                  </button>
-                </div>
+                rows={2}
+                placeholder="写下你明天想做的一件小事..."
+                value={customText}
+                onChange={e => setCustomText(e.target.value)}
+              />
+              <div className="flex justify-end mt-2">
+                <button
+                  onClick={handlePublishCustom}
+                  disabled={!customText.trim()}
+                  className={`px-4 py-2 rounded-full text-xs font-medium transition-all active:scale-95 ${
+                    customText.trim()
+                      ? 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                      : (isDark ? 'bg-[#1f1f2e] text-gray-600 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed')
+                  }`}
+                >
+                  发布出去
+                </button>
               </div>
-            );
-          })}
+            </div>
+          )}
+
+          {/* 挑战列表（带单独刷新） */}
+          <div className="space-y-3">
+            {displayedSuggestions.map((suggestion) => {
+              const followed = isFollowed(suggestion.id);
+              return (
+                <div
+                  key={suggestion._instanceId}
+                  className={`p-4 rounded-[20px] transition-all ${
+                    followed
+                      ? (isDark ? 'bg-[#13131a]/60 border border-emerald-500/20' : 'bg-emerald-50/50 border border-emerald-200/50')
+                      : (isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm')
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'} shadow-sm`}>
+                      {suggestion.emoji}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
+                        {suggestion.main}
+                      </p>
+                      <p className={`text-[11px] leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {suggestion.sub}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleRefreshOne(suggestion._instanceId)}
+                        className={`p-1.5 rounded-full transition-all active:scale-90 ${isDark ? 'text-gray-600 hover:text-gray-400' : 'text-gray-400 hover:text-gray-600'}`}
+                        title="换一条"
+                      >
+                        <RotateCcw size={12} />
+                      </button>
+                      <button
+                        onClick={() => followed ? null : handleFollowTask(suggestion)}
+                        disabled={followed}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-medium transition-all active:scale-95 ${
+                          followed
+                            ? (isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200')
+                            : (isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100')
+                        }`}
+                      >
+                        <CheckCircle2 size={10} />
+                        {followed ? '已跟随' : '跟随'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* 用户发布的挑战 */}
@@ -769,7 +908,7 @@ export default function TreeholeView({
             </div>
             <div className="space-y-3">
               {userChallenges.map((challenge) => {
-                const followed = (challenge.followers || []).includes(userData.id);
+                const followed = isFollowed(challenge.id);
                 return (
                   <div
                     key={challenge.id}
@@ -792,7 +931,8 @@ export default function TreeholeView({
                         </p>
                       </div>
                       <button
-                        onClick={() => followed ? handleUnfollowChallenge(challenge.id) : handleFollowChallenge(challenge.id)}
+                        onClick={() => followed ? null : handleFollowTask(challenge)}
+                        disabled={followed}
                         className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-medium transition-all active:scale-95 ${
                           followed
                             ? (isDark ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30' : 'bg-purple-50 text-purple-600 border border-purple-200')
