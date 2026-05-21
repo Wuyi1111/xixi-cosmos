@@ -57,6 +57,9 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
     }
   };
 
+  // 是否有测试结果（已保存或飞入未保存）
+  const hasTestResult = !!personalityData || !!flyInResult;
+
   // 1. 宇宙氛围开头
   const HeroSection = () => (
     <section className="text-center pt-4 pb-2">
@@ -126,18 +129,6 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
                 {flyInResult.desc}
               </p>
               <div className="flex gap-3 mt-3">
-                <button
-                  onClick={() => {
-                    const isFirstTest = !userData.personality;
-                    const nextData = { ...userData, personality: flyInResult };
-                    if (isFirstTest) nextData.stardust = (userData.stardust || 0) + 30;
-                    saveUserData(nextData);
-                    setFlyInResult(null);
-                  }}
-                  className="text-[10px] px-3 py-1.5 rounded-full bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
-                >
-                  保存结果
-                </button>
                 <button
                   onClick={() => setShowQuiz(true)}
                   className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-500'}`}
@@ -624,8 +615,8 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
 
   return (
     <div className="animate-fade-in space-y-4 pb-6">
-      {/* 未测试时显示标题和简介 */}
-      {!personalityData && (
+      {/* 未测试且没有飞入结果时显示标题和简介 */}
+      {!hasTestResult && (
         <>
           <HeroSection />
           <AppIntroSection />

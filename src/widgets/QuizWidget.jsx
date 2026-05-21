@@ -12,7 +12,7 @@
  */
 
 import { useState } from 'react';
-import { X, Save, RotateCcw } from 'lucide-react';
+import { X, Save, RotateCcw, CheckCircle2 } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import { COSMIC_PERSONALITIES } from '../constants.js';
 
@@ -21,6 +21,7 @@ export default function QuizWidget({ isDark, onClose, onComplete }) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState([]);
   const [result, setResult] = useState(null);
+  const [isSaved, setIsSaved] = useState(false);
 
   const questions = [
     { q: "你的就寝时间通常是？", options: [{ text: "像恒星日出日落般规律", val: 'J' }, { text: "像流星一样随机出没", val: 'P' }] },
@@ -56,6 +57,7 @@ export default function QuizWidget({ isDark, onClose, onComplete }) {
 
   const handleSave = () => {
     onComplete(result);
+    setIsSaved(true);
   };
 
   const handleCloseWithoutSave = () => {
@@ -66,6 +68,7 @@ export default function QuizWidget({ isDark, onClose, onComplete }) {
     setStep(0);
     setAnswers([]);
     setResult(null);
+    setIsSaved(false);
   };
 
   return (
@@ -103,13 +106,20 @@ export default function QuizWidget({ isDark, onClose, onComplete }) {
             </p>
 
             <div className="flex gap-3 w-full pt-4">
-              <button
-                onClick={handleSave}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium bg-indigo-500 text-white hover:bg-indigo-600 transition-colors active:scale-95"
-              >
-                <Save size={16} />
-                保存结果
-              </button>
+              {isSaved ? (
+                <div className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  <CheckCircle2 size={16} />
+                  已保存
+                </div>
+              ) : (
+                <button
+                  onClick={handleSave}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium bg-indigo-500 text-white hover:bg-indigo-600 transition-colors active:scale-95"
+                >
+                  <Save size={16} />
+                  保存结果
+                </button>
+              )}
               <button
                 onClick={handleCloseWithoutSave}
                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium border transition-colors active:scale-95 ${isDark ? 'border-gray-700 text-gray-300 hover:bg-gray-800' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
