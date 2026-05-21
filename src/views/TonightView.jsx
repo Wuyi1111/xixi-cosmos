@@ -4,7 +4,7 @@
  * 屏幕从上到下：
  *   1) 宇宙氛围开头：大标题「息息·宇宙」+ 副标题 + 渐变背景装饰
  *   2) 探索内宇宙测试：点击弹出 QuizWidget 弹窗，完成后直接更新 personality
- *   3) 星系呈现：用户所属星系高亮 + 所有星系列表（可折叠）
+ *   3) 星系呈现：用户所属星系高亮 + 所有星系列表（循环轮播）
  *   4) 超新星/脉冲星：优秀内容卡片（MOCK_WHISPERS）
  *   5) 跳转引导：雷达入口（发射台）+ 心愿池入口（归星页内嵌）
  *
@@ -12,8 +12,8 @@
  *   isDark, userData, saveUserData, onNavigate
  */
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Radio, Heart, Gift, Compass, Sparkles, ChevronRight, Users, ChevronDown } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Radio, Gift, Compass, Sparkles, ChevronRight, Users } from 'lucide-react';
 import { COSMIC_PERSONALITIES, MOCK_WHISPERS } from '../constants.js';
 import QuizWidget from '../widgets/QuizWidget.jsx';
 
@@ -46,7 +46,6 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
   // 1. 宇宙氛围开头
   const HeroSection = () => (
     <section className="relative text-center pt-4 pb-8 overflow-hidden">
-      {/* 背景光晕装饰 */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -top-10 -right-10 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-4 -left-10 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -136,47 +135,93 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
     );
   };
 
-  // 3. 星系呈现 — 横向滑动轮播
+  // 3. 星系呈现 — 循环轮播
   const GalaxySection = () => {
     const entries = Object.entries(COSMIC_PERSONALITIES);
-    const defaultIndex = personalityType
-      ? entries.findIndex(([type]) => type === personalityType)
-      : 0;
+    const total = entries.length;
+    if (total === 0) return null;
+
+    // 未测试时不显示
+    if (!personalityType) return null;
+
+    const defaultIndex = entries.findIndex(([type]) => type === personalityType);
     const [activeIndex, setActiveIndex] = useState(Math.max(0, defaultIndex));
     const scrollRef = useRef(null);
-    const cardWidth = 260; // 卡片宽度 + gap
+    const isScrollingRef = useRef(false);
+    const scrollTimeoutRef = useRef(null);
+    const CARD_WIDTH = 244; // 228px + 16px gap
 
-    const scrollToIndex = (index) => {
-      const clamped = Math.max(0, Math.min(entries.length - 1, index));
-      setActiveIndex(clamped);
-      if (scrollRef.current) {
-        const containerWidth = scrollRef.current.offsetWidth;
-        const offset = clamped * cardWidth - (containerWidth - cardWidth) / 2;
-        scrollRef.current.scrollTo({ left: offset, behavior: 'smooth' });
-      }
-    };
+    const getVirtualIndex = useCallback((realIndex) => {
+      // 将真实索引映射到虚拟循环索引
+      return ((realIndex % total) + total) % total;
+    }, [total]);
 
-    const handleScroll = () => {
+    const scrollToRealIndex = useCallback((realIndex, smooth = true) => {
       if (!scrollRef.current) return;
       const containerWidth = scrollRef.current.offsetWidth;
-      const scrollLeft = scrollRef.current.scrollLeft;
-      const center = scrollLeft + containerWidth / 2;
-      const newIndex = Math.round((center - containerWidth / 2) / cardWidth + entries.length / 2);
-      const clamped = Math.max(0, Math.min(entries.length - 1, newIndex));
-      if (clamped !== activeIndex) setActiveIndex(clamped);
-    };
+      const offset = realIndex * CARD_WIDTH - (containerWidth - 228) / 2;
+      scrollRef.current.scrollTo({ left: offset, behavior: smooth ? 'smooth' : 'auto' });
+    }, []);
+
+    const setActiveAndScroll = useCallback((virtualIndex) => {
+      const clamped = Math.max(0, Math.min(total - 1, virtualIndex));
+      setActiveIndex(clamped);
+      // 计算对应的真实索引（在中间循环区域）
+      const realIndex = total + clamped;
+      scrollToRealIndex(realIndex, true);
+    }, [total, scrollToRealIndex]);
 
     useEffect(() => {
       const el = scrollRef.current;
       if (!el) return;
-      // 初始定位到活跃卡片居中
-      const containerWidth = el.offsetWidth;
-      const offset = activeIndex * cardWidth - (containerWidth - cardWidth) / 2;
-      el.scrollLeft = offset;
+
+      // 初始定位到中间循环区域的对应位置
+      const initialRealIndex = total + Math.max(0, defaultIndex);
+      scrollToRealIndex(initialRealIndex, false);
+
+      const handleScroll = () => {
+        if (!el) return;
+        const containerWidth = el.offsetWidth;
+        const scrollLeft = el.scrollLeft;
+        const center = scrollLeft + containerWidth / 2;
+        const realIndex = Math.round((center - containerWidth / 2 + 228 / 2) / CARD_WIDTH);
+
+        // 循环处理：当滚动到边界时，跳转到中间循环区域的对应位置
+        if (realIndex < total) {
+          // 滚动到了头部副本区域，跳转到尾部副本
+          const jumpIndex = realIndex + total;
+          el.scrollTo({ left: jumpIndex * CARD_WIDTH - (containerWidth - 228) / 2, behavior: 'auto' });
+          setActiveIndex(getVirtualIndex(realIndex));
+        } else if (realIndex >= total * 2) {
+          // 滚动到了尾部副本区域，跳转到头部副本
+          const jumpIndex = realIndex - total;
+          el.scrollTo({ left: jumpIndex * CARD_WIDTH - (containerWidth - 228) / 2, behavior: 'auto' });
+          setActiveIndex(getVirtualIndex(realIndex));
+        } else {
+          setActiveIndex(getVirtualIndex(realIndex));
+        }
+
+        // 防抖标记
+        isScrollingRef.current = true;
+        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+        scrollTimeoutRef.current = setTimeout(() => {
+          isScrollingRef.current = false;
+        }, 150);
+      };
 
       el.addEventListener('scroll', handleScroll, { passive: true });
-      return () => el.removeEventListener('scroll', handleScroll);
-    }, []);
+      return () => {
+        el.removeEventListener('scroll', handleScroll);
+        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      };
+    }, [total, defaultIndex, scrollToRealIndex, getVirtualIndex]);
+
+    // 构建循环数据：尾部副本 + 原始数据 + 头部副本
+    const cyclicEntries = [
+      ...entries.map(([type, data], i) => ({ type, data, virtualIndex: i, key: `tail-${type}` })),
+      ...entries.map(([type, data], i) => ({ type, data, virtualIndex: i, key: `mid-${type}` })),
+      ...entries.map(([type, data], i) => ({ type, data, virtualIndex: i, key: `head-${type}` })),
+    ];
 
     return (
       <section className="space-y-4">
@@ -185,29 +230,31 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
             <Users size={16} className="text-indigo-400" />
             星系图谱
           </h3>
-          {personalityType && (
-            <span className={`text-[10px] px-2.5 py-1 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-600'}`}>
-              你属于 {COSMIC_PERSONALITIES[personalityType]?.name}
-            </span>
-          )}
+          <span className={`text-[10px] px-2.5 py-1 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-600'}`}>
+            你属于 {COSMIC_PERSONALITIES[personalityType]?.name}
+          </span>
         </div>
 
         {/* 轮播容器 */}
         <div
           ref={scrollRef}
           className="flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-4 px-4 pb-2"
-          style={{ scrollBehavior: 'smooth' }}
+          style={{ scrollBehavior: 'auto' }}
         >
-          {entries.map(([type, data], index) => {
+          {cyclicEntries.map(({ type, data, virtualIndex, key }) => {
             const isMine = type === personalityType;
             const count = GALAXY_COUNTS[type] || 0;
-            const isActive = index === activeIndex;
+            const isActive = virtualIndex === activeIndex;
 
             return (
               <div
-                key={type}
-                onClick={() => scrollToIndex(index)}
-                className={`shrink-0 snap-center transition-all duration-500 cursor-pointer ${
+                key={key}
+                onClick={() => {
+                  if (!isScrollingRef.current) {
+                    setActiveAndScroll(virtualIndex);
+                  }
+                }}
+                className={`shrink-0 snap-center transition-all duration-300 cursor-pointer ${
                   isActive ? 'scale-100 opacity-100' : 'scale-[0.88] opacity-50'
                 }`}
                 style={{ width: '228px' }}
@@ -219,7 +266,6 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
                       : (isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm')
                   }`}
                 >
-                  {/* 顶部：类型标签 */}
                   <div className="flex items-center justify-between mb-4">
                     <span className={`text-[10px] font-mono px-2 py-1 rounded-md ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
                       {type}
@@ -231,12 +277,10 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
                     )}
                   </div>
 
-                  {/* 人格名称 */}
                   <h4 className={`text-lg font-medium mb-2 ${isMine ? (isDark ? 'text-indigo-300' : 'text-indigo-700') : (isDark ? 'text-gray-200' : 'text-gray-800')}`}>
                     {data.name}
                   </h4>
 
-                  {/* 标签 */}
                   <div className="flex flex-wrap gap-1.5 mb-4">
                     {data.tags.map((tag, i) => (
                       <span key={i} className={`text-[9px] px-2 py-1 rounded-full ${isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>
@@ -245,12 +289,10 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
                     ))}
                   </div>
 
-                  {/* 描述 */}
                   <p className={`text-[11px] leading-relaxed mb-4 line-clamp-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                     {data.desc}
-                  </p>
+  </p>
 
-                  {/* 人数 */}
                   <div className={`flex items-center gap-1.5 text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
                     <Users size={10} />
                     <span>{count.toLocaleString()} 位旅人</span>
@@ -266,7 +308,7 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
           {entries.map(([type], index) => (
             <button
               key={type}
-              onClick={() => scrollToIndex(index)}
+              onClick={() => setActiveAndScroll(index)}
               className={`rounded-full transition-all duration-300 ${
                 index === activeIndex
                   ? 'w-5 h-1.5 bg-indigo-500'
