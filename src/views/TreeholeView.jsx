@@ -49,6 +49,13 @@ export default function TreeholeView({
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
+  // 明日板块 state（必须从组件顶层调用，不能放在 renderTomorrow 内部）
+  const [displayedSuggestions, setDisplayedSuggestions] = useState(() =>
+    TOMORROW_SUGGESTIONS.map(s => ({ ...s, _instanceId: Math.random().toString(36).slice(2) }))
+  );
+  const [customText, setCustomText] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
+
   const textareaRef = useRef(null);
 
   const isNewDay = userData.lastPostDate !== currentDateStr;
@@ -492,11 +499,6 @@ export default function TreeholeView({
 
   const renderTomorrow = () => {
     const followedList = userData.followedSuggestions || [];
-    const [displayedSuggestions, setDisplayedSuggestions] = useState(() =>
-      TOMORROW_SUGGESTIONS.map(s => ({ ...s, _instanceId: Math.random().toString(36).slice(2) }))
-    );
-    const [customText, setCustomText] = useState('');
-    const [showCustomInput, setShowCustomInput] = useState(false);
 
     // 用户发布的自定义挑战
     const userChallenges = userData.userChallenges || [];
