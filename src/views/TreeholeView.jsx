@@ -22,7 +22,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { Radio, Heart, Search, X, Star, ChevronDown, Trash2, Send, AlertTriangle, CheckCircle2, BookOpen, Radar } from 'lucide-react';
+import { Radio, Heart, Search, X, Star, ChevronDown, Trash2, Send, AlertTriangle, CheckCircle2, BookOpen, Radar, Sparkles, Compass } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import { MOCK_WHISPERS, PRESET_TAGS, TOMORROW_SUGGESTIONS } from '../constants.js';
 
@@ -266,42 +266,47 @@ export default function TreeholeView({
 
   const renderEmit = () => (
     <div className="space-y-6">
-      {/* 雷达示意图区 */}
-      <div className={`p-6 rounded-[28px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border border-indigo-500/15' : 'bg-gradient-to-br from-indigo-50/70 to-white border border-indigo-100'}`}>
-        <div className="absolute -top-8 -right-6 w-32 h-32 rounded-full bg-indigo-300/10 blur-3xl pointer-events-none"></div>
-        <div className="absolute -bottom-8 -left-6 w-24 h-24 rounded-full bg-amber-300/10 blur-3xl pointer-events-none"></div>
+      {/* 雷达示意图区 — 优化版 */}
+      <div className={`p-6 rounded-[28px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a2e] via-[#171724] to-[#1a1a24] border border-indigo-500/15' : 'bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/60 border border-indigo-100'}`}>
+        <div className="absolute -top-12 -right-8 w-40 h-40 rounded-full bg-indigo-300/15 blur-3xl pointer-events-none animate-pulse"></div>
+        <div className="absolute -bottom-10 -left-8 w-32 h-32 rounded-full bg-purple-300/10 blur-3xl pointer-events-none"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-indigo-500/5 blur-3xl pointer-events-none"></div>
 
         <div className="relative z-10 flex flex-col items-center text-center">
-          <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-100'}`}>
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 relative ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-100'}`}>
+            <div className={`absolute inset-0 rounded-full ${isDark ? 'bg-indigo-500/10' : 'bg-indigo-200/30'} animate-ping`} style={{ animationDuration: '3s' }}></div>
             <Radar size={28} className={isDark ? 'text-indigo-300' : 'text-indigo-500'} />
           </div>
-          <h2 className="text-lg font-light mb-1 tracking-wide">信号雷达</h2>
-          <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          <h2 className="text-xl font-light mb-2 tracking-wide">信号雷达</h2>
+          <p className={`text-xs leading-relaxed max-w-[240px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
             左右滑动探索星际回音与明日<br/>
             在这里发送你的心声信号
           </p>
-          <div className="flex items-center gap-4 mt-4">
-            <div className="flex flex-col items-center gap-1">
-              <div className={`w-2 h-2 rounded-full ${mode === 'echo' ? 'bg-pink-400' : 'bg-gray-300'}`}></div>
+          <div className="flex items-center gap-5 mt-5">
+            <div className="flex flex-col items-center gap-1.5">
+              <div className={`w-2 h-2 rounded-full transition-all ${mode === 'echo' ? 'bg-pink-400 scale-125' : 'bg-gray-300'}`}></div>
               <span className={`text-[9px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>回音</span>
             </div>
-            <div className={`w-8 h-[1px] ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}></div>
-            <div className="flex flex-col items-center gap-1">
-              <div className={`w-3 h-3 rounded-full ${mode === 'emit' ? 'bg-indigo-400' : 'bg-gray-300'}`}></div>
+            <div className={`w-10 h-[1px] ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}></div>
+            <div className="flex flex-col items-center gap-1.5">
+              <div className={`w-3 h-3 rounded-full transition-all ${mode === 'emit' ? 'bg-indigo-400 scale-125' : 'bg-gray-300'}`}></div>
               <span className={`text-[9px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>发射台</span>
             </div>
-            <div className={`w-8 h-[1px] ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}></div>
-            <div className="flex flex-col items-center gap-1">
-              <div className={`w-2 h-2 rounded-full ${mode === 'tomorrow' ? 'bg-emerald-400' : 'bg-gray-300'}`}></div>
+            <div className={`w-10 h-[1px] ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}></div>
+            <div className="flex flex-col items-center gap-1.5">
+              <div className={`w-2 h-2 rounded-full transition-all ${mode === 'tomorrow' ? 'bg-emerald-400 scale-125' : 'bg-gray-300'}`}></div>
               <span className={`text-[9px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>明日</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 发射区 */}
+      {/* 波段选择 — 优化版 */}
       <div className="space-y-3">
-        <p className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>为你的信号选择一个波段：</p>
+        <div className="flex items-center gap-2">
+          <Compass size={14} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+          <p className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>为你的信号选择一个波段</p>
+        </div>
         <div className="flex flex-wrap gap-2">
           {[...PRESET_TAGS.positive, ...PRESET_TAGS.neutral].slice(0, 5).map((tag, i) => (
             <button
@@ -310,10 +315,10 @@ export default function TreeholeView({
                 setWhisperText(tag + '...');
                 setSelectedTag(tag);
               }}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+              className={`text-xs px-3.5 py-2 rounded-full border transition-all active:scale-95 ${
                 selectedTag === tag
-                ? (isDark ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300' : 'bg-indigo-100 border-indigo-300 text-indigo-700')
-                : (isDark ? 'border-gray-700 text-gray-400 hover:border-gray-500' : 'border-gray-200 text-gray-500 hover:border-gray-300')
+                ? (isDark ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.15)]' : 'bg-indigo-100 border-indigo-300 text-indigo-700 shadow-sm')
+                : (isDark ? 'border-gray-700 text-gray-400 hover:border-gray-500 hover:bg-white/5' : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50')
               }`}
             >
               {tag}
@@ -322,63 +327,82 @@ export default function TreeholeView({
         </div>
       </div>
 
+      {/* 输入框 — 优化版 */}
       <div className="relative">
         <textarea
           ref={textareaRef}
-          className={`w-full p-5 rounded-[28px] resize-none min-h-[160px] text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-colors ${
-            isDark ? 'bg-[#171724] text-gray-200 placeholder-gray-600' : 'bg-white shadow-sm text-gray-800 placeholder-gray-400'
+          className={`w-full p-5 rounded-[24px] resize-none min-h-[140px] text-sm focus:outline-none transition-all duration-300 ${
+            isDark
+              ? 'bg-[#171724] text-gray-200 placeholder-gray-600 focus:ring-2 focus:ring-indigo-500/30 focus:bg-[#1a1a2e]'
+              : 'bg-white shadow-sm text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-indigo-400/30 focus:shadow-md'
           }`}
           placeholder="宇宙无边无际，你的心声在这里不再受限。倾诉吧..."
           value={whisperText}
           onChange={e => setWhisperText(e.target.value)}
         ></textarea>
+        {whisperText && (
+          <div className={`absolute bottom-3 right-3 text-[10px] ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+            {whisperText.length} 字
+          </div>
+        )}
       </div>
 
-      <div className="flex justify-between items-center px-2">
-        <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>信号可见度：</span>
+      {/* 可见度 — 优化版 */}
+      <div className="flex justify-between items-center px-1">
+        <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>信号可见度</span>
         <div className={`flex p-1 rounded-full ${isDark ? 'bg-[#171724]' : 'bg-gray-100'}`}>
           <button
             onClick={() => handleVisibilityChange('public')}
-            className={`px-3 py-1.5 rounded-full text-[10px] font-medium transition-colors ${visibility === 'public' ? (isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white text-indigo-600 shadow-sm') : 'text-gray-400 hover:text-gray-300'}`}
+            className={`px-3.5 py-1.5 rounded-full text-[10px] font-medium transition-all ${visibility === 'public' ? (isDark ? 'bg-indigo-500/20 text-indigo-300 shadow-sm' : 'bg-white text-indigo-600 shadow-sm') : 'text-gray-400 hover:text-gray-300'}`}
           >
-            散落星海 (公开)
+            <Sparkles size={10} className="inline mr-1" />
+            散落星海
           </button>
           <button
             onClick={() => handleVisibilityChange('private')}
-            className={`px-3 py-1.5 rounded-full text-[10px] font-medium transition-colors ${visibility === 'private' ? (isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white text-indigo-600 shadow-sm') : 'text-gray-400 hover:text-gray-300'}`}
+            className={`px-3.5 py-1.5 rounded-full text-[10px] font-medium transition-all ${visibility === 'private' ? (isDark ? 'bg-indigo-500/20 text-indigo-300 shadow-sm' : 'bg-white text-indigo-600 shadow-sm') : 'text-gray-400 hover:text-gray-300'}`}
           >
-            深空折叠 (仅自己)
+            <BookOpen size={10} className="inline mr-1" />
+            深空折叠
           </button>
         </div>
       </div>
 
-      <button
-        onClick={handleEmit}
-        disabled={!whisperText || postsLeft <= 0}
-        className={`w-full py-4 rounded-2xl font-medium tracking-wider transition-all flex items-center justify-center gap-2 ${
-          whisperText && postsLeft > 0
-            ? 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 active:scale-95'
-            : (isDark ? 'bg-[#1f1f2e] text-gray-600 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed')
-        }`}
-      >
-        <Send size={18} />
-        {postsLeft > 0 ? '向深空发射' : '今日星际能量已耗尽'}
-      </button>
-      <p className="text-center text-[10px] text-gray-500">
-        {postsLeft > 0 ? `今日还可发射 ${postsLeft} 次信号` : '明日 00:00 信号能量自动恢复'}
-      </p>
+      {/* 发射按钮 — 优化版 */}
+      <div className="space-y-2">
+        <button
+          onClick={handleEmit}
+          disabled={!whisperText || postsLeft <= 0}
+          className={`w-full py-4 rounded-2xl font-medium tracking-wider transition-all flex items-center justify-center gap-2 ${
+            whisperText && postsLeft > 0
+              ? 'bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-lg shadow-indigo-500/25 active:scale-[0.98]'
+              : (isDark ? 'bg-[#1f1f2e] text-gray-600 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed')
+          }`}
+        >
+          <Send size={18} className={whisperText && postsLeft > 0 ? 'animate-pulse' : ''} />
+          {postsLeft > 0 ? '向深空发射' : '今日星际能量已耗尽'}
+        </button>
+        <div className="flex items-center justify-center gap-1.5">
+          <div className={`w-1.5 h-1.5 rounded-full ${postsLeft > 0 ? 'bg-emerald-400' : 'bg-gray-300'}`}></div>
+          <p className="text-center text-[10px] text-gray-500">
+            {postsLeft > 0 ? `今日还可发射 ${postsLeft} 次信号` : '明日 00:00 信号能量自动恢复'}
+          </p>
+        </div>
+      </div>
 
-      {/* === 我的信号 列表 === */}
+      {/* === 我的信号 列表 — 优化版 === */}
       <div className={`pt-6 mt-2 border-t ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
-        <div className="flex items-center justify-between mb-3 px-1">
+        <div className="flex items-center justify-between mb-4 px-1">
           <h3 className="text-sm font-medium flex items-center gap-2">
             <Radio size={14} className="text-indigo-400" />
             我的信号
           </h3>
-          <span className="text-[10px] text-gray-500">{myWhispers.length} 条</span>
+          <span className={`text-[10px] px-2 py-1 rounded-full ${isDark ? 'bg-[#1f1f2e] text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+            {myWhispers.length} 条
+          </span>
         </div>
 
-        <div className={`flex items-center px-4 py-3 rounded-2xl mb-3 ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
+        <div className={`flex items-center px-4 py-3 rounded-2xl mb-4 border transition-all ${isDark ? 'bg-[#171724] border-white/5 focus-within:border-indigo-500/30' : 'bg-white shadow-sm border-gray-100 focus-within:border-indigo-200 focus-within:shadow-md'}`}>
           <Search size={16} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
           <input
             type="text"
@@ -388,7 +412,7 @@ export default function TreeholeView({
             onChange={e => setSearchQuery(e.target.value)}
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery('')} className={isDark ? 'text-gray-500' : 'text-gray-400'}>
+            <button onClick={() => setSearchQuery('')} className={`p-1 rounded-full transition-colors ${isDark ? 'text-gray-500 hover:text-gray-300 hover:bg-white/5' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}>
               <X size={14} />
             </button>
           )}
@@ -396,9 +420,16 @@ export default function TreeholeView({
 
         <div className="space-y-3">
           {filteredWhispers.length === 0 ? (
-            <div className={`py-10 text-center text-xs flex flex-col items-center gap-3 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-              <Radio size={28} className="opacity-40" />
-              {searchQuery ? '在广袤宇宙中未寻得该信号' : '暂未发射过任何信号'}
+            <div className={`py-12 text-center flex flex-col items-center gap-4 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
+                <Radio size={24} className="opacity-40" />
+              </div>
+              <div>
+                <p className="text-xs font-medium mb-1">{searchQuery ? '在广袤宇宙中未寻得该信号' : '暂未发射过任何信号'}</p>
+                {!searchQuery && (
+                  <p className="text-[10px] opacity-60">写下你的心声，让它在宇宙中漂流</p>
+                )}
+              </div>
             </div>
           ) : (
             filteredWhispers.map(whisper => {
