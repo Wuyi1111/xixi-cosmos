@@ -1,7 +1,7 @@
 {
   "name": "xixi-cosmos",
   "private": true,
-  "version": "4.16.0",
+  "version": "4.17.0",
   "type": "module",
   "description": "息息·宇宙 V4 — 一个温柔的睡前情绪陪伴 App",
   "scripts": {
