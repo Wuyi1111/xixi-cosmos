@@ -21,7 +21,7 @@
  */
 
 import { useState } from 'react';
-import { ChevronLeft, Sparkles, Heart, Send, X } from 'lucide-react';
+import { Sparkles, Heart, Send, X } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import { WISH_PRODUCTS, MOCK_WISHES } from '../constants.js';
 
@@ -34,7 +34,7 @@ function timeAgoLabel(daysAgo) {
   return `${Math.floor(daysAgo / 30)} 个月前`;
 }
 
-export default function WishPoolView({ isDark, userData, onClose }) {
+export default function WishPoolView({ isDark, userData, saveUserData }) {
   // 许愿弹窗
   const [showWishModal, setShowWishModal] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState(null);
@@ -75,10 +75,15 @@ export default function WishPoolView({ isDark, userData, onClose }) {
     <div className="animate-fade-in pb-10 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between pt-1">
-        <button onClick={onClose} className={`p-2 -ml-2 rounded-full transition-colors ${isDark ? 'text-gray-300 hover:bg-white/5' : 'text-gray-700 hover:bg-gray-100'}`}>
-          <ChevronLeft size={22} />
-        </button>
-        <h1 className="text-lg font-medium tracking-wide">星愿池</h1>
+        <div className="flex items-center gap-2">
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDark ? 'bg-pink-500/15' : 'bg-pink-50'}`}>
+            <Heart size={20} className="text-pink-400" />
+          </div>
+          <div>
+            <h1 className="text-lg font-medium tracking-wide">心愿池</h1>
+            <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>积攒星尘，兑换心愿</p>
+          </div>
+        </div>
         <div className="text-right">
           <p className="text-[10px] text-gray-500">我的星尘</p>
           <p className={`text-base font-medium flex items-center gap-1 justify-end ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>

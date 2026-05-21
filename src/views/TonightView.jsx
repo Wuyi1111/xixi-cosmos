@@ -1,520 +1,275 @@
 /**
- * TonightView.jsx — 首页"此刻"。
+ * TonightView.jsx — 「此刻」综合门户首页。
  *
  * 屏幕从上到下：
- *   1) 标题"息息·宇宙"
- *   2) 安神助手（折叠 / 展开）→ 舒缓调息 / 宇宙白噪音
- *   3) 核心打卡区：未打卡 → 三阶段（召唤 → 网格选情绪 → 写心语 → 安放）
- *                  已打卡 → "夜航已启程"状态卡
- *   4) 本周星轨印记（7 天小日历）+ "全月星轨"按钮 → 月历 modal
- *   5) 潜意识梦境舱（DreamCard）
+ *   1) 宇宙氛围开头：大标题「此刻」+ 副标题 + 渐变背景装饰
+ *   2) 探索内宇宙测试：从 MineView 迁移的性格测试入口
+ *   3) 星系呈现：用户所属星系高亮 + 所有星系列表
+ *   4) 超新星/脉冲星：优秀内容卡片（MOCK_WHISPERS）
+ *   5) 跳转引导：雷达入口（发射台）+ 心愿池入口（星愿池）
  *
- * 改什么：
- *   - 改打卡的三阶段交互、动画、文案 → 这里 selectedMood / isMoodSelectorOpen 分支
- *   - 改"夜航已启程"状态卡（图标 / 文案 / 连签徽章）→ 这里 hasCheckedInToday 分支
- *   - 改 6 个情绪选项（图标、颜色、安慰语）→ src/constants.js 的 EMOTIONS
- *   - 改本周 / 全月日历布局 → 这里 currentWeekDays / showCalendar 区块
- *   - "舒缓调息"按钮的具体功能 → src/widgets/BreathingWidget.jsx
- *   - "宇宙白噪音"按钮（目前是占位，没接音乐）→ 这里给它加 onClick
- *
- * 不在这里改：
- *   - 打卡后给多少星尘 / 连签 bonus → src/App.jsx 的 handleCheckIn()
- *   - 梦境舱本身的交互 → src/widgets/DreamCard.jsx
+ * Props:
+ *   isDark, userData, saveUserData, onStartQuiz, onNavigate
  */
 
-import React, { useState, useEffect } from 'react';
-import { Music, Wind, Moon, Sparkles, ChevronDown, X, Edit3, Calendar, ChevronLeft, ChevronRight, Sun } from 'lucide-react';
-import Portal from '../components/Portal.jsx';
-import BreathingWidget from '../widgets/BreathingWidget.jsx';
-import DreamCard from '../widgets/DreamCard.jsx';
-import { EMOTIONS } from '../constants.js';
+import React from 'react';
+import { Radio, Heart, Gift, Compass, Sparkles, ChevronRight, Users } from 'lucide-react';
+import { COSMIC_PERSONALITIES, MOCK_WHISPERS } from '../constants.js';
 
-// --- 页面 1：此刻 (Tonight) ---
-export default function TonightView({ isDark, hasCheckedInToday, onCheckIn, userData, saveUserData, currentDateStr }) {
-  const [selectedMood, setSelectedMood] = useState(null);
-  const [whisper, setWhisper] = useState('');
-  const [comfortText, setComfortText] = useState('此刻，你的内心是何种风景？');
+// 星系 mock 人数数据
+const GALAXY_COUNTS = {
+  'ISTJ': 128, 'ISFJ': 245, 'INFJ': 312, 'INTJ': 198,
+  'ISTP': 156, 'ISFP': 289, 'INFP': 456, 'INTP': 234,
+  'ESTP': 167, 'ESFP': 278, 'ENFP': 389, 'ENTP': 201,
+  'ESTJ': 145, 'ESFJ': 267, 'ENFJ': 298, 'ENTJ': 176,
+};
 
-  const [isAidExpanded, setIsAidExpanded] = useState(false);
-  const [isMoodSelectorOpen, setIsMoodSelectorOpen] = useState(false);
-  const [showBreathing, setShowBreathing] = useState(false);
+export default function TonightView({ isDark, userData, saveUserData, onStartQuiz, onNavigate }) {
+  const personalityData = typeof userData.personality === 'object' ? userData.personality : null;
+  const personalityType = personalityData?.type || null;
 
-  const [selectedTrackRecord, setSelectedTrackRecord] = useState(null);
+  // 1. 宇宙氛围开头
+  const HeroSection = () => (
+    <section className="relative text-center pt-4 pb-8 overflow-hidden">
+      {/* 背景光晕装饰 */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-10 -right-10 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-4 -left-10 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [calendarMonth, setCalendarMonth] = useState(new Date(currentDateStr));
-
-  // 卡片点击反馈：递增就触发一次 tap-flash 动画（key 变化让动画重跑）
-  const [tapFlashKey, setTapFlashKey] = useState(0);
-  const handleCardTap = () => {
-    if (isMoodSelectorOpen || selectedMood) return;
-    // iOS 大多不支持，Android 微震动；不支持的浏览器无副作用
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate(15);
-    }
-    setTapFlashKey(k => k + 1);
-    setIsMoodSelectorOpen(true);
-  };
-
-  // 新增：星尘提示显示状态
-  const [showStardustModal, setShowStardustModal] = useState(false);
-  // 新增：是否是"睡醒了"状态（太阳图标）
-  const [isAwake, setIsAwake] = useState(false);
-
-  // 首次打卡完成时显示星尘弹窗
-  useEffect(() => {
-    if (hasCheckedInToday && !showStardustModal) {
-      setShowStardustModal(true);
-      const timer = setTimeout(() => {
-        setShowStardustModal(false);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [hasCheckedInToday]);
-
-  // 点击月亮/太阳的处理
-  const handleMoonClick = () => {
-    setIsAwake(true);
-    // 延迟让渐变动画显示出来，再重置状态
-    setTimeout(() => {
-      setIsAwake(false);
-      setSelectedMood(null);
-      // 调用父组件的重置打卡状态函数
-      onCheckIn(null, null, true); // 第三个参数表示重置
-    }, 800);
-  };
-
-  const moodData = selectedMood ? EMOTIONS.find(e => e.id === selectedMood) : null;
-  const lastRecord = userData.checkInHistory[0];
-
-  useEffect(() => {
-    if (moodData) {
-      const texts = moodData.texts;
-      setComfortText(texts[Math.floor(Math.random() * texts.length)]);
-    }
-  }, [selectedMood]);
-
-  // 生成本周(周一至周日)的日期数组
-  const currentWeekDays = React.useMemo(() => {
-    const date = new Date(currentDateStr);
-    const day = date.getDay();
-    const diffToMonday = date.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(date);
-    monday.setDate(diffToMonday);
-
-    return Array.from({length: 7}, (_, i) => {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
-      return d.toDateString();
-    });
-  }, [currentDateStr]);
-
-  if (showBreathing) {
-    return <BreathingWidget isDark={isDark} onClose={() => setShowBreathing(false)} />;
-  }
-
-  return (
-    <div className="animate-fade-in space-y-6 pb-10">
-      <header className="text-center pt-1 mb-2">
-        <h1 className="text-2xl font-light tracking-widest mb-2">息息·宇宙</h1>
-        <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'} font-light`}>
+      <div className="relative z-10">
+        <h1 className={`text-4xl font-light tracking-[0.2em] mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          此刻
+        </h1>
+        <p className={`text-sm font-light tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
           与繁星作伴，和内心和解
         </p>
-      </header>
+        <div className="mt-4 flex justify-center">
+          <div className={`w-16 h-[1px] ${isDark ? 'bg-indigo-500/30' : 'bg-indigo-300/50'}`} />
+        </div>
+      </div>
+    </section>
+  );
 
-      {/* 安神助手 (折叠/展开) */}
-      <section className={`p-5 rounded-[28px] transition-colors ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
-        <button
-          onClick={() => setIsAidExpanded(!isAidExpanded)}
-          className="flex w-full justify-between items-center outline-none"
+  // 2. 探索内宇宙测试
+  const QuizSection = () => {
+    if (!personalityData) {
+      return (
+        <section
+          onClick={onStartQuiz}
+          className={`p-5 rounded-[28px] cursor-pointer border transition-all hover:scale-[1.02] active:scale-95 ${
+            isDark ? 'bg-gradient-to-r from-[#1f1f2e] to-[#171724] border-indigo-500/20' : 'bg-gradient-to-r from-indigo-50 to-white border-indigo-100 shadow-sm'
+          }`}
         >
-          <h2 className="text-sm font-medium flex items-center gap-2">
-            <Music size={18} className="text-indigo-400" />
-            安神助手
-          </h2>
-          <ChevronDown size={18} className={`text-gray-400 transition-transform duration-300 ${isAidExpanded ? 'rotate-180' : ''}`} />
-        </button>
-
-        {isAidExpanded && (
-          <div className="flex gap-4 mt-4 animate-fade-in">
-            <button
-              onClick={() => setShowBreathing(true)}
-              className={`flex-1 py-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-colors ${isDark ? 'bg-[#1f1f2e] hover:bg-[#262638]' : 'bg-gray-50 hover:bg-gray-100'}`}>
-              <Wind size={20} className="text-emerald-400" />
-              <span className="text-xs">舒缓调息</span>
-            </button>
-            <button className={`flex-1 py-3 rounded-2xl flex flex-col items-center justify-center gap-2 transition-colors ${isDark ? 'bg-[#1f1f2e] hover:bg-[#262638]' : 'bg-gray-50 hover:bg-gray-100'}`}>
-              <Music size={20} className="text-indigo-400" />
-              <span className="text-xs">宇宙白噪音</span>
-            </button>
-          </div>
-        )}
-      </section>
-
-      {/* 星尘小弹窗 */}
-      {showStardustModal && (
-        <Portal>
-          <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none animate-fade-in" style={{ animationDuration: '0.3s' }}>
-            <div className={`p-4 rounded-2xl shadow-lg pointer-events-auto transition-all ${
-              isDark ? 'bg-[#1a1a24] border border-indigo-500/30' : 'bg-white border border-indigo-200'
-            }`}>
-              <p className={`text-sm flex items-center gap-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                <Sparkles size={16} className="text-indigo-500" />
-                本次探索收集 <span className="text-indigo-500 font-medium">+{lastRecord?.stardustEarned || 10}</span> 星尘
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="font-medium text-sm mb-1 flex items-center gap-2">
+                <Compass size={16} className="text-indigo-500" />
+                探索内宇宙特质
+              </h3>
+              <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                完成 10 题睡眠测试，解锁你的专属星体身份
               </p>
             </div>
-          </div>
-        </Portal>
-      )}
-
-      {/* 核心打卡交互区：情绪胶囊（首页主 CTA，所以做得明显一点） */}
-      {hasCheckedInToday ? (
-        <section className={`p-8 rounded-[32px] text-center relative overflow-hidden transition-colors border ${isDark ? 'bg-[#1a1a24] border-indigo-500/20 shadow-[0_0_30px_rgba(99,102,241,0.05)]' : 'bg-gradient-to-b from-indigo-50/80 to-white border-indigo-100 shadow-sm'}`}>
-          <div className="absolute -top-10 -right-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-          <div 
-            className="w-20 h-20 mx-auto bg-indigo-500/10 rounded-full flex items-center justify-center mb-6 relative cursor-pointer hover:scale-105 transition-transform duration-300"
-            onClick={handleMoonClick}
-          >
-            {/* 月亮图标 */}
-            <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${
-              isAwake ? 'opacity-0 scale-90' : 'opacity-100 scale-100'
-            }`}>
-              <Moon size={36} className="text-indigo-400 animate-float" />
+            <div className="px-3 py-1 bg-indigo-500 text-white text-[10px] rounded-full whitespace-nowrap shadow-md shadow-indigo-500/30">
+              +30 星尘
             </div>
-            {/* 太阳图标 */}
-            <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${
-              isAwake ? 'opacity-100 scale-100' : 'opacity-0 scale-110'
-            }`}>
-              <Sun size={36} className="text-yellow-500" />
-            </div>
-
-            <div className="absolute inset-0 border-2 border-indigo-400/20 rounded-full animate-ping" style={{ animationDuration: '3s' }}></div>
-            {userData.continuousDays >= 3 && (
-              <div className="absolute -top-1 -right-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-md transform rotate-12">
-                连签 x{userData.continuousDays}
-              </div>
-            )}
           </div>
-
-          <h2 className="text-xl font-medium mb-2 tracking-wide">夜航已启程</h2>
-          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'} mb-2`}>
-            你已在宇宙中连续驻留了 <span className="text-indigo-400 font-medium text-base">{userData.continuousDays}</span> 个夜晚
-          </p>
         </section>
-      ) : (
-        <section className={`transition-all duration-700 ease-in-out rounded-[32px] relative overflow-hidden border ${
-          selectedMood
-            ? (isDark ? 'bg-[#1a1a24] shadow-2xl' : 'bg-white shadow-xl')
-            : (isDark
-                ? 'bg-gradient-to-br from-[#1f1f2e] to-[#1a1a28] border-indigo-500/40 hover:border-indigo-400/60 cursor-pointer shadow-[0_0_40px_rgba(99,102,241,0.12)] active:scale-[0.97]'
-                : 'bg-gradient-to-br from-indigo-50/80 to-white border-indigo-200 hover:border-indigo-300 cursor-pointer shadow-lg shadow-indigo-500/10 active:scale-[0.97]')
+      );
+    }
+
+    return (
+      <section
+        onClick={onStartQuiz}
+        className={`p-6 rounded-[28px] cursor-pointer border transition-all hover:scale-[1.01] active:scale-95 relative overflow-hidden ${
+          isDark ? 'bg-[#1f1f2e] border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.05)]' : 'bg-indigo-50 border-indigo-200 shadow-sm'
         }`}
-        style={{
-           borderColor: selectedMood ? `${moodData.color}30` : '',
-           boxShadow: selectedMood ? `0 10px 40px -10px ${moodData.color}15` : ''
-        }}
-        onClick={handleCardTap}
-        >
-          {/* 点击反馈：径向闪光（每次 tap 重新挂载 div 让动画从头跑） */}
-          {!selectedMood && tapFlashKey > 0 && (
-            <div
-              key={tapFlashKey}
-              className="absolute inset-0 rounded-[32px] pointer-events-none animate-tap-flash"
-              style={{
-                background: 'radial-gradient(circle at center, rgba(99,102,241,0.25) 0%, transparent 65%)',
-              }}
-            />
-          )}
-          {selectedMood && (
-            <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl opacity-[0.08] pointer-events-none transition-all duration-1000" style={{ backgroundColor: moodData.color }}></div>
-          )}
+      >
+        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
 
-          <div className="p-6 relative z-10">
-            {!selectedMood && !isMoodSelectorOpen && (
-              <div className="animate-fade-in flex flex-col justify-center items-center text-center py-3 group">
-                {/* 粒子扩散：12 颗 indigo 粒子从中心 radiate，配合中央核 + 模糊光晕，把视线拉过来 */}
-                <div className="relative w-20 h-20 flex items-center justify-center mb-4">
-                  {/* 外圈柔光晕 */}
-                  <div className={`absolute inset-0 rounded-full blur-2xl ${isDark ? 'bg-indigo-500/35' : 'bg-indigo-400/40'} animate-pulse`}></div>
-
-                  {/* 12 颗粒子：每颗带 --dx/--dy 指向不同角度，错开延迟形成连绵喷涌 */}
-                  {Array.from({ length: 12 }).map((_, i) => {
-                    const angle = (i / 12) * Math.PI * 2;
-                    const r = 34; // 粒子最远漂到中心外 34px
-                    return (
-                      <span
-                        key={i}
-                        className={`absolute top-1/2 left-1/2 w-1.5 h-1.5 rounded-full ${isDark ? 'bg-indigo-200' : 'bg-indigo-500'}`}
-                        style={{
-                          '--dx': `${Math.cos(angle) * r}px`,
-                          '--dy': `${Math.sin(angle) * r}px`,
-                          boxShadow: '0 0 6px rgba(99,102,241,0.7)',
-                          animation: 'particle-burst 2.4s ease-out infinite',
-                          animationDelay: `${i * 0.2}s`,
-                        }}
-                      />
-                    );
-                  })}
-
-                  {/* 中央核：缓慢呼吸 */}
-                  <div className={`relative w-3 h-3 rounded-full ${isDark ? 'bg-indigo-100' : 'bg-indigo-500'} animate-pulse`}
-                       style={{ boxShadow: '0 0 14px rgba(99,102,241,0.8)' }}
-                  ></div>
-                </div>
-
-                {/* 主问句：放大、加重，作为核心引导 */}
-                <p className={`text-base font-medium leading-relaxed mb-4 ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
-                  此刻，你的内心是何种风景？
-                </p>
-
-                {/* 真正"长得像按钮"的 CTA，告诉用户点这里 */}
-                <div className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all group-hover:scale-[1.03] ${
-                  isDark
-                    ? 'bg-indigo-500/20 text-indigo-200 border border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.25)]'
-                    : 'bg-indigo-500/10 text-indigo-600 border border-indigo-200 shadow-sm'
-                }`}>
-                  <span>记录此刻</span>
-                  <ChevronDown size={14} className="animate-bounce" />
-                </div>
-              </div>
-            )}
-
-            {isMoodSelectorOpen && (
-              <div className="animate-fade-in space-y-5 py-2">
-                 <div className="flex justify-between items-center px-1">
-                   <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>选一颗最像此刻的你</span>
-                   <button onClick={(e) => { e.stopPropagation(); setIsMoodSelectorOpen(false); }} className="p-1 rounded-full hover:bg-gray-500/10 text-gray-400 hover:text-gray-200 transition-colors"><X size={16}/></button>
-                 </div>
-                 <div className="grid grid-cols-3 gap-3">
-                   {EMOTIONS.map(emotion => (
-                     <button
-                       key={emotion.id}
-                       onClick={(e) => {
-                         e.stopPropagation();
-                         setSelectedMood(emotion.id);
-                         setIsMoodSelectorOpen(false);
-                       }}
-                       className={`py-4 rounded-2xl flex flex-col items-center gap-2 transition-all duration-300 border ${
-                         isDark ? 'bg-[#171724] border-white/5 hover:border-white/10 hover:bg-[#1f1f2e]' : 'bg-gray-50/50 border-gray-100 hover:bg-white hover:border-indigo-200 hover:shadow-sm'
-                       }`}
-                     >
-                       <span className="text-3xl" style={{ color: emotion.color }}>
-                         {emotion.symbol}
-                       </span>
-                       <span className={`text-xs mt-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{emotion.name}</span>
-                     </button>
-                   ))}
-                 </div>
-              </div>
-            )}
-
-            {selectedMood && (
-              <div className="animate-fade-in space-y-6">
-                <div className="flex justify-between items-center border-b pb-4" style={{ borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl" style={{ backgroundColor: `${moodData.color}15`, color: moodData.color }}>
-                      {moodData.symbol}
-                    </div>
-                    <span className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{moodData.name}</span>
-                  </div>
-                  <button
-                    onClick={() => { setSelectedMood(null); setIsMoodSelectorOpen(true); setWhisper(''); }}
-                    className={`text-[10px] px-3 py-1.5 rounded-full border transition-colors flex items-center gap-1 ${isDark ? 'border-gray-700 text-gray-400 hover:text-gray-200 hover:bg-gray-800' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
-                  >
-                    <Edit3 size={10} />重新感知
-                  </button>
-                </div>
-
-                <div className="text-center py-2 px-4">
-                  <p className={`text-sm font-light leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                    "{comfortText}"
-                  </p>
-                </div>
-
-                <div className="relative group">
-                  <textarea
-                    className={`w-full p-5 rounded-2xl resize-none h-28 text-sm focus:outline-none transition-all duration-300 ${
-                      isDark ? 'bg-black/20 text-gray-200 placeholder-gray-600' : 'bg-gray-50/50 text-gray-800 placeholder-gray-400'
-                    }`}
-                    style={{ border: `1px solid ${moodData.color}20` }}
-                    onFocus={(e) => e.target.style.borderColor = `${moodData.color}80`}
-                    onBlur={(e) => e.target.style.borderColor = `${moodData.color}20`}
-                    placeholder="把今天不想带到明天的心事，留在这里吧...（选填）"
-                    maxLength={200}
-                    value={whisper}
-                    onChange={e => setWhisper(e.target.value)}
-                  ></textarea>
-                  <div className={`absolute bottom-3 right-4 text-[10px] ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                    {whisper.length}/200
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => onCheckIn(selectedMood, whisper)}
-                  className="w-full py-4 rounded-2xl text-white font-medium tracking-wider transition-all active:scale-95 flex justify-center items-center gap-2"
-                  style={{ backgroundColor: '#6366f1', boxShadow: `0 8px 25px -5px ${moodData.color}60` }}
-                >
-                  安放情绪，晚安 <Moon size={16} />
-                </button>
-              </div>
-            )}
+        <div className="flex justify-between items-start mb-4 relative z-10">
+          <div>
+            <p className={`text-[10px] mb-1 font-medium tracking-widest ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
+              你的宇宙睡眠人格
+            </p>
+            <h3 className="text-xl font-medium tracking-wide flex items-center gap-2">
+              {personalityData.name}
+              <span className={`text-[10px] px-2 py-0.5 rounded font-mono ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-white text-gray-500 border border-gray-200'}`}>
+                {personalityData.type}
+              </span>
+            </h3>
           </div>
-        </section>
-      )}
-
-      {/* 本周星轨印记 */}
-      <section className={`p-5 rounded-[28px] transition-colors ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-sm font-medium flex items-center gap-2">
-            <Calendar size={16} className="text-indigo-400" />
-            本周星轨印记
-          </h3>
-          <button
-            onClick={() => setShowCalendar(true)}
-            className={`flex items-center gap-1 text-[10px] px-2.5 py-1.5 rounded-full transition-colors ${isDark ? 'bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 shadow-sm'}`}
-          >
-            <Calendar size={12} />
-            <span>全月星轨</span>
-          </button>
+          <Sparkles size={20} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
         </div>
-        <div className="flex justify-between items-center px-1">
-          {currentWeekDays.map((dateStr, idx) => {
-            const record = userData.checkInHistory.find(r => r.date === dateStr);
-            const isToday = dateStr === currentDateStr;
-            const isFuture = new Date(dateStr) > new Date(currentDateStr);
-            const weekNames = ['一', '二', '三', '四', '五', '六', '日'];
 
+        <div className="flex flex-wrap gap-2 mb-4 relative z-10">
+          {personalityData.tags.map((tag, idx) => (
+            <span key={idx} className={`text-[10px] px-2.5 py-1 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-200' : 'bg-indigo-100/80 text-indigo-700'}`}>
+              {tag}
+            </span>
+          ))}
+        </div>
+
+        <p className={`text-xs leading-relaxed font-light relative z-10 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+          "{personalityData.desc}"
+        </p>
+
+        <p className={`text-[9px] mt-4 text-right opacity-60 flex items-center justify-end gap-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          点击可重新探测 <ChevronRight size={10} />
+        </p>
+      </section>
+    );
+  };
+
+  // 3. 星系呈现
+  const GalaxySection = () => {
+    const entries = Object.entries(COSMIC_PERSONALITIES);
+
+    return (
+      <section className="space-y-4">
+        <div className="flex items-center justify-between px-2">
+          <h3 className="text-sm font-medium flex items-center gap-2">
+            <Users size={16} className="text-indigo-400" />
+            星系图谱
+          </h3>
+          {personalityType && (
+            <span className={`text-[10px] px-2.5 py-1 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-600'}`}>
+              你属于 {COSMIC_PERSONALITIES[personalityType]?.name}
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          {entries.map(([type, data]) => {
+            const isMine = type === personalityType;
+            const count = GALAXY_COUNTS[type] || 0;
             return (
-              <div key={dateStr} className="flex flex-col items-center gap-2">
-                <button
-                  onClick={() => record ? setSelectedTrackRecord(record) : null}
-                  disabled={isFuture}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
-                    record
-                      ? (isDark ? 'bg-[#1f1f2e] border border-indigo-500/30' : 'bg-indigo-50 border border-indigo-200')
-                      : (isFuture
-                          ? (isDark ? 'bg-transparent border border-gray-800/30 opacity-30' : 'bg-transparent border border-gray-200 opacity-50')
-                          : (isDark ? 'bg-gray-800/30 border border-gray-800' : 'bg-gray-100 border border-gray-200'))
-                  } ${record ? 'hover:scale-110 hover:shadow-md hover:shadow-indigo-500/20 active:scale-95 cursor-pointer' : (isFuture ? 'cursor-not-allowed' : 'cursor-default opacity-50')}`}
-                >
-                  {record ? (
-                    <span className="text-[14px]">{EMOTIONS.find(e => e.id === record.moodId)?.symbol}</span>
-                  ) : (
-                    <div className={`w-1.5 h-1.5 rounded-full ${isFuture ? 'bg-transparent' : 'bg-gray-500/50'}`}></div>
-                  )}
-                </button>
-                <span className={`text-[10px] ${isToday ? 'text-indigo-400 font-medium' : (isDark ? 'text-gray-500' : 'text-gray-400')}`}>
-                  {isToday ? '今' : weekNames[idx]}
-                </span>
+              <div
+                key={type}
+                className={`p-4 rounded-2xl border transition-all ${
+                  isMine
+                    ? (isDark ? 'bg-indigo-900/20 border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.1)]' : 'bg-indigo-50 border-indigo-300 shadow-sm')
+                    : (isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm')
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-xs font-medium ${isMine ? (isDark ? 'text-indigo-300' : 'text-indigo-700') : (isDark ? 'text-gray-300' : 'text-gray-700')}`}>
+                    {data.name}
+                  </span>
+                  <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+                    {type}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {data.tags.slice(0, 2).map((tag, i) => (
+                    <span key={i} className={`text-[9px] px-1.5 py-0.5 rounded-full ${isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                <div className={`flex items-center gap-1 text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                  <Users size={10} />
+                  <span>{count} 位旅人</span>
+                </div>
+                {isMine && (
+                  <div className={`mt-2 text-[9px] text-center py-1 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-600'}`}>
+                    ✦ 你的归属星系
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
       </section>
+    );
+  };
 
-      {/* 点击星轨弹出的详情 Modal */}
-      {selectedTrackRecord && (
-        <Portal>
-          <div className={`fixed inset-0 z-50 flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`}>
-            <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`}>
-              <button onClick={() => setSelectedTrackRecord(null)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-200"><X size={20} /></button>
-              <div className="text-center mb-6">
-                <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center text-3xl mb-3 ${isDark ? 'bg-[#1f1f2e]' : 'bg-indigo-50'}`}>
-                  {EMOTIONS.find(e => e.id === selectedTrackRecord.moodId)?.symbol}
-                </div>
-                <h3 className="text-lg font-medium">{selectedTrackRecord.moodName}</h3>
-                <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {selectedTrackRecord.date} {selectedTrackRecord.timeStr && `· ${selectedTrackRecord.timeStr}`}
-                </p>
-              </div>
+  // 4. 超新星/脉冲星
+  const SupernovaSection = () => (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between px-2">
+        <h3 className="text-sm font-medium flex items-center gap-2">
+          <Sparkles size={16} className="text-amber-400" />
+          超新星 / 脉冲星
+        </h3>
+        <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>星际回音精选</span>
+      </div>
 
-              <div className={`p-4 rounded-2xl text-sm font-light leading-relaxed ${isDark ? 'bg-[#1f1f2e] text-gray-300' : 'bg-gray-50 text-gray-700'}`}>
-                "{selectedTrackRecord.whisper || '这一夜很安静，宇宙只留下了你呼吸的回声。'}"
-              </div>
+      <div className="space-y-3">
+        {MOCK_WHISPERS.map((whisper) => (
+          <div
+            key={whisper.id}
+            className={`p-5 rounded-[28px] border relative overflow-hidden transition-all hover:scale-[1.01] ${
+              isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm'
+            }`}
+          >
+            <div className={`absolute -right-4 -top-4 w-20 h-20 rounded-full blur-3xl opacity-50 ${whisper.isPositive ? 'bg-amber-500/20' : 'bg-blue-500/20'}`} />
+            <div className={`absolute -bottom-10 -left-4 w-16 h-16 rounded-full blur-2xl opacity-30 ${whisper.isPositive ? 'bg-pink-500/10' : 'bg-indigo-500/10'}`} />
+
+            <div className="flex items-center gap-2 mb-3 relative z-10">
+              <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
+                {whisper.emotion}
+              </span>
+              <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                <Radio size={10} /> 未知坐标
+              </span>
             </div>
+
+            <p className={`text-sm leading-relaxed font-light relative z-10 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+              "{whisper.text}"
+            </p>
           </div>
-        </Portal>
-      )}
+        ))}
+      </div>
+    </section>
+  );
 
-      {/* 展开的完整日历视图 */}
-      {showCalendar && (
-        <Portal>
-          <div className={`fixed inset-0 z-[60] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setShowCalendar(false)}>
-            <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`} onClick={e => e.stopPropagation()}>
-              <button onClick={() => setShowCalendar(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-200"><X size={20} /></button>
+  // 5. 跳转引导
+  const NavigationSection = () => (
+    <section className="grid grid-cols-2 gap-3">
+      <button
+        onClick={() => onNavigate('radar')}
+        className={`p-5 rounded-[28px] border text-left transition-all hover:scale-[1.02] active:scale-95 group ${
+          isDark ? 'bg-[#171724] border-white/5 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-sm hover:border-indigo-200'
+        }`}
+      >
+        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mb-3 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-50'}`}>
+          <Radio size={20} className="text-indigo-400" />
+        </div>
+        <h4 className="text-sm font-medium mb-1">雷达入口</h4>
+        <p className={`text-[10px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>进入发射台，发送你的心语信号</p>
+        <div className={`mt-3 flex items-center gap-1 text-[10px] ${isDark ? 'text-indigo-400' : 'text-indigo-600'} group-hover:gap-1.5 transition-all`}>
+          <span>前往</span>
+          <ChevronRight size={12} />
+        </div>
+      </button>
 
-              <div className="flex justify-between items-center mb-6 px-2 pt-2">
-                <button onClick={() => {const d = new Date(calendarMonth); d.setMonth(d.getMonth() - 1); setCalendarMonth(d);}} className={`p-1.5 rounded-full transition-colors ${isDark ? 'hover:bg-white/5 text-gray-400 hover:text-indigo-400' : 'hover:bg-gray-100 text-gray-500 hover:text-indigo-500'}`}><ChevronLeft size={20}/></button>
-                <h3 className="text-base font-medium tracking-wider">{calendarMonth.getFullYear()}年 {calendarMonth.getMonth() + 1}月</h3>
-                <button onClick={() => {const d = new Date(calendarMonth); d.setMonth(d.getMonth() + 1); setCalendarMonth(d);}} className={`p-1.5 rounded-full transition-colors ${isDark ? 'hover:bg-white/5 text-gray-400 hover:text-indigo-400' : 'hover:bg-gray-100 text-gray-500 hover:text-indigo-500'}`}><ChevronRight size={20}/></button>
-              </div>
+      <button
+        onClick={() => onNavigate('wish')}
+        className={`p-5 rounded-[28px] border text-left transition-all hover:scale-[1.02] active:scale-95 group ${
+          isDark ? 'bg-[#171724] border-white/5 hover:border-pink-500/30' : 'bg-white border-gray-100 shadow-sm hover:border-pink-200'
+        }`}
+      >
+        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mb-3 ${isDark ? 'bg-pink-500/15' : 'bg-pink-50'}`}>
+          <Gift size={20} className="text-pink-400" />
+        </div>
+        <h4 className="text-sm font-medium mb-1">心愿池入口</h4>
+        <p className={`text-[10px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>进入星愿池，兑换助眠好物</p>
+        <div className={`mt-3 flex items-center gap-1 text-[10px] ${isDark ? 'text-pink-400' : 'text-pink-600'} group-hover:gap-1.5 transition-all`}>
+          <span>前往</span>
+          <ChevronRight size={12} />
+        </div>
+      </button>
+    </section>
+  );
 
-              <div className="grid grid-cols-7 gap-1 mb-3">
-                {['一', '二', '三', '四', '五', '六', '日'].map(day => (
-                  <div key={day} className={`text-center text-[11px] font-medium ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{day}</div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-7 gap-y-3 gap-x-1">
-                {(() => {
-                  const year = calendarMonth.getFullYear();
-                  const month = calendarMonth.getMonth();
-                  const firstDay = new Date(year, month, 1).getDay();
-                  const daysInMonth = new Date(year, month + 1, 0).getDate();
-                  const offset = firstDay === 0 ? 6 : firstDay - 1;
-
-                  const grid = [];
-                  for(let i=0; i<offset; i++) grid.push(<div key={`empty-${i}`} className="w-8 h-8"></div>);
-                  for(let i=1; i<=daysInMonth; i++) {
-                    const dStr = new Date(year, month, i).toDateString();
-                    const isToday = dStr === currentDateStr;
-                    const isFuture = new Date(year, month, i) > new Date(currentDateStr);
-                    const record = userData.checkInHistory.find(r => r.date === dStr);
-
-                    grid.push(
-                      <div key={i} className="flex justify-center">
-                        <button
-                          onClick={() => {
-                            if (record) {
-                              setSelectedTrackRecord(record);
-                              setShowCalendar(false);
-                            }
-                          }}
-                          disabled={isFuture || !record}
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] transition-all relative ${
-                            record
-                              ? (isDark ? 'bg-[#1f1f2e] border border-indigo-500/30 shadow-[0_0_10px_rgba(99,102,241,0.1)]' : 'bg-indigo-50 border border-indigo-200 shadow-sm')
-                              : (isFuture
-                                  ? (isDark ? 'text-gray-700 opacity-30' : 'text-gray-300 opacity-50')
-                                  : (isDark ? 'text-gray-400 hover:bg-gray-800/50' : 'text-gray-600 hover:bg-gray-100'))
-                          } ${isToday && !record ? 'ring-1 ring-indigo-400/50' : ''}`}
-                        >
-                          {record ? (
-                             <span className="text-[14px]">{EMOTIONS.find(e => e.id === record.moodId)?.symbol}</span>
-                          ) : (
-                             i
-                          )}
-                          {isToday && <div className="absolute -bottom-1 w-1 h-1 bg-indigo-400 rounded-full"></div>}
-                        </button>
-                      </div>
-                    );
-                  }
-                  return grid;
-                })()}
-              </div>
-            </div>
-          </div>
-        </Portal>
-      )}
-
-      {/* 梦境舱组件 */}
-      <DreamCard
-        isDark={isDark}
-        userData={userData}
-        saveUserData={saveUserData}
-        currentDateStr={currentDateStr}
-      />
+  return (
+    <div className="animate-fade-in space-y-8 pb-10">
+      <HeroSection />
+      <QuizSection />
+      <GalaxySection />
+      <SupernovaSection />
+      <NavigationSection />
     </div>
   );
 }

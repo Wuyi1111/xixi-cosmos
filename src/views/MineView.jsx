@@ -21,25 +21,15 @@
  */
 
 import { useState } from 'react';
-import { Settings, Edit3, X, Compass, Sparkles, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Settings, Edit3, X, Sparkles, ChevronRight, Heart } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
-import QuizWidget from '../widgets/QuizWidget.jsx';
 import SettingsPanel from './SettingsPanel.jsx';
-import WishPoolView from './WishPoolView.jsx';
 import { TITLES, AVATAR_EMOJIS } from '../constants.js';
-
-// 星愿池访问密码
-const WISH_POOL_PASSWORD = '186638';
 
 // --- 页面 4：我的 (Mine) ---
 export default function MineView({ isDark, theme, setTheme, userData, setUserData, saveUserData }) {
   const [showSettings, setShowSettings] = useState(false);
-  const [showQuiz, setShowQuiz] = useState(false);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
-  const [showWishPool, setShowWishPool] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [passwordInput, setPasswordInput] = useState('');
-  const [passwordError, setPasswordError] = useState(false);
   const [nameDraft, setNameDraft] = useState(userData.displayName || '星星旅人');
   const [emojiDraft, setEmojiDraft] = useState(userData.avatarEmoji || '🪐');
 
@@ -60,24 +50,6 @@ export default function MineView({ isDark, theme, setTheme, userData, setUserDat
     setShowProfileEdit(false);
   };
 
-  const handleWishPoolClick = () => {
-    setShowPasswordModal(true);
-    setPasswordInput('');
-    setPasswordError(false);
-  };
-
-  const handlePasswordSubmit = (e) => {
-    if (e) e.preventDefault();
-    if (passwordInput === WISH_POOL_PASSWORD) {
-      setShowPasswordModal(false);
-      setPasswordInput('');
-      setPasswordError(false);
-      setShowWishPool(true);
-    } else {
-      setPasswordError(true);
-    }
-  };
-
   if (showSettings) {
     return <SettingsPanel isDark={isDark} theme={theme} setTheme={setTheme} userData={userData} saveUserData={saveUserData} onClose={() => setShowSettings(false)} onReset={() => {
       setUserData({
@@ -89,18 +61,6 @@ export default function MineView({ isDark, theme, setTheme, userData, setUserDat
       });
       setShowSettings(false);
     }}/>;
-  }
-
-  if (showQuiz) {
-    return <QuizWidget isDark={isDark} onClose={() => setShowQuiz(false)} onComplete={(resultObj) => {
-      const earnedStardust = userData.personality ? 0 : 30;
-      saveUserData({ ...userData, personality: resultObj, stardust: userData.stardust + earnedStardust });
-      setShowQuiz(false);
-    }}/>;
-  }
-
-  if (showWishPool) {
-    return <WishPoolView isDark={isDark} userData={userData} onClose={() => setShowWishPool(false)} />;
   }
 
   return (
@@ -195,86 +155,39 @@ export default function MineView({ isDark, theme, setTheme, userData, setUserDat
         </Portal>
       )}
 
-      {/* 睡眠性格测试区 */}
-      {!personalityData ? (
-        <div
-          onClick={() => setShowQuiz(true)}
-          className={`p-5 rounded-[28px] cursor-pointer border transition-all hover:scale-[1.02] active:scale-95 ${
-            isDark ? 'bg-gradient-to-r from-[#1f1f2e] to-[#171724] border-indigo-500/20' : 'bg-gradient-to-r from-indigo-50 to-white border-indigo-100 shadow-sm'
-          }`}
-        >
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="font-medium text-sm mb-1 flex items-center gap-2">
-                <Compass size={16} className="text-indigo-500" />
-                探索内宇宙特质
-              </h3>
-              <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>完成 10 题睡眠测试，解锁你的专属星体身份</p>
-            </div>
-            <div className="px-3 py-1 bg-indigo-500 text-white text-[10px] rounded-full whitespace-nowrap shadow-md shadow-indigo-500/30">
-              +30 星尘
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div
-          onClick={() => setShowQuiz(true)}
-          className={`p-6 rounded-[28px] cursor-pointer border transition-all hover:scale-[1.01] active:scale-95 relative overflow-hidden ${
-            isDark ? 'bg-[#1f1f2e] border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.05)]' : 'bg-indigo-50 border-indigo-200 shadow-sm'
-          }`}
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-
-          <div className="flex justify-between items-start mb-4 relative z-10">
-            <div>
-              <p className={`text-[10px] mb-1 font-medium tracking-widest ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>你的宇宙睡眠人格</p>
-              <h3 className="text-xl font-medium tracking-wide flex items-center gap-2">
-                {personalityData.name}
-                <span className={`text-[10px] px-2 py-0.5 rounded font-mono ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-white text-gray-500 border border-gray-200'}`}>
-                  {personalityData.type}
-                </span>
-              </h3>
-            </div>
-            <Sparkles size={20} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
-          </div>
-
-          <div className="flex flex-wrap gap-2 mb-4 relative z-10">
-            {personalityData.tags.map((tag, idx) => (
-              <span key={idx} className={`text-[10px] px-2.5 py-1 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-200' : 'bg-indigo-100/80 text-indigo-700'}`}>
-                {tag}
-              </span>
-            ))}
-          </div>
-
-          <p className={`text-xs leading-relaxed font-light relative z-10 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-            "{personalityData.desc}"
-          </p>
-
-          <p className={`text-[9px] mt-4 text-right opacity-60 flex items-center justify-end gap-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-            点击可重新探测 <ChevronRight size={10} />
-          </p>
-        </div>
-      )}
-
+      {/* 个人数据概览 */}
       <div className={`p-6 rounded-[28px] grid grid-cols-3 gap-4 text-center ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
         <div>
           <p className="text-xl font-medium mb-1">{userData.totalDays}</p>
           <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>累计夜晚</p>
         </div>
-        <button
-          onClick={handleWishPoolClick}
-          className={`border-x active:scale-95 transition-transform relative group ${isDark ? 'border-gray-800 hover:bg-white/[0.02]' : 'border-gray-100 hover:bg-gray-50/60'} -my-1 py-1 rounded`}
-          aria-label="进入星愿池"
-        >
+        <div>
           <p className="text-xl font-medium mb-1 text-indigo-400 flex items-center justify-center gap-1">
             {userData.stardust}
-            <ChevronRight size={12} className="text-indigo-400/60 group-hover:translate-x-0.5 transition-transform" />
           </p>
-          <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>星尘 · 去星愿池</p>
-        </button>
+          <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>星尘</p>
+        </div>
         <div>
           <p className="text-xl font-medium mb-1 text-pink-400">{userData.totalHugs}</p>
           <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>传递温暖</p>
+        </div>
+      </div>
+
+      {/* 互动数据统计 */}
+      <div className={`p-5 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
+        <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
+          <Heart size={16} className="text-pink-400" />
+          我的互动记录
+        </h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div className={`p-4 rounded-2xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
+            <p className={`text-2xl font-medium mb-1 ${isDark ? 'text-pink-400' : 'text-pink-500'}`}>{userData.totalHugs || 0}</p>
+            <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>送出温暖</p>
+          </div>
+          <div className={`p-4 rounded-2xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
+            <p className={`text-2xl font-medium mb-1 ${isDark ? 'text-indigo-400' : 'text-indigo-500'}`}>{userData.totalFollows || 0}</p>
+            <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>做出跟随</p>
+          </div>
         </div>
       </div>
 
@@ -303,51 +216,6 @@ export default function MineView({ isDark, theme, setTheme, userData, setUserDat
           })}
         </div>
       </div>
-
-      {/* 星愿池密码验证弹窗 */}
-      {showPasswordModal && (
-        <Portal>
-          <div className={`fixed inset-0 z-[70] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setShowPasswordModal(false)}>
-            <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`} onClick={e => e.stopPropagation()}>
-              <button onClick={() => setShowPasswordModal(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-200"><X size={20} /></button>
-              <h3 className="text-lg font-medium mb-4 text-center">星愿池</h3>
-              <form onSubmit={handlePasswordSubmit} className="space-y-3">
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <AlertTriangle size={12} />
-                  <span>请输入访问密码</span>
-                </div>
-                <input
-                  type="password"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  value={passwordInput}
-                  onChange={(e) => { setPasswordInput(e.target.value); if (passwordError) setPasswordError(false); }}
-                  placeholder="请输入访问密码"
-                  className={`w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-colors ${
-                    isDark
-                      ? 'bg-black/30 border border-gray-700 focus:border-indigo-500 text-gray-200 placeholder-gray-600'
-                      : 'bg-white border border-gray-200 focus:border-indigo-400 text-gray-800 placeholder-gray-400'
-                  } ${passwordError ? 'border-rose-400 focus:border-rose-400' : ''}`}
-                />
-                {passwordError && (
-                  <p className="text-[11px] text-rose-400">密码错误，请重试</p>
-                )}
-                <button
-                  type="submit"
-                  disabled={!passwordInput}
-                  className={`w-full py-2.5 rounded-xl text-sm font-medium transition-colors active:scale-95 ${
-                    passwordInput
-                      ? 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
-                      : (isDark ? 'bg-gray-800 text-gray-600' : 'bg-gray-200 text-gray-400')
-                  }`}
-                >
-                  进入星愿池
-                </button>
-              </form>
-            </div>
-          </div>
-        </Portal>
-      )}
 
     </div>
   );

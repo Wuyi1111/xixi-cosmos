@@ -1,20 +1,19 @@
 /**
- * TreeholeView.jsx — "微澜"树洞，三栏 tab：星际回音 / 发射台 / 明日。
+ * TreeholeView.jsx — "雷达"板块，三栏滑动：星际回音 / 发射台 / 明日。
  *
- * 三个 tab（mode）：
- *   - 'browse'   星际回音：浏览示例心语，每张卡底部"送出温暖"心形按钮
- *   - 'emit'     发射台：选标签 + 写心语 + 选可见度 + 发射（每日上限 5 条）
- *                       下方接"我的信号" — 搜索 + 历史心语列表（v4.5.0 起合并进来）
- *   - 'tomorrow' 明日：给用户的温柔建议清单，原则是不逼用户改变只陪着
+ * 三个 mode：
+ *   - 'echo'     星际回音（左侧）：浏览示例心语，每张卡底部"送出温暖"
+ *   - 'emit'     发射台（中间，默认）：选标签 + 写心语 + 选可见度 + 发射
+ *                       下方接"我的信号" — 搜索 + 历史心语列表
+ *   - 'tomorrow' 明日（右侧）：展示他人的挑战/计划，"跟随"按钮
  *
- * 三个 tab 可以手指**横向滑动切换**（v4.5.0 起），也可以继续点击顶部按钮。
+ * 三个栏可以手指**横向滑动切换**，也可以继续点击顶部按钮。
  *
  * 改什么：
  *   - 改"星际回音"展示的示例心语 → src/constants.js 的 MOCK_WHISPERS
  *   - 改发射台的预设波段标签 → src/constants.js 的 PRESET_TAGS
  *   - 改每日发射上限（默认 5 次）→ 这里 postsLeft 那行的 5
- *   - 改"送出温暖"心形点亮 / 取消交互、粒子动效 → handleToggleHug
- *   - 改"明日"tab 的建议条目（emoji / 主文 / 副文）→ src/constants.js 的 TOMORROW_SUGGESTIONS
+ *   - 改"明日"tab 的挑战条目 → src/constants.js 的 TOMORROW_SUGGESTIONS
  *   - 调整手势滑动灵敏度（默认 20% 容器宽即触发切换）→ SWIPE_THRESHOLD_RATIO
  *   - 改边界阻尼 / 拖动反馈曲线 → onTouchMove 里的 0.3 系数
  *
@@ -23,24 +22,23 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { Radio, Heart, Search, X, Star, ChevronDown, Trash2, Send, AlertTriangle, CheckCircle2, RefreshCw, Plus, BookOpen } from 'lucide-react';
+import { Radio, Heart, Search, X, Star, ChevronDown, Trash2, Send, AlertTriangle, CheckCircle2, BookOpen, Radar } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import { MOCK_WHISPERS, PRESET_TAGS, TOMORROW_SUGGESTIONS } from '../constants.js';
 
-const MODES = ['browse', 'emit', 'tomorrow'];
-const MODE_LABELS = { browse: '星际回音', emit: '发射台', tomorrow: '明日' };
-const SWIPE_THRESHOLD_RATIO = 0.2; // 拖过容器 20% 宽就切到下一页
-const SPOTS_COUNT = 3; // 默认光点数量
+const MODES = ['echo', 'emit', 'tomorrow'];
+const MODE_LABELS = { echo: '星际回音', emit: '发射台', tomorrow: '明日' };
+const SWIPE_THRESHOLD_RATIO = 0.2;
 
-// 从任务池中随机抽取指定数量的任务
-const getRandomSuggestions = (count, excludeIds = []) => {
-  const available = TOMORROW_SUGGESTIONS.filter(s => !excludeIds.includes(s.id));
-  const shuffled = [...available].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
-};
-
-export default function TreeholeView({ isDark, userData, saveUserData, currentDateStr }) {
-  const [mode, setMode] = useState('browse');
+export default function TreeholeView({
+  isDark,
+  userData,
+  saveUserData,
+  currentDateStr,
+  onGiveHug,
+  onFollow,
+}) {
+  const [mode, setMode] = useState('emit');
   const [whisperText, setWhisperText] = useState('');
   const [selectedTag, setSelectedTag] = useState('');
   const [visibility, setVisibility] = useState('public');
@@ -49,11 +47,7 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedWhisperId, setExpandedWhisperId] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
-
-  // 明日页面状态
-  const [showCustomInput, setShowCustomInput] = useState(false);
-  const [customText, setCustomText] = useState('');
-  const [showHistory, setShowHistory] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   const textareaRef = useRef(null);
 
@@ -101,7 +95,6 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
     const dx = e.touches[0].clientX - swipeStart.current.x;
     const dy = e.touches[0].clientY - swipeStart.current.y;
 
-    // 锁定方向：第一次显著移动决定是横滑还是竖滚
     if (swipeStart.current.direction === null) {
       if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
         swipeStart.current.direction = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
@@ -109,7 +102,6 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
     }
 
     if (swipeStart.current.direction === 'h') {
-      // 边界阻尼：到了最左 / 最右还想往外拖时，给 0.3 的衰减
       let constrained = dx;
       if (modeIndex === 0 && dx > 0) constrained = dx * 0.3;
       if (modeIndex === MODES.length - 1 && dx < 0) constrained = dx * 0.3;
@@ -130,51 +122,49 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
   };
 
   // === 业务逻辑 ===
-  const handleToggleHug = (whisperId, e) => {
+  const handleGiveHug = (whisperId, e) => {
     const huggedList = userData.huggedWhispers || [];
-    const isHugged = huggedList.includes(whisperId);
+    if (huggedList.includes(whisperId)) return;
 
-    if (isHugged) {
-      saveUserData({
-        ...userData,
-        totalHugs: Math.max(0, userData.totalHugs - 1),
-        huggedWhispers: huggedList.filter(id => id !== whisperId),
-      });
-    } else {
-      saveUserData({
-        ...userData,
-        totalHugs: userData.totalHugs + 1,
-        huggedWhispers: [...huggedList, whisperId],
-      });
-      const rect = e.currentTarget.getBoundingClientRect();
-      const newParticles = Array.from({ length: 5 }).map((_, i) => ({
-        id: Date.now() + i,
-        x: rect.left + rect.width / 2,
-        y: rect.top,
-        tx: (Math.random() - 0.5) * 100 + 'px'
-      }));
-      setParticles(prev => [...prev, ...newParticles]);
-      setTimeout(() => {
-        setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
-      }, 1000);
-    }
+    saveUserData({
+      ...userData,
+      totalHugs: (userData.totalHugs || 0) + 1,
+      huggedWhispers: [...huggedList, whisperId],
+    });
+
+    if (onGiveHug) onGiveHug(whisperId);
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const newParticles = Array.from({ length: 8 }).map((_, i) => ({
+      id: Date.now() + i,
+      x: rect.left + rect.width / 2,
+      y: rect.top,
+      tx: (Math.random() - 0.5) * 120 + 'px',
+      ty: -(Math.random() * 60 + 20) + 'px',
+      scale: 0.5 + Math.random() * 0.8,
+      delay: Math.random() * 0.15,
+    }));
+    setParticles(prev => [...prev, ...newParticles]);
+    setTimeout(() => {
+      setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
+    }, 1200);
   };
 
   const handleEmit = () => {
-    if(!whisperText || postsLeft <= 0) return;
+    if (!whisperText || postsLeft <= 0) return;
     const newWhisper = {
       id: Date.now(),
       date: currentDateStr,
       text: whisperText,
       emotion: selectedTag || '无名星尘',
       visibility,
-      isFavorite: false
+      isFavorite: false,
     };
     saveUserData({
       ...userData,
       dailyPosts: postsToday + 1,
       lastPostDate: currentDateStr,
-      myWhispers: [newWhisper, ...myWhispers]
+      myWhispers: [newWhisper, ...myWhispers],
     });
     setWhisperText('');
     setSelectedTag('');
@@ -199,8 +189,26 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
     w.emotion.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-<<<<<<< HEAD
-=======
+  const handleVisibilityChange = (v) => {
+    if (v === 'private') {
+      setShowPrivacyModal(true);
+    }
+    setVisibility(v);
+  };
+
+  const handleFollow = (suggestionId) => {
+    const followedList = userData.followedSuggestions || [];
+    if (followedList.includes(suggestionId)) return;
+
+    saveUserData({
+      ...userData,
+      totalFollows: (userData.totalFollows || 0) + 1,
+      followedSuggestions: [...followedList, suggestionId],
+    });
+
+    if (onFollow) onFollow(suggestionId);
+  };
+
   // === 明日页面逻辑 ===
   // 获取今日光点（如果没有则生成）
   const getTodaySpots = () => {
@@ -298,11 +306,10 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
     });
   };
 
->>>>>>> origin/main
   // === 三个页面内容 ===
-  const renderBrowse = () => (
+  const renderEcho = () => (
     <div className="space-y-6">
-      {MOCK_WHISPERS.map((whisper, i) => {
+      {MOCK_WHISPERS.map((whisper) => {
         const isHugged = (userData.huggedWhispers || []).includes(whisper.id);
         return (
           <div
@@ -327,8 +334,8 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
 
             <div className="flex justify-end relative z-10">
               <button
-                onClick={(e) => handleToggleHug(whisper.id, e)}
-                aria-pressed={isHugged}
+                onClick={(e) => handleGiveHug(whisper.id, e)}
+                disabled={isHugged}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 active:scale-95 ${
                   isHugged
                     ? (isDark
@@ -354,8 +361,41 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
     </div>
   );
 
-  const renderEmitAndMine = () => (
+  const renderEmit = () => (
     <div className="space-y-6">
+      {/* 雷达示意图区 */}
+      <div className={`p-6 rounded-[28px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border border-indigo-500/15' : 'bg-gradient-to-br from-indigo-50/70 to-white border border-indigo-100'}`}>
+        <div className="absolute -top-8 -right-6 w-32 h-32 rounded-full bg-indigo-300/10 blur-3xl pointer-events-none"></div>
+        <div className="absolute -bottom-8 -left-6 w-24 h-24 rounded-full bg-amber-300/10 blur-3xl pointer-events-none"></div>
+
+        <div className="relative z-10 flex flex-col items-center text-center">
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-100'}`}>
+            <Radar size={28} className={isDark ? 'text-indigo-300' : 'text-indigo-500'} />
+          </div>
+          <h2 className="text-lg font-light mb-1 tracking-wide">信号雷达</h2>
+          <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            左右滑动探索星际回音与明日<br/>
+            在这里发送你的心声信号
+          </p>
+          <div className="flex items-center gap-4 mt-4">
+            <div className="flex flex-col items-center gap-1">
+              <div className={`w-2 h-2 rounded-full ${mode === 'echo' ? 'bg-pink-400' : 'bg-gray-300'}`}></div>
+              <span className={`text-[9px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>回音</span>
+            </div>
+            <div className={`w-8 h-[1px] ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}></div>
+            <div className="flex flex-col items-center gap-1">
+              <div className={`w-3 h-3 rounded-full ${mode === 'emit' ? 'bg-indigo-400' : 'bg-gray-300'}`}></div>
+              <span className={`text-[9px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>发射台</span>
+            </div>
+            <div className={`w-8 h-[1px] ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}></div>
+            <div className="flex flex-col items-center gap-1">
+              <div className={`w-2 h-2 rounded-full ${mode === 'tomorrow' ? 'bg-emerald-400' : 'bg-gray-300'}`}></div>
+              <span className={`text-[9px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>明日</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* 发射区 */}
       <div className="space-y-3">
         <p className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>为你的信号选择一个波段：</p>
@@ -395,13 +435,13 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
         <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>信号可见度：</span>
         <div className={`flex p-1 rounded-full ${isDark ? 'bg-[#171724]' : 'bg-gray-100'}`}>
           <button
-            onClick={() => setVisibility('public')}
+            onClick={() => handleVisibilityChange('public')}
             className={`px-3 py-1.5 rounded-full text-[10px] font-medium transition-colors ${visibility === 'public' ? (isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white text-indigo-600 shadow-sm') : 'text-gray-400 hover:text-gray-300'}`}
           >
             散落星海 (公开)
           </button>
           <button
-            onClick={() => setVisibility('private')}
+            onClick={() => handleVisibilityChange('private')}
             className={`px-3 py-1.5 rounded-full text-[10px] font-medium transition-colors ${visibility === 'private' ? (isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white text-indigo-600 shadow-sm') : 'text-gray-400 hover:text-gray-300'}`}
           >
             深空折叠 (仅自己)
@@ -425,7 +465,7 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
         {postsLeft > 0 ? `今日还可发射 ${postsLeft} 次信号` : '明日 00:00 信号能量自动恢复'}
       </p>
 
-      {/* === 我的信号 列表（合并进发射台底部） === */}
+      {/* === 我的信号 列表 === */}
       <div className={`pt-6 mt-2 border-t ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
         <div className="flex items-center justify-between mb-3 px-1">
           <h3 className="text-sm font-medium flex items-center gap-2">
@@ -521,326 +561,84 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
     </div>
   );
 
-  // === 明日页面：光点机制 ===
   const renderTomorrow = () => {
-    const totalSpots = todaySpots.length;
-    const progress = totalSpots > 0 ? Math.round((doneCount / totalSpots) * 100) : 0;
+    const followedList = userData.followedSuggestions || [];
 
     return (
       <div className="space-y-5">
         {/* 头部卡片 */}
-        <div className={`p-6 rounded-[28px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a24] to-[#171724] border border-indigo-500/15' : 'bg-gradient-to-br from-indigo-50/70 to-white border border-indigo-100'}`}>
+        <div className={`p-6 rounded-[28px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a24] to-[#171724] border border-emerald-500/15' : 'bg-gradient-to-br from-emerald-50/70 to-white border border-emerald-100'}`}>
           <div className="absolute -top-8 -right-6 w-32 h-32 rounded-full bg-amber-300/15 blur-3xl pointer-events-none"></div>
-          <div className="absolute -bottom-8 -left-6 w-24 h-24 rounded-full bg-indigo-300/15 blur-3xl pointer-events-none"></div>
+          <div className="absolute -bottom-8 -left-6 w-24 h-24 rounded-full bg-emerald-300/15 blur-3xl pointer-events-none"></div>
 
           <div className="relative z-10">
-            {/* 顶部标签与进度 */}
-            <div className="flex justify-between items-start mb-3">
-              <div className="flex items-center gap-2">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? 'bg-indigo-500/20' : 'bg-indigo-100'}`}>
-                  <span className="text-base">🌅</span>
-                </div>
-                <p className={`text-[10px] tracking-[0.2em] ${isDark ? 'text-indigo-300' : 'text-indigo-500'}`}>TOMORROW</p>
+            <div className="flex items-center gap-2 mb-3">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? 'bg-emerald-500/20' : 'bg-emerald-100'}`}>
+                <span className="text-base">🌅</span>
               </div>
-              <div className="flex items-center gap-2">
-                {(userData.tomorrowDoneTotal || 0) > 0 && (
-                  <span className={`text-[10px] px-2.5 py-1 rounded-full flex items-center gap-1 ${isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'}`}>
-                    <CheckCircle2 size={10} /> 已完成 {userData.tomorrowDoneTotal} 次
-                  </span>
-                )}
-                <button
-                  onClick={() => setShowHistory(true)}
-                  className={`text-[10px] px-2.5 py-1 rounded-full flex items-center gap-1 transition-colors ${isDark ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25' : 'bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100'}`}
-                >
-                  <BookOpen size={10} /> 我的光点
-                </button>
-              </div>
+              <p className={`text-[10px] tracking-[0.2em] ${isDark ? 'text-emerald-300' : 'text-emerald-500'}`}>TOMORROW</p>
             </div>
 
-            <h2 className="text-xl font-light mb-2 tracking-wide">轻轻陪你走向明天</h2>
+            <h2 className="text-xl font-light mb-2 tracking-wide">他人的明日挑战</h2>
             <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              今天有 {totalSpots} 颗小光点等你拾起，<br/>
-              不是任务，只是温柔的陪伴。
+              看看别人为自己定下的温柔约定，<br/>
+              跟随一颗，让它也成为你的光点。
             </p>
-
-            {/* 今日进度 */}
-            <div className="mt-4 space-y-2">
-              <div className="flex justify-between items-center">
-                <p className={`text-[11px] ${doneCount > 0 ? (isDark ? 'text-emerald-300' : 'text-emerald-600') : (isDark ? 'text-gray-500' : 'text-gray-400')}`}>
-                  {doneCount > 0 ? `今天已经拾起了 ${doneCount} 颗 · 谢谢你照顾了自己` : '还没有拾起光点，慢慢来'}
-                </p>
-                <span className={`text-[10px] font-medium ${isDark ? 'text-emerald-300/70' : 'text-emerald-600/70'}`}>{progress}%</span>
-              </div>
-              <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-[#13131a]' : 'bg-gray-100'}`}>
-                <div
-                  className="h-full rounded-full bg-emerald-500 transition-all duration-700 ease-out"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* 光点列表 */}
-        <div className="space-y-3">
-          {todaySpots.map((spot, index) => {
-            const isDone = spot.status === 'done';
-            const isCustom = spot.type === 'custom';
-            const suggestion = spot.suggestion;
-
+        {/* 挑战列表 */}
+        <div className="space-y-4">
+          {TOMORROW_SUGGESTIONS.map((suggestion) => {
+            const isFollowed = followedList.includes(suggestion.id);
             return (
               <div
-                key={spot.id}
+                key={suggestion.id}
                 className={`p-5 rounded-[24px] transition-all duration-500 ${
-                  isDone
+                  isFollowed
                     ? (isDark ? 'bg-[#13131a]/60 border border-emerald-500/20' : 'bg-emerald-50/50 border border-emerald-200/50')
                     : (isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm')
                 }`}
               >
-                {/* 光点头部 */}
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-indigo-500/15 text-indigo-300' : 'bg-indigo-50 text-indigo-600'}`}>
-                      光点 {index + 1}/{totalSpots}
-                    </span>
-                    {isDone && (
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 ${isDark ? 'bg-emerald-500/15 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
-                        <CheckCircle2 size={8} /> 已完成
-                      </span>
-                    )}
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'} shadow-sm`}>
+                    {suggestion.emoji}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
+                      {suggestion.main}
+                    </p>
+                    <p className={`text-[11px] leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {suggestion.sub}
+                    </p>
                   </div>
                 </div>
 
-                {/* 光点内容 */}
-                {isDone ? (
-                  // 已完成状态
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-emerald-500/20' : 'bg-emerald-100'}`}>
-                      {isCustom ? '✨' : (suggestion?.emoji || '✨')}
-                    </div>
-                    <div className="flex-1">
-                      <p className={`text-sm font-medium ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>
-                        {isCustom ? spot.customText : (suggestion?.main || '')}
-                      </p>
-                      <p className={`text-[11px] ${isDark ? 'text-emerald-400/60' : 'text-emerald-600/60'}`}>
-                        谢谢你，这颗光点已经被你拾起
-                      </p>
-                    </div>
-                  </div>
-                ) : isCustom ? (
-                  // 自定义任务
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'} shadow-sm`}>
-                        ✨
-                      </div>
-                      <div className="flex-1">
-                        <p className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
-                          {spot.customText}
-                        </p>
-                        <p className={`text-[11px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                          这是你自己写下的光点
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleDone(spot.id)}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
-                          isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25' : 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100'
-                        }`}
-                      >
-                        <CheckCircle2 size={12} /> 完成
-                      </button>
-                      <button
-                        onClick={() => handleClearCustom(spot.id)}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
-                          isDark ? 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
-                        }`}
-                      >
-                        <RefreshCw size={12} /> 换成随机的
-                      </button>
-                    </div>
-                  </div>
-                ) : suggestion ? (
-                  // 随机推荐任务
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'} shadow-sm`}>
-                        {suggestion.emoji}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
-                          {suggestion.main}
-                        </p>
-                        <p className={`text-[11px] leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {suggestion.sub}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleDone(spot.id)}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
-                          isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25' : 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100'
-                        }`}
-                      >
-                        <CheckCircle2 size={12} /> 完成
-                      </button>
-                      <button
-                        onClick={() => handleRefresh(spot.id)}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
-                          isDark ? 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
-                        }`}
-                      >
-                        <RefreshCw size={12} /> 换一换
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowCustomInput(true);
-                          setCustomText('');
-                        }}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
-                          isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
-                        }`}
-                      >
-                        <Plus size={12} /> 自己写
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  // 空状态 - 等待用户选择
-                  <div className="space-y-3">
-                    <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                      这颗光点还是空的，你想怎么填满它？
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleRefresh(spot.id)}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
-                          isDark ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25' : 'bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100'
-                        }`}
-                      >
-                        <RefreshCw size={12} /> 随机一颗
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowCustomInput(true);
-                          setCustomText('');
-                        }}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
-                          isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
-                        }`}
-                      >
-                        <Plus size={12} /> 自己写
-                      </button>
-                    </div>
-                  </div>
-                )}
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => handleFollow(suggestion.id)}
+                    disabled={isFollowed}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
+                      isFollowed
+                        ? (isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200')
+                        : (isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100')
+                    }`}
+                  >
+                    <CheckCircle2 size={12} />
+                    {isFollowed ? '已跟随' : '跟随'}
+                  </button>
+                </div>
               </div>
             );
           })}
         </div>
 
-        {/* 底部添加按钮 */}
-        <div className="flex justify-center pt-2">
-          <button
-            onClick={handleAddNewSpot}
-            className={`flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-all active:scale-95 ${
-              isDark ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25 hover:shadow-lg hover:shadow-indigo-500/20' : 'bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100 hover:shadow-lg hover:shadow-indigo-500/20'
-            }`}
-          >
-            <Plus size={16} /> 添加光点
-          </button>
-        </div>
-
         {/* 底部温馨语句 */}
-        <div className={`p-4 rounded-2xl text-center ${isDark ? 'bg-[#171724]/50 border border-white/5' : 'bg-indigo-50/30 border border-indigo-100/50'}`}>
+        <div className={`p-4 rounded-2xl text-center ${isDark ? 'bg-[#171724]/50 border border-white/5' : 'bg-emerald-50/30 border border-emerald-100/50'}`}>
           <p className={`text-[11px] leading-relaxed ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
             明天醒来时，记得只是先睁开眼，剩下的慢慢来。
           </p>
         </div>
-
-        {/* 自定义输入弹窗 */}
-        {showCustomInput && (
-          <Portal>
-            <div className={`fixed inset-0 z-[60] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setShowCustomInput(false)}>
-              <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`} onClick={e => e.stopPropagation()}>
-                <button onClick={() => setShowCustomInput(false)} className={`absolute top-4 right-4 p-1 rounded-full ${isDark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-600'}`}>
-                  <X size={18} />
-                </button>
-                <h3 className={`text-lg font-medium mb-4 ${isDark ? 'text-white' : 'text-gray-800'}`}>写下你的光点</h3>
-                <textarea
-                  className={`w-full p-4 rounded-2xl resize-none h-24 text-sm focus:outline-none transition-all ${
-                    isDark ? 'bg-[#1f1f2e] text-gray-200 placeholder-gray-600 border border-gray-800' : 'bg-gray-50 text-gray-800 placeholder-gray-400 border border-gray-200'
-                  }`}
-                  placeholder="想为自己做一件什么事..."
-                  value={customText}
-                  onChange={e => setCustomText(e.target.value)}
-                />
-                <button
-                  onClick={() => {
-                    const emptySpot = todaySpots.find(s => s.type === 'empty');
-                    if (emptySpot && customText.trim()) {
-                      handleAddCustom(emptySpot.id);
-                    }
-                  }}
-                  disabled={!customText.trim()}
-                  className={`w-full mt-4 py-3 rounded-2xl font-medium transition-all active:scale-95 ${
-                    customText.trim()
-                      ? 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                      : (isDark ? 'bg-[#1f1f2e] text-gray-600 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed')
-                  }`}
-                >
-                  添加光点
-                </button>
-              </div>
-            </div>
-          </Portal>
-        )}
-
-        {/* 历史记录弹窗 */}
-        {showHistory && (
-          <Portal>
-            <div className={`fixed inset-0 z-[60] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setShowHistory(false)}>
-              <div className={`w-full max-w-sm max-h-[80vh] overflow-y-auto p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`} onClick={e => e.stopPropagation()}>
-                <button onClick={() => setShowHistory(false)} className={`absolute top-4 right-4 p-1 rounded-full ${isDark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-600'}`}>
-                  <X size={18} />
-                </button>
-                <h3 className={`text-lg font-medium mb-1 ${isDark ? 'text-white' : 'text-gray-800'}`}>我的光点记录</h3>
-                <p className={`text-xs mb-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                  你拾起的每一颗光点，都在这里发光
-                </p>
-
-                {(userData.tomorrowHistory || []).length === 0 ? (
-                  <div className={`py-10 text-center text-xs ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                    还没有拾起过光点，慢慢来
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {Object.entries(
-                      (userData.tomorrowHistory || []).reduce((acc, item) => {
-                        if (!acc[item.date]) acc[item.date] = [];
-                        acc[item.date].push(item);
-                        return acc;
-                      }, {})
-                    ).map(([date, items]) => (
-                      <div key={date} className="space-y-2">
-                        <p className={`text-[10px] font-medium ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{date}</p>
-                        {items.map(item => (
-                          <div key={item.id} className={`flex items-center gap-2 p-3 rounded-xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
-                            <span className="text-lg">{item.emoji}</span>
-                            <span className={`text-sm ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{item.text}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </Portal>
-        )}
       </div>
     );
   };
@@ -848,7 +646,7 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
   // === 渲染 ===
   return (
     <div className="animate-fade-in pb-10">
-      {/* 三栏式导航：点击 / 高亮跟着滑动 */}
+      {/* 三栏式导航 */}
       <div className="flex justify-center mb-6">
         <div className={`flex p-1 rounded-full w-full max-w-[320px] ${isDark ? 'bg-[#171724]' : 'bg-gray-200/50'}`}>
           {MODES.map(m => (
@@ -887,10 +685,10 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
           }}
         >
           <div className="shrink-0 px-4" style={{ width: `${100 / MODES.length}%` }}>
-            {renderBrowse()}
+            {renderEcho()}
           </div>
           <div className="shrink-0 px-4" style={{ width: `${100 / MODES.length}%` }}>
-            {renderEmitAndMine()}
+            {renderEmit()}
           </div>
           <div className="shrink-0 px-4" style={{ width: `${100 / MODES.length}%` }}>
             {renderTomorrow()}
@@ -900,8 +698,25 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
 
       {/* 粒子效果 */}
       {particles.map(p => (
-        <div key={p.id} className="particle text-pink-500 z-50 flex items-center justify-center" style={{ left: p.x - 10, top: p.y - 10, '--tx': p.tx }}>
-          <Heart size={20} fill="currentColor" />
+        <div
+          key={p.id}
+          className="fixed pointer-events-none z-50"
+          style={{
+            left: p.x,
+            top: p.y,
+            animation: `particle-float 1s ease-out ${p.delay}s forwards`,
+          }}
+        >
+          <Heart
+            size={20}
+            fill="currentColor"
+            className="text-pink-500"
+            style={{
+              transform: `scale(${p.scale})`,
+              '--tx': p.tx,
+              '--ty': p.ty,
+            }}
+          />
         </div>
       ))}
 
@@ -910,6 +725,26 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
         <Portal>
           <div className="fixed left-1/2 -translate-x-1/2 px-6 py-3 rounded-full bg-indigo-500 text-white text-sm shadow-lg shadow-indigo-500/20 animate-fade-in z-50 flex items-center gap-2 top-[max(env(safe-area-inset-top)+1rem,5rem)]">
             <Send size={14} /> 信号已封存进我的信号
+          </div>
+        </Portal>
+      )}
+
+      {/* 隐私弹窗 */}
+      {showPrivacyModal && (
+        <Portal>
+          <div className={`fixed inset-0 z-[60] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setShowPrivacyModal(false)}>
+            <div className={`w-full max-w-xs p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative text-center`} onClick={e => e.stopPropagation()}>
+              <div className="mx-auto w-12 h-12 mb-4 rounded-full flex items-center justify-center bg-indigo-500/10 text-indigo-500">
+                <BookOpen size={24} />
+              </div>
+              <h3 className={`text-lg font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>深空折叠</h3>
+              <p className={`text-xs mb-6 leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                选择"仅自己可见"后，这条信号只会保存在你的设备上，不会进入公开星海。
+              </p>
+              <button onClick={() => setShowPrivacyModal(false)} className={`w-full py-3 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-[#1f1f2e] hover:bg-[#262638] text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}>
+                知道了
+              </button>
+            </div>
           </div>
         </Portal>
       )}
