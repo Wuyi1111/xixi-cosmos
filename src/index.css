@@ -164,18 +164,6 @@ input[type="range"].font-scale-slider::-moz-range-thumb {
   }
 }
 
-/* === 粒子漂浮：从按钮位置向上飘散 === */
-@keyframes particle-float {
-  0% {
-    transform: translate(0, 0) scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: translate(var(--tx, 0), var(--ty, -50px)) scale(0);
-    opacity: 0;
-  }
-}
-
 /* === 点击反馈：径向亮光从内向外淡出 === */
 @keyframes tap-flash {
   0%   { opacity: 1; transform: scale(0.6); }
