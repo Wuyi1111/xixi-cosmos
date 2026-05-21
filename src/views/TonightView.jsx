@@ -35,7 +35,7 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
 
   const handleQuizComplete = (savedResult, unsavedResult) => {
     if (savedResult) {
-      // 点击保存
+      // 点击保存 — 只保存数据，不关闭弹窗（弹窗内会显示已保存状态）
       const isFirstTest = !userData.personality;
       const nextData = {
         ...userData,
@@ -45,7 +45,7 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
         nextData.stardust = (userData.stardust || 0) + 30;
       }
       saveUserData(nextData);
-      setShowQuiz(false);
+      // 不关闭弹窗，让 QuizWidget 内部显示已保存状态
     } else if (unsavedResult) {
       // 点击关闭，触发飞入动画
       setFlyInResult(unsavedResult);
