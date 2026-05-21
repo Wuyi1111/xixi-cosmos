@@ -575,32 +575,34 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
     );
   };
 
-  // 5. 跳转引导
+  // 5. 跳转引导 — 固定在底部
   const NavigationSection = () => (
-    <section className="grid grid-cols-2 gap-3">
-      <button
-        onClick={() => onNavigate('radar')}
-        className={`p-4 rounded-[24px] border text-center transition-all hover:scale-[1.02] active:scale-95 ${
-          isDark ? 'bg-[#171724]/70 border-white/5 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-sm hover:border-indigo-200'
-        }`}
-      >
-        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mx-auto mb-2 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-50'}`}>
-          <Radio size={20} className="text-indigo-400" />
-        </div>
-        <h4 className="text-sm font-medium">雷达</h4>
-      </button>
+    <section className="fixed bottom-[calc(env(safe-area-inset-bottom)+5rem)] left-0 right-0 z-40 px-4 max-w-md mx-auto">
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          onClick={() => onNavigate('radar')}
+          className={`p-4 rounded-[24px] border text-center transition-all hover:scale-[1.02] active:scale-95 ${
+            isDark ? 'bg-[#171724]/90 border-white/5 hover:border-indigo-500/30 backdrop-blur-md' : 'bg-white/90 border-gray-100 shadow-sm hover:border-indigo-200 backdrop-blur-md'
+          }`}
+        >
+          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mx-auto mb-2 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-50'}`}>
+            <Radio size={20} className="text-indigo-400" />
+          </div>
+          <h4 className="text-sm font-medium">雷达</h4>
+        </button>
 
-      <button
-        onClick={() => onNavigate('star')}
-        className={`p-4 rounded-[24px] border text-center transition-all hover:scale-[1.02] active:scale-95 ${
-          isDark ? 'bg-[#171724]/70 border-white/5 hover:border-pink-500/30' : 'bg-white border-gray-100 shadow-sm hover:border-pink-200'
-        }`}
-      >
-        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mx-auto mb-2 ${isDark ? 'bg-pink-500/15' : 'bg-pink-50'}`}>
-          <Gift size={20} className="text-pink-400" />
-        </div>
-        <h4 className="text-sm font-medium">心愿池</h4>
-      </button>
+        <button
+          onClick={() => onNavigate('star')}
+          className={`p-4 rounded-[24px] border text-center transition-all hover:scale-[1.02] active:scale-95 ${
+            isDark ? 'bg-[#171724]/90 border-white/5 hover:border-pink-500/30 backdrop-blur-md' : 'bg-white/90 border-gray-100 shadow-sm hover:border-pink-200 backdrop-blur-md'
+          }`}
+        >
+          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mx-auto mb-2 ${isDark ? 'bg-pink-500/15' : 'bg-pink-50'}`}>
+            <Gift size={20} className="text-pink-400" />
+          </div>
+          <h4 className="text-sm font-medium">心愿池</h4>
+        </button>
+      </div>
     </section>
   );
 
@@ -625,7 +627,9 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
       <QuizSection />
       <GalaxySection />
       <SupernovaSection />
-      <NavigationSection />
+
+      {/* 占位：给底部固定导航留出空间 */}
+      <div className="h-24" />
 
       {showQuiz && (
         <QuizWidget
@@ -634,6 +638,9 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
           onComplete={handleQuizComplete}
         />
       )}
+
+      {/* 底部固定跳转引导 */}
+      <NavigationSection />
     </div>
   );
 }
