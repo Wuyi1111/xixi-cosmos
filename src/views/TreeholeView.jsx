@@ -56,19 +56,8 @@ export default function TreeholeView({
   const [customText, setCustomText] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
 
-  // 热度排行数据缓存，避免每次渲染重新计算导致页面跳动
-  const hotChallengesRef = useRef([]);
-  const lastFollowCountRef = useRef('');
-
-  // 只在组件挂载时计算一次热度排行
-  useEffect(() => {
-    const allForHot = [
-      ...TOMORROW_SUGGESTIONS.map(s => ({ ...s, followCount: Math.floor(Math.random() * 50) + 10 })),
-    ];
-    const hot = [...allForHot].sort((a, b) => b.followCount - a.followCount).slice(0, 3);
-    hotChallengesRef.current = hot;
-    lastFollowCountRef.current = hot.map(h => h.id + ':' + h.followCount).join(',');
-  }, []);
+  // 庆祝动画状态
+  const [showCelebration, setShowCelebration] = useState(false);
 
   const textareaRef = useRef(null);
 
@@ -525,8 +514,16 @@ export default function TreeholeView({
     const completedTasks = todayTasks.filter(t => t.completed);
     const progressPercent = todayTasks.length > 0 ? Math.round((completedTasks.length / todayTasks.length) * 100) : 0;
 
-    // 热度排行：使用缓存的数据，避免每次渲染重新计算导致页面跳动
-    const hotChallenges = hotChallengesRef.current;
+    // 热度排行：基于真实跟随人数排序（系统推荐 + 用户发布的挑战）
+    const allForHot = [
+      ...TOMORROW_SUGGESTIONS.map(s => {
+        // 系统推荐的真实跟随人数 = 已跟随该建议的用户数
+        const realFollowers = myTasks.filter(t => t.taskId === s.id && t.source === 'system').length;
+        return { ...s, followCount: realFollowers };
+      }),
+      ...userChallenges.map(c => ({ ...c, followCount: (c.followers || []).length })),
+    ];
+    const hotChallenges = [...allForHot].sort((a, b) => b.followCount - a.followCount).slice(0, 3);
 
     const handleRefreshOne = (instanceId) => {
       // 只替换当前这一条为另一条随机推荐
@@ -555,10 +552,18 @@ export default function TreeholeView({
         followers: [],
         date: currentDateStr,
       };
+      // 保存到用户挑战列表
+      const updatedChallenges = [newChallenge, ...userChallenges];
       saveUserData({
         ...userData,
-        userChallenges: [newChallenge, ...userChallenges],
+        userChallenges: updatedChallenges,
       });
+      // 立即将新发布的任务插入到发现更多列表顶部
+      const newSuggestion = {
+        ...newChallenge,
+        _instanceId: Math.random().toString(36).slice(2),
+      };
+      setDisplayedSuggestions(prev => [newSuggestion, ...prev]);
       setCustomText('');
       setShowCustomInput(false);
     };
@@ -620,6 +625,13 @@ export default function TreeholeView({
         ...userData,
         myTomorrowTasks: newTasks,
       });
+      // 检查是否全部完成
+      const newTodayTasks = newTasks.filter(t => t.date === currentDateStr);
+      const newCompleted = newTodayTasks.filter(t => t.completed);
+      if (newTodayTasks.length > 0 && newCompleted.length === newTodayTasks.length) {
+        setShowCelebration(true);
+        setTimeout(() => setShowCelebration(false), 3000);
+      }
     };
 
     const handleUnfollowTask = (taskId) => {
@@ -694,6 +706,18 @@ export default function TreeholeView({
                     style={{ width: `${progressPercent}%` }}
                   ></div>
                 </div>
+              </div>
+            )}
+
+            {/* 全部完成庆祝 */}
+            {showCelebration && (
+              <div className={`mt-3 p-3 rounded-xl text-center animate-bounce ${isDark ? 'bg-amber-500/10 border border-amber-500/20' : 'bg-amber-50 border border-amber-200'}`}>
+                <p className={`text-sm font-medium ${isDark ? 'text-amber-300' : 'text-amber-600'}`}>
+                  🎉 太棒了！今日约定全部完成！
+                </p>
+                <p className={`text-[10px] mt-1 ${isDark ? 'text-amber-400/60' : 'text-amber-500/60'}`}>
+                  你真的很棒，明天也要继续加油哦
+                </p>
               </div>
             )}
           </div>
@@ -864,17 +888,15 @@ export default function TreeholeView({
             </div>
           )}
 
-          {/* 挑战列表（带单独刷新） */}
+          {/* 挑战列表（带单独刷新，过滤已跟随的） */}
           <div className="space-y-3">
-            {displayedSuggestions.map((suggestion) => {
-              const followed = isFollowed(suggestion.id);
-              return (
+            {displayedSuggestions
+              .filter(s => !isFollowed(s.id))
+              .map((suggestion) => (
                 <div
                   key={suggestion._instanceId}
                   className={`p-4 rounded-[20px] transition-all ${
-                    followed
-                      ? (isDark ? 'bg-[#13131a]/60 border border-emerald-500/20' : 'bg-emerald-50/50 border border-emerald-200/50')
-                      : (isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm')
+                    isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm'
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -898,22 +920,18 @@ export default function TreeholeView({
                         <RotateCcw size={12} />
                       </button>
                       <button
-                        onClick={() => followed ? null : handleFollowTask(suggestion)}
-                        disabled={followed}
+                        onClick={() => handleFollowTask(suggestion)}
                         className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-medium transition-all active:scale-95 ${
-                          followed
-                            ? (isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200')
-                            : (isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100')
+                          isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
                         }`}
                       >
                         <CheckCircle2 size={10} />
-                        {followed ? '已跟随' : '跟随'}
+                        跟随
                       </button>
                     </div>
                   </div>
                 </div>
-              );
-            })}
+              ))}
           </div>
         </div>
 
