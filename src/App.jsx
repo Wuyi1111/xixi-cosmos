@@ -134,7 +134,21 @@ export default function App() {
     }
   }
 
-  const handleCheckIn = (moodId, whisper) => {
+  const handleCheckIn = (moodId, whisper, isReset = false) => {
+    if (isReset) {
+      // 重置今天的打卡记录
+      const [todayRecord, ...restHistory] = userData.checkInHistory;
+      if (todayRecord && todayRecord.date === currentDateStr) {
+        // 撤销今天的星尘和连续天数（如果需要）
+        // 这里我们简单移除今天的记录，连续天数保持不变（因为用户还没真正度过新的一天）
+        saveUserData({
+          ...userData,
+          checkInHistory: restHistory
+        });
+      }
+      return;
+    }
+
     if (hasCheckedInToday) return;
 
     const today = new Date();
