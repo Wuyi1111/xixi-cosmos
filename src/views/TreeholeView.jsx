@@ -60,29 +60,15 @@ export default function TreeholeView({
   const hotChallengesRef = useRef([]);
   const lastFollowCountRef = useRef('');
 
+  // 只在组件挂载时计算一次热度排行
   useEffect(() => {
     const allForHot = [
       ...TOMORROW_SUGGESTIONS.map(s => ({ ...s, followCount: Math.floor(Math.random() * 50) + 10 })),
-      ...userChallenges.map(c => ({ ...c, followCount: (c.followers || []).length })),
     ];
     const hot = [...allForHot].sort((a, b) => b.followCount - a.followCount).slice(0, 3);
     hotChallengesRef.current = hot;
     lastFollowCountRef.current = hot.map(h => h.id + ':' + h.followCount).join(',');
-  }, []); // 只在组件挂载时计算一次
-
-  // 当用户挑战的跟随人数变化时，更新热度排行
-  useEffect(() => {
-    const allForHot = [
-      ...TOMORROW_SUGGESTIONS.map(s => ({ ...s, followCount: Math.floor(Math.random() * 50) + 10 })),
-      ...userChallenges.map(c => ({ ...c, followCount: (c.followers || []).length })),
-    ];
-    const hot = [...allForHot].sort((a, b) => b.followCount - a.followCount).slice(0, 3);
-    const newKey = hot.map(h => h.id + ':' + h.followCount).join(',');
-    if (newKey !== lastFollowCountRef.current) {
-      hotChallengesRef.current = hot;
-      lastFollowCountRef.current = newKey;
-    }
-  }, [userChallenges]);
+  }, []);
 
   const textareaRef = useRef(null);
 
