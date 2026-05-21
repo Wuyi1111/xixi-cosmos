@@ -56,6 +56,34 @@ export default function TreeholeView({
   const [customText, setCustomText] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
 
+  // 热度排行数据缓存，避免每次渲染重新计算导致页面跳动
+  const hotChallengesRef = useRef([]);
+  const lastFollowCountRef = useRef('');
+
+  useEffect(() => {
+    const allForHot = [
+      ...TOMORROW_SUGGESTIONS.map(s => ({ ...s, followCount: Math.floor(Math.random() * 50) + 10 })),
+      ...userChallenges.map(c => ({ ...c, followCount: (c.followers || []).length })),
+    ];
+    const hot = [...allForHot].sort((a, b) => b.followCount - a.followCount).slice(0, 3);
+    hotChallengesRef.current = hot;
+    lastFollowCountRef.current = hot.map(h => h.id + ':' + h.followCount).join(',');
+  }, []); // 只在组件挂载时计算一次
+
+  // 当用户挑战的跟随人数变化时，更新热度排行
+  useEffect(() => {
+    const allForHot = [
+      ...TOMORROW_SUGGESTIONS.map(s => ({ ...s, followCount: Math.floor(Math.random() * 50) + 10 })),
+      ...userChallenges.map(c => ({ ...c, followCount: (c.followers || []).length })),
+    ];
+    const hot = [...allForHot].sort((a, b) => b.followCount - a.followCount).slice(0, 3);
+    const newKey = hot.map(h => h.id + ':' + h.followCount).join(',');
+    if (newKey !== lastFollowCountRef.current) {
+      hotChallengesRef.current = hot;
+      lastFollowCountRef.current = newKey;
+    }
+  }, [userChallenges]);
+
   const textareaRef = useRef(null);
 
   const isNewDay = userData.lastPostDate !== currentDateStr;
@@ -511,12 +539,8 @@ export default function TreeholeView({
     const completedTasks = todayTasks.filter(t => t.completed);
     const progressPercent = todayTasks.length > 0 ? Math.round((completedTasks.length / todayTasks.length) * 100) : 0;
 
-    // 热度排行：按跟随次数排序（系统推荐 + 用户发布）
-    const allForHot = [
-      ...TOMORROW_SUGGESTIONS.map(s => ({ ...s, followCount: Math.floor(Math.random() * 50) + 10 })),
-      ...userChallenges.map(c => ({ ...c, followCount: (c.followers || []).length })),
-    ];
-    const hotChallenges = [...allForHot].sort((a, b) => b.followCount - a.followCount).slice(0, 3);
+    // 热度排行：使用缓存的数据，避免每次渲染重新计算导致页面跳动
+    const hotChallenges = hotChallengesRef.current;
 
     const handleRefreshOne = (instanceId) => {
       // 只替换当前这一条为另一条随机推荐
