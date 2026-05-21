@@ -13,7 +13,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Radio, Gift, Compass, Sparkles, ChevronRight, Users } from 'lucide-react';
+import { Radio, Gift, Compass, Sparkles, ChevronRight, ChevronDown, Users } from 'lucide-react';
 import { COSMIC_PERSONALITIES, MOCK_WHISPERS } from '../constants.js';
 import QuizWidget from '../widgets/QuizWidget.jsx';
 
