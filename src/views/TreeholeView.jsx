@@ -282,22 +282,6 @@ export default function TreeholeView({
             左右滑动探索星际回音与明日<br/>
             在这里发送你的心声信号
           </p>
-          <div className="flex items-center gap-5 mt-5">
-            <div className="flex flex-col items-center gap-1.5">
-              <div className={`w-2 h-2 rounded-full transition-all ${mode === 'echo' ? 'bg-pink-400 scale-125' : 'bg-gray-300'}`}></div>
-              <span className={`text-[9px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>回音</span>
-            </div>
-            <div className={`w-10 h-[1px] ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}></div>
-            <div className="flex flex-col items-center gap-1.5">
-              <div className={`w-3 h-3 rounded-full transition-all ${mode === 'emit' ? 'bg-indigo-400 scale-125' : 'bg-gray-300'}`}></div>
-              <span className={`text-[9px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>发射台</span>
-            </div>
-            <div className={`w-10 h-[1px] ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}></div>
-            <div className="flex flex-col items-center gap-1.5">
-              <div className={`w-2 h-2 rounded-full transition-all ${mode === 'tomorrow' ? 'bg-emerald-400 scale-125' : 'bg-gray-300'}`}></div>
-              <span className={`text-[9px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>明日</span>
-            </div>
-          </div>
         </div>
       </div>
 
