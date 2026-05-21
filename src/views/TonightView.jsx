@@ -71,7 +71,7 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
         <section
           onClick={() => setShowQuiz(true)}
           className={`p-8 rounded-[28px] cursor-pointer border transition-all hover:scale-[1.01] active:scale-95 relative overflow-hidden ${
-            isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border-indigo-500/20' : 'bg-gradient-to-br from-indigo-50/80 to-white border-indigo-100 shadow-sm'
+            isDark ? 'bg-gradient-to-br from-[#1a1a2e]/80 to-[#171724]/60 border-indigo-500/20' : 'bg-gradient-to-br from-indigo-50/80 to-white border-indigo-100 shadow-sm'
           }`}
         >
           <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-indigo-300/10 blur-3xl pointer-events-none"></div>
@@ -99,16 +99,16 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
       <section
         onClick={() => setShowQuiz(true)}
         className={`p-8 rounded-[28px] cursor-pointer border transition-all hover:scale-[1.01] active:scale-95 relative overflow-hidden ${
-          isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border-indigo-500/20' : 'bg-gradient-to-br from-indigo-50/80 to-white border-indigo-100 shadow-sm'
-        }`}
-      >
-        <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-indigo-300/10 blur-3xl pointer-events-none"></div>
-        <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-purple-300/10 blur-3xl pointer-events-none"></div>
+          isDark ? 'bg-gradient-to-br from-[#1a1a2e]/80 to-[#171724]/60 border-indigo-500/20' : 'bg-gradient-to-br from-indigo-50/80 to-white border-indigo-100 shadow-sm'
+          }`}
+        >
+          <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-indigo-300/10 blur-3xl pointer-events-none"></div>
+          <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-purple-300/10 blur-3xl pointer-events-none"></div>
 
-        <div className="relative z-10 flex flex-col items-center text-center">
-          <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-100'}`}>
-            <Sparkles size={28} className={isDark ? 'text-indigo-300' : 'text-indigo-500'} />
-          </div>
+          <div className="relative z-10 flex flex-col items-center text-center">
+            <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-100'}`}>
+              <Sparkles size={28} className={isDark ? 'text-indigo-300' : 'text-indigo-500'} />
+            </div>
 
           <p className={`text-[10px] mb-2 font-medium tracking-widest ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
             你的宇宙睡眠人格
@@ -279,7 +279,7 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
                   className={`h-full p-5 rounded-[24px] border transition-all ${
                     isMine
                       ? (isDark ? 'bg-indigo-900/20 border-indigo-500/40 shadow-[0_0_20px_rgba(99,102,241,0.12)]' : 'bg-indigo-50 border-indigo-300 shadow-md')
-                      : (isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm')
+                      : (isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm')
                   }`}
                 >
                   <div className="flex items-center justify-between mb-3">
@@ -455,7 +455,7 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
                   >
                     <div
                       className={`p-5 rounded-[24px] border relative overflow-hidden h-full min-h-[180px] flex flex-col ${
-                        isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm'
+                        isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm'
                       }`}
                     >
                       <div className={`absolute -right-4 -top-4 w-20 h-20 rounded-full blur-3xl opacity-50 ${whisper.isPositive ? 'bg-amber-500/20' : 'bg-blue-500/20'}`} />
@@ -505,7 +505,7 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
       <button
         onClick={() => onNavigate('radar')}
         className={`p-5 rounded-[28px] border text-left transition-all hover:scale-[1.02] active:scale-95 group ${
-          isDark ? 'bg-[#171724] border-white/5 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-sm hover:border-indigo-200'
+          isDark ? 'bg-[#171724]/70 border-white/5 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-sm hover:border-indigo-200'
         }`}
       >
         <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mb-3 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-50'}`}>
@@ -522,7 +522,7 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
       <button
         onClick={() => onNavigate('star')}
         className={`p-5 rounded-[28px] border text-left transition-all hover:scale-[1.02] active:scale-95 group ${
-          isDark ? 'bg-[#171724] border-white/5 hover:border-pink-500/30' : 'bg-white border-gray-100 shadow-sm hover:border-pink-200'
+          isDark ? 'bg-[#171724]/70 border-white/5 hover:border-pink-500/30' : 'bg-white border-gray-100 shadow-sm hover:border-pink-200'
         }`}
       >
         <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mb-3 ${isDark ? 'bg-pink-500/15' : 'bg-pink-50'}`}>

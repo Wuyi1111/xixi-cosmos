@@ -144,6 +144,16 @@ input[type="range"].font-scale-slider::-moz-range-thumb {
 @keyframes spin-slow { 100% { transform: rotate(360deg); } }
 .galaxy-spin { animation: spin-slow 40s linear infinite; }
 
+/* 星星闪烁动画 */
+@keyframes twinkle {
+  0%, 100% { opacity: var(--twinkle-min, 0.2); transform: scale(1); }
+  50% { opacity: var(--twinkle-max, 0.8); transform: scale(1.3); }
+}
+.animate-twinkle {
+  animation: twinkle var(--twinkle-duration, 3s) ease-in-out infinite;
+  animation-delay: var(--twinkle-delay, 0s);
+}
+
 /* 隐藏滚动条 */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

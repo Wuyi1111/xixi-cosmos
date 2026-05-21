@@ -28,6 +28,7 @@ import TreeholeView from './views/TreeholeView.jsx';
 import GalaxyView from './views/GalaxyView.jsx';
 import StarView from './views/StarView.jsx';
 import SplashScreen from './components/SplashScreen.jsx';
+import StarField from './components/StarField.jsx';
 import { EMOTIONS } from './constants.js';
 
 // --- 主应用组件：全局 state + pull-to-refresh + 路由壳 ---
@@ -363,15 +364,8 @@ export default function App() {
         </div>
       )}
 
-      {/* 暗色模式下的全局装饰光晕 */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        {isDark && (
-          <>
-            <div className="absolute top-10 left-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl"></div>
-            <div className="absolute top-40 right-20 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl"></div>
-          </>
-        )}
-      </div>
+      {/* 动态星空背景 */}
+      <StarField isDark={isDark} />
 
       <main
         className="relative z-10 px-4 max-w-md mx-auto min-h-screen pt-[max(env(safe-area-inset-top),0.75rem)] pb-[calc(env(safe-area-inset-bottom)+6rem)]"

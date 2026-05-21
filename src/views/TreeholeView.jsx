@@ -238,13 +238,13 @@ export default function TreeholeView({
         return (
           <div
             key={whisper.id}
-            className={`p-6 rounded-[28px] ${isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border-white/5' : 'bg-gradient-to-br from-indigo-50/50 to-white border-indigo-50'} border shadow-sm relative overflow-hidden`}
+            className={`p-6 rounded-[28px] ${isDark ? 'bg-gradient-to-br from-[#1a1a2e]/80 to-[#171724]/60 border-white/5' : 'bg-gradient-to-br from-indigo-50/50 to-white border-indigo-50'} border shadow-sm relative overflow-hidden`}
           >
             <div className={`absolute -right-4 -top-4 w-20 h-20 rounded-full blur-3xl opacity-50 ${whisper.isPositive ? 'bg-amber-500/20' : 'bg-blue-500/20'}`}></div>
             <div className={`absolute -bottom-10 -left-4 w-16 h-16 rounded-full blur-2xl opacity-30 ${whisper.isPositive ? 'bg-pink-500/10' : 'bg-indigo-500/10'}`}></div>
 
             <div className="flex items-center gap-2 mb-5 relative z-10">
-              <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
+              <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.04] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
                 {whisper.emotion}
               </span>
               <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
@@ -288,7 +288,7 @@ export default function TreeholeView({
   const renderEmit = () => (
     <div className="space-y-6">
       {/* 雷达示意图区 — 优化版 */}
-      <div className={`p-6 rounded-[28px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a2e] via-[#171724] to-[#1a1a24] border border-indigo-500/15' : 'bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/60 border border-indigo-100'}`}>
+      <div className={`p-6 rounded-[28px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a2e]/80 via-[#171724]/60 to-[#1a1a24]/70 border border-indigo-500/15' : 'bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/60 border border-indigo-100'}`}>
         <div className="absolute -top-12 -right-8 w-40 h-40 rounded-full bg-indigo-300/15 blur-3xl pointer-events-none animate-pulse"></div>
         <div className="absolute -bottom-10 -left-8 w-32 h-32 rounded-full bg-purple-300/10 blur-3xl pointer-events-none"></div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-indigo-500/5 blur-3xl pointer-events-none"></div>
@@ -338,7 +338,7 @@ export default function TreeholeView({
           ref={textareaRef}
           className={`w-full p-5 rounded-[24px] resize-none min-h-[140px] text-sm focus:outline-none transition-all duration-300 ${
             isDark
-              ? 'bg-[#171724] text-gray-200 placeholder-gray-600 focus:ring-2 focus:ring-indigo-500/30 focus:bg-[#1a1a2e]'
+              ? 'bg-[#171724]/70 text-gray-200 placeholder-gray-600 focus:ring-2 focus:ring-indigo-500/30 focus:bg-[#1a1a2e]/80'
               : 'bg-white shadow-sm text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-indigo-400/30 focus:shadow-md'
           }`}
           placeholder="宇宙无边无际，你的心声在这里不再受限。倾诉吧..."
@@ -355,7 +355,7 @@ export default function TreeholeView({
       {/* 可见度 — 优化版 */}
       <div className="flex justify-between items-center px-1">
         <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>信号可见度</span>
-        <div className={`flex p-1 rounded-full ${isDark ? 'bg-[#171724]' : 'bg-gray-100'}`}>
+        <div className={`flex p-1 rounded-full ${isDark ? 'bg-[#171724]/70' : 'bg-gray-100'}`}>
           <button
             onClick={() => handleVisibilityChange('public')}
             className={`px-3.5 py-1.5 rounded-full text-[10px] font-medium transition-all ${visibility === 'public' ? (isDark ? 'bg-indigo-500/20 text-indigo-300 shadow-sm' : 'bg-white text-indigo-600 shadow-sm') : 'text-gray-400 hover:text-gray-300'}`}
@@ -381,7 +381,7 @@ export default function TreeholeView({
           className={`w-full py-4 rounded-2xl font-medium tracking-wider transition-all flex items-center justify-center gap-2 ${
             whisperText && postsLeft > 0
               ? 'bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-lg shadow-indigo-500/25 active:scale-[0.98]'
-              : (isDark ? 'bg-[#1f1f2e] text-gray-600 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed')
+              : (isDark ? 'bg-[#1f1f2e]/70 text-gray-600 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed')
           }`}
         >
           <Send size={18} className={whisperText && postsLeft > 0 ? 'animate-pulse' : ''} />
@@ -402,12 +402,12 @@ export default function TreeholeView({
             <Radio size={14} className="text-indigo-400" />
             我的信号
           </h3>
-          <span className={`text-[10px] px-2 py-1 rounded-full ${isDark ? 'bg-[#1f1f2e] text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+          <span className={`text-[10px] px-2 py-1 rounded-full ${isDark ? 'bg-[#1f1f2e]/70 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
             {myWhispers.length} 条
           </span>
         </div>
 
-        <div className={`flex items-center px-4 py-3 rounded-2xl mb-4 border transition-all ${isDark ? 'bg-[#171724] border-white/5 focus-within:border-indigo-500/30' : 'bg-white shadow-sm border-gray-100 focus-within:border-indigo-200 focus-within:shadow-md'}`}>
+        <div className={`flex items-center px-4 py-3 rounded-2xl mb-4 border transition-all ${isDark ? 'bg-[#171724]/70 border-white/5 focus-within:border-indigo-500/30' : 'bg-white shadow-sm border-gray-100 focus-within:border-indigo-200 focus-within:shadow-md'}`}>
           <Search size={16} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
           <input
             type="text"
@@ -426,7 +426,7 @@ export default function TreeholeView({
         <div className="space-y-3">
           {filteredWhispers.length === 0 ? (
             <div className={`py-12 text-center flex flex-col items-center gap-4 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-              <div className={`w-16 h-16 rounded-full flex items-center justify-center ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center ${isDark ? 'bg-[#1f1f2e]/70' : 'bg-gray-50'}`}>
                 <Radio size={24} className="opacity-40" />
               </div>
               <div>
@@ -444,8 +444,8 @@ export default function TreeholeView({
                   key={whisper.id}
                   onClick={() => setExpandedWhisperId(isExpanded ? null : whisper.id)}
                   className={`rounded-[24px] transition-all duration-300 border cursor-pointer ${
-                    isExpanded ? (isDark ? 'bg-[#1f1f2e] border-indigo-500/30 shadow-lg shadow-indigo-500/5' : 'bg-white border-indigo-200 shadow-md')
-                               : (isDark ? 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04]' : 'bg-white/60 border-white/50 hover:bg-white shadow-sm')
+                    isExpanded ? (isDark ? 'bg-[#1f1f2e]/70 border-indigo-500/30 shadow-lg shadow-indigo-500/5' : 'bg-white border-indigo-200 shadow-md')
+                               : (isDark ? 'bg-white/[0.03] border-white/5 hover:bg-white/[0.04]' : 'bg-white/60 border-white/50 hover:bg-white shadow-sm')
                   } active:scale-[0.98]`}
                 >
                   <div className="p-5 flex items-center justify-between">
@@ -668,7 +668,7 @@ export default function TreeholeView({
     return (
       <div className="space-y-6">
         {/* 头部卡片 + 进度条 */}
-        <div className={`p-6 rounded-[28px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a24] to-[#171724] border border-emerald-500/15' : 'bg-gradient-to-br from-emerald-50/70 to-white border border-emerald-100'}`}>
+        <div className={`p-6 rounded-[28px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a24]/80 to-[#171724]/60 border border-emerald-500/15' : 'bg-gradient-to-br from-emerald-50/70 to-white border border-emerald-100'}`}>
           <div className="absolute -top-8 -right-6 w-32 h-32 rounded-full bg-amber-300/15 blur-3xl pointer-events-none"></div>
           <div className="absolute -bottom-8 -left-6 w-24 h-24 rounded-full bg-emerald-300/15 blur-3xl pointer-events-none"></div>
 
@@ -687,7 +687,7 @@ export default function TreeholeView({
 
             {/* 进度条 */}
             {todayTasks.length > 0 && (
-              <div className={`p-3 rounded-xl ${isDark ? 'bg-[#1f1f2e]/60' : 'bg-white/60'}`}>
+              <div className={`p-3 rounded-xl ${isDark ? 'bg-[#1f1f2e]/70' : 'bg-white/60'}`}>
                 <div className="flex justify-between text-[10px] mb-1.5">
                   <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>
                     今日进度 {completedTasks.length}/{todayTasks.length}
@@ -696,7 +696,7 @@ export default function TreeholeView({
                     {progressPercent}%
                   </span>
                 </div>
-                <div className={`h-2 rounded-full overflow-hidden ${isDark ? 'bg-[#0f0f1a]' : 'bg-gray-100'}`}>
+                <div className={`h-2 rounded-full overflow-hidden ${isDark ? 'bg-[#0f0f1a]/70' : 'bg-gray-100'}`}>
                   <div
                     className={`h-full rounded-full transition-all duration-700 ${
                       progressPercent === 100
@@ -740,11 +740,11 @@ export default function TreeholeView({
                   className={`p-4 rounded-[20px] border transition-all ${
                     task.completed
                       ? (isDark ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50/30 border-emerald-200/50')
-                      : (isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm')
+                      : (isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm')
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'} shadow-sm`}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#1f1f2e]/70' : 'bg-gray-50'} shadow-sm`}>
                       {task.completed ? '✅' : task.emoji}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -796,7 +796,7 @@ export default function TreeholeView({
                     className={`p-4 rounded-[20px] border transition-all ${
                       index === 0
                         ? (isDark ? 'bg-amber-500/5 border-amber-500/20' : 'bg-amber-50/50 border-amber-200/50')
-                        : (isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm')
+                        : (isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm')
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -860,7 +860,7 @@ export default function TreeholeView({
 
           {/* 自定义输入 */}
           {showCustomInput && (
-            <div className={`p-4 rounded-[20px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm'}`}>
+            <div className={`p-4 rounded-[20px] ${isDark ? 'bg-[#171724]/70 border border-white/5' : 'bg-white border border-gray-100 shadow-sm'}`}>
               <textarea
                 className={`w-full p-3 rounded-xl resize-none text-sm focus:outline-none transition-all ${
                   isDark
@@ -987,7 +987,7 @@ export default function TreeholeView({
         )}
 
         {/* 底部温馨语句 */}
-        <div className={`p-4 rounded-2xl text-center ${isDark ? 'bg-[#171724]/50 border border-white/5' : 'bg-emerald-50/30 border border-emerald-100/50'}`}>
+        <div className={`p-4 rounded-2xl text-center ${isDark ? 'bg-[#171724]/70 border border-white/5' : 'bg-emerald-50/30 border border-emerald-100/50'}`}>
           <p className={`text-[11px] leading-relaxed ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
             明天醒来时，记得只是先睁开眼，剩下的慢慢来。
           </p>
@@ -1001,12 +1001,12 @@ export default function TreeholeView({
     <div className="animate-fade-in pb-10">
       {/* 三栏式导航 */}
       <div className="flex justify-center mb-6">
-        <div className={`flex p-1 rounded-full w-full max-w-[320px] ${isDark ? 'bg-[#171724]' : 'bg-gray-200/50'}`}>
+        <div className={`flex p-1 rounded-full w-full max-w-[320px] ${isDark ? 'bg-[#171724]/70' : 'bg-gray-200/50'}`}>
           {MODES.map(m => (
             <button
               key={m}
               onClick={() => setMode(m)}
-              className={`flex-1 py-2 rounded-full text-xs font-medium transition-colors ${mode === m ? (isDark ? 'bg-[#1f1f2e] text-white shadow-sm' : 'bg-white text-gray-900 shadow-sm') : 'text-gray-400'}`}
+              className={`flex-1 py-2 rounded-full text-xs font-medium transition-colors ${mode === m ? (isDark ? 'bg-[#1f1f2e]/70 text-white shadow-sm' : 'bg-white text-gray-900 shadow-sm') : 'text-gray-400'}`}
             >
               {MODE_LABELS[m]}
             </button>
@@ -1086,7 +1086,7 @@ export default function TreeholeView({
       {showPrivacyModal && (
         <Portal>
           <div className={`fixed inset-0 z-[60] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setShowPrivacyModal(false)}>
-            <div className={`w-full max-w-xs p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative text-center`} onClick={e => e.stopPropagation()}>
+            <div className={`w-full max-w-xs p-6 rounded-[28px] ${isDark ? 'bg-[#171724]/70' : 'bg-white shadow-xl'} relative text-center`} onClick={e => e.stopPropagation()}>
               <div className="mx-auto w-12 h-12 mb-4 rounded-full flex items-center justify-center bg-indigo-500/10 text-indigo-500">
                 <BookOpen size={24} />
               </div>
@@ -1094,7 +1094,7 @@ export default function TreeholeView({
               <p className={`text-xs mb-6 leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                 选择"仅自己可见"后，这条信号只会保存在你的设备上，不会进入公开星海。
               </p>
-              <button onClick={() => setShowPrivacyModal(false)} className={`w-full py-3 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-[#1f1f2e] hover:bg-[#262638] text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}>
+              <button onClick={() => setShowPrivacyModal(false)} className={`w-full py-3 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-[#1f1f2e]/70 hover:bg-[#262638] text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}>
                 知道了
               </button>
             </div>
@@ -1106,7 +1106,7 @@ export default function TreeholeView({
       {deleteConfirmId && (
         <Portal>
           <div className={`fixed inset-0 z-[60] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setDeleteConfirmId(null)}>
-            <div className={`w-full max-w-xs p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative text-center`} onClick={e => e.stopPropagation()}>
+            <div className={`w-full max-w-xs p-6 rounded-[28px] ${isDark ? 'bg-[#171724]/70' : 'bg-white shadow-xl'} relative text-center`} onClick={e => e.stopPropagation()}>
               <div className="mx-auto w-12 h-12 mb-4 rounded-full flex items-center justify-center bg-red-500/10 text-red-500">
                 <AlertTriangle size={24} />
               </div>
@@ -1115,7 +1115,7 @@ export default function TreeholeView({
                 确定要让这段信号消散在宇宙中吗？此操作不可撤销。
               </p>
               <div className="flex gap-3">
-                <button onClick={() => setDeleteConfirmId(null)} className={`flex-1 py-3 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-[#1f1f2e] hover:bg-[#262638] text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}>
+                <button onClick={() => setDeleteConfirmId(null)} className={`flex-1 py-3 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-[#1f1f2e]/70 hover:bg-[#262638] text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}>
                   保留
                 </button>
                 <button onClick={confirmDeleteWhisper} className="flex-1 py-3 rounded-xl text-sm font-medium bg-red-500 hover:bg-red-600 text-white transition-colors shadow-lg shadow-red-500/20 active:scale-95">

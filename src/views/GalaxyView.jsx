@@ -97,7 +97,7 @@ export default function GalaxyView({ isDark, userData }) {
   return (
     <div className="animate-fade-in pb-10 space-y-6">
       {/* === 顶部信息区 === */}
-      <div className={`p-5 rounded-[28px] ${isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border-white/5' : 'bg-gradient-to-br from-indigo-50/50 to-white border-indigo-50'} border shadow-sm`}>
+      <div className={`p-5 rounded-[28px] ${isDark ? 'bg-gradient-to-br from-[#1a1a2e]/80 to-[#171724]/60 border-white/5' : 'bg-gradient-to-br from-indigo-50/50 to-white border-indigo-50'} border shadow-sm`}>
         <div className="flex items-center justify-between">
           {/* 左侧：宇宙坐标 */}
           <div className="flex items-center gap-2">
@@ -126,7 +126,7 @@ export default function GalaxyView({ isDark, userData }) {
       </div>
 
       {/* === 所在星系示意图 === */}
-      <div className={`p-6 rounded-[28px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border border-indigo-500/15' : 'bg-gradient-to-br from-indigo-50/70 to-white border border-indigo-100'}`}>
+      <div className={`p-6 rounded-[28px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a2e]/80 to-[#171724]/60 border border-indigo-500/15' : 'bg-gradient-to-br from-indigo-50/70 to-white border border-indigo-100'}`}>
         <div className="absolute -top-8 -right-6 w-32 h-32 rounded-full bg-indigo-300/10 blur-3xl pointer-events-none"></div>
         <div className="absolute -bottom-8 -left-6 w-24 h-24 rounded-full bg-purple-300/10 blur-3xl pointer-events-none"></div>
 
@@ -148,13 +148,13 @@ export default function GalaxyView({ isDark, userData }) {
           </p>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className={`p-4 rounded-2xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-white/60'}`}>
+            <div className={`p-4 rounded-2xl ${isDark ? 'bg-[#1f1f2e]/70' : 'bg-white/60'}`}>
               <p className={`text-2xl font-medium mb-1 ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>
                 {galaxyTotalStardust.toLocaleString()}
               </p>
               <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>星系累计星尘</p>
             </div>
-            <div className={`p-4 rounded-2xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-white/60'}`}>
+            <div className={`p-4 rounded-2xl ${isDark ? 'bg-[#1f1f2e]/70' : 'bg-white/60'}`}>
               <p className={`text-2xl font-medium mb-1 ${isDark ? 'text-amber-300' : 'text-amber-500'}`}>
                 {supernovaCount}
               </p>
@@ -165,7 +165,7 @@ export default function GalaxyView({ isDark, userData }) {
       </div>
 
       {/* === 超新星规则 === */}
-      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm'}`}>
+      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724]/70 border border-white/5' : 'bg-white border border-gray-100 shadow-sm'}`}>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Star size={16} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
@@ -185,7 +185,7 @@ export default function GalaxyView({ isDark, userData }) {
       </div>
 
       {/* === 星系里程碑 === */}
-      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm'}`}>
+      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724]/70 border border-white/5' : 'bg-white border border-gray-100 shadow-sm'}`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Zap size={16} className={isDark ? 'text-cyan-400' : 'text-cyan-500'} />
@@ -207,7 +207,7 @@ export default function GalaxyView({ isDark, userData }) {
                 还需 {(nextStage.minStardust - galaxyTotalStardust).toLocaleString()} 星尘
               </span>
             </div>
-            <div className={`h-2 rounded-full overflow-hidden ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-100'}`}>
+            <div className={`h-2 rounded-full overflow-hidden ${isDark ? 'bg-[#1f1f2e]/70' : 'bg-gray-100'}`}>
               <div
                 className={`h-full rounded-full transition-all duration-1000 ${
                   isDark ? 'bg-gradient-to-r from-indigo-500 to-cyan-400' : 'bg-gradient-to-r from-indigo-400 to-cyan-400'
@@ -228,7 +228,7 @@ export default function GalaxyView({ isDark, userData }) {
                 key={stage.id}
                 className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
                   isCurrent
-                    ? (isDark ? 'bg-[#1f1f2e] border border-indigo-500/20' : 'bg-indigo-50 border border-indigo-100')
+                    ? (isDark ? 'bg-[#1f1f2e]/70 border border-indigo-500/20' : 'bg-indigo-50 border border-indigo-100')
                     : (isDark ? 'bg-transparent' : 'bg-transparent')
                 }`}
               >
@@ -237,7 +237,7 @@ export default function GalaxyView({ isDark, userData }) {
                     ? (isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-600')
                     : isPast
                     ? (isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-500')
-                    : (isDark ? 'bg-[#1f1f2e] text-gray-600' : 'bg-gray-100 text-gray-400')
+                    : (isDark ? 'bg-[#1f1f2e]/70 text-gray-600' : 'bg-gray-100 text-gray-400')
                 }`}>
                   {isPast ? '✓' : stage.id + 1}
                 </div>
@@ -256,7 +256,7 @@ export default function GalaxyView({ isDark, userData }) {
       </div>
 
       {/* === 同星系星尘排名 === */}
-      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm'}`}>
+      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724]/70 border border-white/5' : 'bg-white border border-gray-100 shadow-sm'}`}>
         <div className="flex items-center gap-2 mb-4">
           <Trophy size={16} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
           <h3 className="text-sm font-medium">同星系星尘排名</h3>
@@ -268,8 +268,8 @@ export default function GalaxyView({ isDark, userData }) {
               key={user.id}
               className={`flex items-center gap-3 p-3 rounded-xl ${
                 user.isMe
-                  ? (isDark ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-indigo-50 border border-indigo-100')
-                  : (isDark ? 'bg-[#1f1f2e]/50' : 'bg-gray-50/50')
+                    ? (isDark ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-indigo-50 border border-indigo-100')
+                    : (isDark ? 'bg-[#1f1f2e]/70' : 'bg-gray-50/50')
               }`}
             >
               <span className={`text-xs font-medium w-5 text-center ${
@@ -312,7 +312,7 @@ export default function GalaxyView({ isDark, userData }) {
           </div>
         )}
 
-        <div className={`mt-3 p-3 rounded-xl text-center ${isDark ? 'bg-[#1f1f2e]/50' : 'bg-gray-50/50'}`}>
+        <div className={`mt-3 p-3 rounded-xl text-center ${isDark ? 'bg-[#1f1f2e]/70' : 'bg-gray-50/50'}`}>
           <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
             <Users size={10} className="inline mr-1" />
             同星系共 {MOCK_RANKINGS.length + 1} 人，每个人都在为星系成长贡献力量
@@ -324,7 +324,7 @@ export default function GalaxyView({ isDark, userData }) {
       {showSupernovaRules && (
         <Portal>
           <div className={`fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setShowSupernovaRules(false)}>
-            <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative max-h-[80vh] overflow-y-auto no-scrollbar`} onClick={e => e.stopPropagation()}>
+            <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]/70' : 'bg-white shadow-xl'} relative max-h-[80vh] overflow-y-auto no-scrollbar`} onClick={e => e.stopPropagation()}>
               <h3 className="text-lg font-medium mb-4 text-center flex items-center justify-center gap-2">
                 <Star size={20} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
                 超新星规则
@@ -362,7 +362,7 @@ export default function GalaxyView({ isDark, userData }) {
 
               <button
                 onClick={() => setShowSupernovaRules(false)}
-                className={`w-full mt-5 py-3 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-[#1f1f2e] hover:bg-[#262638] text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}
+                className={`w-full mt-5 py-3 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-[#1f1f2e]/70 hover:bg-[#262638] text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}
               >
                 知道了
               </button>
