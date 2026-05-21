@@ -45,46 +45,39 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
 
   // 1. 宇宙氛围开头
   const HeroSection = () => (
-    <section className="relative text-center pt-4 pb-6 overflow-hidden">
-      <div className="relative z-10">
-        <h1 className={`text-4xl font-light tracking-[0.2em] mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-          息息·宇宙
-        </h1>
-        <p className={`text-sm font-light tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-          与繁星作伴，和内心和解
-        </p>
-        <div className="mt-4 flex justify-center">
-          <div className={`w-16 h-[1px] ${isDark ? 'bg-indigo-500/30' : 'bg-indigo-300/50'}`} />
-        </div>
-      </div>
+    <section className="text-center pt-4 pb-2">
+      <h1 className={`text-4xl font-light tracking-[0.2em] ${isDark ? 'text-white' : 'text-gray-900'}`}>
+        息息·宇宙
+      </h1>
     </section>
   );
 
-  // 2. 探索内宇宙测试 — 大卡片居中排版
+  // 2. 探索内宇宙测试 — 简洁卡片
   const QuizSection = () => {
+    const [showDetail, setShowDetail] = useState(false);
+
     if (!personalityData) {
       return (
         <section
           onClick={() => setShowQuiz(true)}
-          className={`p-8 rounded-[28px] cursor-pointer border transition-all hover:scale-[1.01] active:scale-95 relative overflow-hidden ${
-            isDark ? 'bg-gradient-to-br from-[#1a1a2e]/80 to-[#171724]/60 border-indigo-500/20' : 'bg-gradient-to-br from-indigo-50/80 to-white border-indigo-100 shadow-sm'
+          className={`p-6 rounded-[24px] cursor-pointer border transition-all hover:scale-[1.01] active:scale-95 ${
+            isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm'
           }`}
         >
-          <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-indigo-300/10 blur-3xl pointer-events-none"></div>
-          <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-purple-300/10 blur-3xl pointer-events-none"></div>
-
-          <div className="relative z-10 flex flex-col items-center text-center">
-            <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-100'}`}>
-              <Compass size={28} className={isDark ? 'text-indigo-300' : 'text-indigo-500'} />
+          <div className="flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-100'}`}>
+              <Compass size={24} className={isDark ? 'text-indigo-300' : 'text-indigo-500'} />
             </div>
-            <h3 className="font-medium text-base mb-2 tracking-wide">
-              探索内宇宙特质
-            </h3>
-            <p className={`text-xs mb-5 max-w-[220px] leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              完成 10 题睡眠测试，解锁你的专属星体身份
-            </p>
-            <div className="px-4 py-2 bg-indigo-500 text-white text-xs rounded-full whitespace-nowrap shadow-lg shadow-indigo-500/25">
-              +30 星尘
+            <div className="flex-1 min-w-0">
+              <h3 className="font-medium text-base tracking-wide">
+                探索你的宇宙人格
+              </h3>
+              <p className={`text-xs mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                10 题测试 · 解锁专属星体身份
+              </p>
+            </div>
+            <div className="px-3 py-1.5 bg-indigo-500 text-white text-[10px] rounded-full whitespace-nowrap">
+              开始
             </div>
           </div>
         </section>
@@ -93,46 +86,53 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
 
     return (
       <section
-        onClick={() => setShowQuiz(true)}
-        className={`p-8 rounded-[28px] cursor-pointer border transition-all hover:scale-[1.01] active:scale-95 relative overflow-hidden ${
-          isDark ? 'bg-gradient-to-br from-[#1a1a2e]/80 to-[#171724]/60 border-indigo-500/20' : 'bg-gradient-to-br from-indigo-50/80 to-white border-indigo-100 shadow-sm'
-          }`}
-        >
-          <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-indigo-300/10 blur-3xl pointer-events-none"></div>
-          <div className="absolute -bottom-6 -left-6 w-24 h-24 rounded-full bg-purple-300/10 blur-3xl pointer-events-none"></div>
-
-          <div className="relative z-10 flex flex-col items-center text-center">
-            <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-100'}`}>
-              <Sparkles size={28} className={isDark ? 'text-indigo-300' : 'text-indigo-500'} />
-            </div>
-
-          <p className={`text-[10px] mb-2 font-medium tracking-widest ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
-            你的宇宙睡眠人格
-          </p>
-
-          <h3 className="text-2xl font-medium tracking-wide mb-1">
-            {personalityData.name}
-          </h3>
-
-          <span className={`text-[10px] px-2.5 py-1 rounded-md font-mono mb-4 ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-white text-gray-500 border border-gray-200'}`}>
-            {personalityData.type}
-          </span>
-
-          <div className="flex flex-wrap justify-center gap-2 mb-4">
-            {personalityData.tags.map((tag, idx) => (
-              <span key={idx} className={`text-[10px] px-3 py-1 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-200' : 'bg-indigo-100/80 text-indigo-700'}`}>
-                {tag}
-              </span>
-            ))}
+        className={`p-6 rounded-[24px] border transition-all ${
+          isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm'
+        }`}
+      >
+        <div className="flex items-center gap-4">
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-100'}`}>
+            <Sparkles size={24} className={isDark ? 'text-indigo-300' : 'text-indigo-500'} />
           </div>
+          <div className="flex-1 min-w-0">
+            <p className={`text-[10px] font-medium tracking-widest ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
+              宇宙睡眠人格
+            </p>
+            <h3 className="text-lg font-medium tracking-wide">
+              {personalityData.name}
+            </h3>
+            <span className={`text-[10px] px-2 py-0.5 rounded font-mono ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+              {personalityData.type}
+            </span>
+          </div>
+          <button
+            onClick={() => setShowDetail(!showDetail)}
+            className={`p-2 rounded-full transition-colors ${isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
+          >
+            <ChevronDown size={16} className={`transition-transform duration-300 ${showDetail ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
 
-          <p className={`text-xs leading-relaxed font-light max-w-[260px] mb-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-            "{personalityData.desc}"
-          </p>
-
-          <p className={`text-[9px] opacity-60 flex items-center gap-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-            点击可重新探测 <ChevronRight size={10} />
-          </p>
+        {/* 展开详情 */}
+        <div className={`grid transition-all duration-300 ease-in-out ${showDetail ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0'}`}>
+          <div className="overflow-hidden">
+            <div className="flex flex-wrap gap-2 mb-3">
+              {personalityData.tags.map((tag, idx) => (
+                <span key={idx} className={`text-[10px] px-2.5 py-1 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-200' : 'bg-indigo-100/80 text-indigo-700'}`}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+            <p className={`text-xs leading-relaxed font-light ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+              {personalityData.desc}
+            </p>
+            <button
+              onClick={() => setShowQuiz(true)}
+              className={`mt-3 text-[10px] flex items-center gap-1 ${isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-500'}`}
+            >
+              重新探测 <ChevronRight size={10} />
+            </button>
+          </div>
         </div>
       </section>
     );
@@ -289,25 +289,22 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
                     )}
                   </div>
 
-                  <h4 className={`text-lg font-medium mb-3 ${isMine ? (isDark ? 'text-indigo-300' : 'text-indigo-700') : (isDark ? 'text-gray-200' : 'text-gray-800')}`}>
+                  <h4 className={`text-lg font-medium mb-2 ${isMine ? (isDark ? 'text-indigo-300' : 'text-indigo-700') : (isDark ? 'text-gray-200' : 'text-gray-800')}`}>
                     {data.name}
                   </h4>
 
-                  <div className="flex flex-wrap gap-1.5 mb-3">
-                    {data.tags.map((tag, i) => (
-                      <span key={i} className={`text-[9px] px-2 py-1 rounded-full whitespace-nowrap ${isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-
-                  <p className={`text-[11px] leading-relaxed mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                    {data.desc}
-                  </p>
-
-                  <div className={`flex items-center gap-1.5 text-[10px] mt-auto ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                    <Users size={10} />
-                    <span>{count.toLocaleString()} 位旅人</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap gap-1.5">
+                      {data.tags.slice(0, 2).map((tag, i) => (
+                        <span key={i} className={`text-[9px] px-2 py-1 rounded-full whitespace-nowrap ${isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                    <div className={`flex items-center gap-1 text-[10px] shrink-0 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                      <Users size={10} />
+                      <span>{count.toLocaleString()}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -333,163 +330,44 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
     );
   };
 
-  // 4. 超新星/脉冲星 — 折叠 + 横向滑动轮播
+  // 4. 超新星/脉冲星 — 直接横向滑动
   const SupernovaSection = () => {
-    const [expanded, setExpanded] = useState(false);
     const entries = MOCK_WHISPERS;
-    const total = entries.length;
-    const [activeIndex, setActiveIndex] = useState(0);
     const scrollRef = useRef(null);
-    const isScrollingRef = useRef(false);
-    const scrollTimeoutRef = useRef(null);
-    const CARD_WIDTH = 292; // 276px + 16px gap
-
-    const scrollToRealIndex = useCallback((realIndex, smooth = true) => {
-      if (!scrollRef.current) return;
-      const containerWidth = scrollRef.current.offsetWidth;
-      const offset = realIndex * CARD_WIDTH - (containerWidth - 276) / 2;
-      scrollRef.current.scrollTo({ left: offset, behavior: smooth ? 'smooth' : 'auto' });
-    }, []);
-
-    const setActiveAndScroll = useCallback((virtualIndex) => {
-      const clamped = Math.max(0, Math.min(total - 1, virtualIndex));
-      setActiveIndex(clamped);
-      const realIndex = total + clamped;
-      scrollToRealIndex(realIndex, true);
-    }, [total, scrollToRealIndex]);
-
-    useEffect(() => {
-      if (!expanded) return;
-      const el = scrollRef.current;
-      if (!el) return;
-
-      const handleScroll = () => {
-        if (!el) return;
-        const containerWidth = el.offsetWidth;
-        const scrollLeft = el.scrollLeft;
-        const center = scrollLeft + containerWidth / 2;
-        const realIndex = Math.round((center - containerWidth / 2 + 276 / 2) / CARD_WIDTH);
-
-        if (realIndex < total) {
-          const jumpIndex = realIndex + total;
-          el.scrollTo({ left: jumpIndex * CARD_WIDTH - (containerWidth - 276) / 2, behavior: 'auto' });
-          setActiveIndex(realIndex);
-        } else if (realIndex >= total * 2) {
-          const jumpIndex = realIndex - total;
-          el.scrollTo({ left: jumpIndex * CARD_WIDTH - (containerWidth - 276) / 2, behavior: 'auto' });
-          setActiveIndex(realIndex - total * 2);
-        } else {
-          setActiveIndex(realIndex - total);
-        }
-
-        isScrollingRef.current = true;
-        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-        scrollTimeoutRef.current = setTimeout(() => {
-          isScrollingRef.current = false;
-        }, 150);
-      };
-
-      // 初始居中定位到中间循环区域
-      const initialRealIndex = total + 0;
-      scrollToRealIndex(initialRealIndex, false);
-
-      el.addEventListener('scroll', handleScroll, { passive: true });
-      return () => {
-        el.removeEventListener('scroll', handleScroll);
-        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-      };
-    }, [expanded, total, scrollToRealIndex]);
-
-    // 构建循环数据：尾部副本 + 原始数据 + 头部副本
-    const cyclicEntries = [
-      ...entries.map((w, i) => ({ ...w, virtualIndex: i, key: `tail-${w.id}` })),
-      ...entries.map((w, i) => ({ ...w, virtualIndex: i, key: `mid-${w.id}` })),
-      ...entries.map((w, i) => ({ ...w, virtualIndex: i, key: `head-${w.id}` })),
-    ];
 
     return (
-      <section className="space-y-4">
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="w-full flex items-center justify-between px-2 py-2 transition-colors rounded-xl"
+      <section className="space-y-3">
+        <div className="flex items-center gap-2 px-2">
+          <Sparkles size={14} className="text-amber-400" />
+          <h3 className="text-sm font-medium">星际回音</h3>
+        </div>
+
+        <div
+          ref={scrollRef}
+          className="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-4 px-4 pb-2"
         >
-          <h3 className="text-sm font-medium flex items-center gap-2">
-            <Sparkles size={16} className="text-amber-400" />
-            超新星 / 脉冲星
-          </h3>
-          <div className="flex items-center gap-2">
-            <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>星际回音精选</span>
-            <ChevronDown
-              size={16}
-              className={`transition-transform duration-300 ${isDark ? 'text-gray-500' : 'text-gray-400'} ${expanded ? 'rotate-180' : ''}`}
-            />
-          </div>
-        </button>
-
-        <div className={`grid transition-all duration-500 ease-in-out ${expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-          <div className="overflow-hidden space-y-4">
-            {/* 轮播容器 */}
+          {entries.map((whisper) => (
             <div
-              ref={scrollRef}
-              className="flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-4 px-4 pb-2"
-              style={{ scrollBehavior: 'auto' }}
+              key={whisper.id}
+              className="shrink-0 snap-start"
+              style={{ width: '240px' }}
             >
-              {cyclicEntries.map((whisper) => {
-                const isActive = whisper.virtualIndex === activeIndex;
-                return (
-                  <div
-                    key={whisper.key}
-                    onClick={() => {
-                      if (!isScrollingRef.current) {
-                        setActiveAndScroll(whisper.virtualIndex);
-                      }
-                    }}
-                    className={`shrink-0 snap-center transition-all duration-300 cursor-pointer ${
-                      isActive ? 'scale-100 opacity-100' : 'scale-[0.88] opacity-50'
-                    }`}
-                    style={{ width: '276px' }}
-                  >
-                    <div
-                      className={`p-5 rounded-[24px] border relative overflow-hidden h-full min-h-[180px] flex flex-col ${
-                        isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm'
-                      }`}
-                    >
-                      <div className={`absolute -right-4 -top-4 w-20 h-20 rounded-full blur-3xl opacity-50 ${whisper.isPositive ? 'bg-amber-500/20' : 'bg-blue-500/20'}`} />
-                      <div className={`absolute -bottom-10 -left-4 w-16 h-16 rounded-full blur-2xl opacity-30 ${whisper.isPositive ? 'bg-pink-500/10' : 'bg-indigo-500/10'}`} />
-
-                      <div className="flex items-center gap-2 mb-3 relative z-10">
-                        <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
-                          {whisper.emotion}
-                        </span>
-                        <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                          <Radio size={10} /> 未知坐标
-                        </span>
-                      </div>
-
-                      <p className={`text-sm leading-relaxed font-light relative z-10 flex-1 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
-                        "{whisper.text}"
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
+              <div
+                className={`p-4 rounded-[20px] border relative overflow-hidden ${
+                  isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
+                    {whisper.emotion}
+                  </span>
+                </div>
+                <p className={`text-xs leading-relaxed font-light ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+                  "{whisper.text}"
+                </p>
+              </div>
             </div>
-
-            {/* 底部指示器 */}
-            <div className="flex justify-center gap-1.5">
-              {entries.map((whisper, index) => (
-                <button
-                  key={whisper.id}
-                  onClick={() => setActiveAndScroll(index)}
-                  className={`rounded-full transition-all duration-300 ${
-                    index === activeIndex
-                      ? 'w-5 h-1.5 bg-amber-400'
-                      : 'w-1.5 h-1.5 bg-gray-300'
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
+          ))}
         </div>
       </section>
     );
@@ -500,36 +378,26 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
     <section className="grid grid-cols-2 gap-3">
       <button
         onClick={() => onNavigate('radar')}
-        className={`p-5 rounded-[28px] border text-left transition-all hover:scale-[1.02] active:scale-95 group ${
+        className={`p-4 rounded-[24px] border text-center transition-all hover:scale-[1.02] active:scale-95 ${
           isDark ? 'bg-[#171724]/70 border-white/5 hover:border-indigo-500/30' : 'bg-white border-gray-100 shadow-sm hover:border-indigo-200'
         }`}
       >
-        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mb-3 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-50'}`}>
+        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mx-auto mb-2 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-50'}`}>
           <Radio size={20} className="text-indigo-400" />
         </div>
-        <h4 className="text-sm font-medium mb-1">雷达入口</h4>
-        <p className={`text-[10px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>进入发射台，发送你的心语信号</p>
-        <div className={`mt-3 flex items-center gap-1 text-[10px] ${isDark ? 'text-indigo-400' : 'text-indigo-600'} group-hover:gap-1.5 transition-all`}>
-          <span>前往</span>
-          <ChevronRight size={12} />
-        </div>
+        <h4 className="text-sm font-medium">雷达</h4>
       </button>
 
       <button
         onClick={() => onNavigate('star')}
-        className={`p-5 rounded-[28px] border text-left transition-all hover:scale-[1.02] active:scale-95 group ${
+        className={`p-4 rounded-[24px] border text-center transition-all hover:scale-[1.02] active:scale-95 ${
           isDark ? 'bg-[#171724]/70 border-white/5 hover:border-pink-500/30' : 'bg-white border-gray-100 shadow-sm hover:border-pink-200'
         }`}
       >
-        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mb-3 ${isDark ? 'bg-pink-500/15' : 'bg-pink-50'}`}>
+        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mx-auto mb-2 ${isDark ? 'bg-pink-500/15' : 'bg-pink-50'}`}>
           <Gift size={20} className="text-pink-400" />
         </div>
-        <h4 className="text-sm font-medium mb-1">心愿池入口</h4>
-        <p className={`text-[10px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>进入星愿池，兑换助眠好物</p>
-        <div className={`mt-3 flex items-center gap-1 text-[10px] ${isDark ? 'text-pink-400' : 'text-pink-600'} group-hover:gap-1.5 transition-all`}>
-          <span>前往</span>
-          <ChevronRight size={12} />
-        </div>
+        <h4 className="text-sm font-medium">心愿池</h4>
       </button>
     </section>
   );
@@ -544,7 +412,7 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
   );
 
   return (
-    <div className="animate-fade-in space-y-8 pb-10">
+    <div className="animate-fade-in space-y-6 pb-10">
       <HeroSection />
       <AppIntroSection />
       <QuizSection />
