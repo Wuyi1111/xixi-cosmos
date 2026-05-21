@@ -330,45 +330,130 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
     );
   };
 
-  // 4. 超新星/脉冲星
-  const SupernovaSection = () => (
-    <section className="space-y-4">
-      <div className="flex items-center justify-between px-2">
-        <h3 className="text-sm font-medium flex items-center gap-2">
-          <Sparkles size={16} className="text-amber-400" />
-          超新星 / 脉冲星
-        </h3>
-        <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>星际回音精选</span>
-      </div>
+  // 4. 超新星/脉冲星 — 横向滑动轮播
+  const SupernovaSection = () => {
+    const [activeIndex, setActiveIndex] = useState(0);
+    const scrollRef = useRef(null);
+    const isScrollingRef = useRef(false);
+    const scrollTimeoutRef = useRef(null);
+    const CARD_WIDTH = 292; // 276px + 16px gap
 
-      <div className="space-y-3">
-        {MOCK_WHISPERS.map((whisper) => (
-          <div
-            key={whisper.id}
-            className={`p-5 rounded-[28px] border relative overflow-hidden transition-all hover:scale-[1.01] ${
-              isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm'
-            }`}
-          >
-            <div className={`absolute -right-4 -top-4 w-20 h-20 rounded-full blur-3xl opacity-50 ${whisper.isPositive ? 'bg-amber-500/20' : 'bg-blue-500/20'}`} />
-            <div className={`absolute -bottom-10 -left-4 w-16 h-16 rounded-full blur-2xl opacity-30 ${whisper.isPositive ? 'bg-pink-500/10' : 'bg-indigo-500/10'}`} />
+    const scrollToIndex = (index) => {
+      if (!scrollRef.current) return;
+      const containerWidth = scrollRef.current.offsetWidth;
+      const offset = index * CARD_WIDTH - (containerWidth - 276) / 2;
+      scrollRef.current.scrollTo({ left: offset, behavior: 'smooth' });
+    };
 
-            <div className="flex items-center gap-2 mb-3 relative z-10">
-              <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
-                {whisper.emotion}
-              </span>
-              <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                <Radio size={10} /> 未知坐标
-              </span>
-            </div>
+    useEffect(() => {
+      const el = scrollRef.current;
+      if (!el) return;
 
-            <p className={`text-sm leading-relaxed font-light relative z-10 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
-              "{whisper.text}"
-            </p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
+      const handleScroll = () => {
+        if (!el) return;
+        const containerWidth = el.offsetWidth;
+        const scrollLeft = el.scrollLeft;
+        const center = scrollLeft + containerWidth / 2;
+        const newIndex = Math.round((center - containerWidth / 2 + 276 / 2) / CARD_WIDTH);
+        const clamped = Math.max(0, Math.min(MOCK_WHISPERS.length - 1, newIndex));
+        if (clamped !== activeIndex) setActiveIndex(clamped);
+
+        isScrollingRef.current = true;
+        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+        scrollTimeoutRef.current = setTimeout(() => {
+          isScrollingRef.current = false;
+        }, 150);
+      };
+
+      // 初始居中
+      const containerWidth = el.offsetWidth;
+      el.scrollLeft = 0 * CARD_WIDTH - (containerWidth - 276) / 2;
+
+      el.addEventListener('scroll', handleScroll, { passive: true });
+      return () => {
+        el.removeEventListener('scroll', handleScroll);
+        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      };
+    }, [activeIndex]);
+
+    return (
+      <section className="space-y-4">
+        <div className="flex items-center justify-between px-2">
+          <h3 className="text-sm font-medium flex items-center gap-2">
+            <Sparkles size={16} className="text-amber-400" />
+            超新星 / 脉冲星
+          </h3>
+          <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>星际回音精选</span>
+        </div>
+
+        {/* 轮播容器 */}
+        <div
+          ref={scrollRef}
+          className="flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-4 px-4 pb-2"
+          style={{ scrollBehavior: 'smooth' }}
+        >
+          {MOCK_WHISPERS.map((whisper, index) => {
+            const isActive = index === activeIndex;
+            return (
+              <div
+                key={whisper.id}
+                onClick={() => {
+                  if (!isScrollingRef.current) {
+                    setActiveIndex(index);
+                    scrollToIndex(index);
+                  }
+                }}
+                className={`shrink-0 snap-center transition-all duration-300 cursor-pointer ${
+                  isActive ? 'scale-100 opacity-100' : 'scale-[0.88] opacity-50'
+                }`}
+                style={{ width: '276px' }}
+              >
+                <div
+                  className={`p-5 rounded-[24px] border relative overflow-hidden h-full min-h-[180px] flex flex-col ${
+                    isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm'
+                  }`}
+                >
+                  <div className={`absolute -right-4 -top-4 w-20 h-20 rounded-full blur-3xl opacity-50 ${whisper.isPositive ? 'bg-amber-500/20' : 'bg-blue-500/20'}`} />
+                  <div className={`absolute -bottom-10 -left-4 w-16 h-16 rounded-full blur-2xl opacity-30 ${whisper.isPositive ? 'bg-pink-500/10' : 'bg-indigo-500/10'}`} />
+
+                  <div className="flex items-center gap-2 mb-3 relative z-10">
+                    <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
+                      {whisper.emotion}
+                    </span>
+                    <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                      <Radio size={10} /> 未知坐标
+                    </span>
+                  </div>
+
+                  <p className={`text-sm leading-relaxed font-light relative z-10 flex-1 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+                    "{whisper.text}"
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 底部指示器 */}
+        <div className="flex justify-center gap-1.5">
+          {MOCK_WHISPERS.map((whisper, index) => (
+            <button
+              key={whisper.id}
+              onClick={() => {
+                setActiveIndex(index);
+                scrollToIndex(index);
+              }}
+              className={`rounded-full transition-all duration-300 ${
+                index === activeIndex
+                  ? 'w-5 h-1.5 bg-amber-400'
+                  : 'w-1.5 h-1.5 bg-gray-300'
+              }`}
+            />
+          ))}
+        </div>
+      </section>
+    );
+  };
 
   // 5. 跳转引导
   const NavigationSection = () => (
