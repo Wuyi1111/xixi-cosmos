@@ -12,8 +12,8 @@
  *   isDark, userData, saveUserData, onStartQuiz, onNavigate
  */
 
-import React from 'react';
-import { Radio, Heart, Gift, Compass, Sparkles, ChevronRight, Users } from 'lucide-react';
+import React, { useState } from 'react';
+import { Radio, Heart, Gift, Compass, Sparkles, ChevronRight, Users, ChevronDown } from 'lucide-react';
 import { COSMIC_PERSONALITIES, MOCK_WHISPERS } from '../constants.js';
 
 // 星系 mock 人数数据
@@ -38,7 +38,7 @@ export default function TonightView({ isDark, userData, saveUserData, onStartQui
 
       <div className="relative z-10">
         <h1 className={`text-4xl font-light tracking-[0.2em] mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-          此刻
+          息息·宇宙
         </h1>
         <p className={`text-sm font-light tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
           与繁星作伴，和内心和解
@@ -123,62 +123,76 @@ export default function TonightView({ isDark, userData, saveUserData, onStartQui
 
   // 3. 星系呈现
   const GalaxySection = () => {
+    const [expanded, setExpanded] = useState(false);
     const entries = Object.entries(COSMIC_PERSONALITIES);
 
     return (
       <section className="space-y-4">
-        <div className="flex items-center justify-between px-2">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="w-full flex items-center justify-between px-2 py-2 transition-colors rounded-xl"
+        >
           <h3 className="text-sm font-medium flex items-center gap-2">
             <Users size={16} className="text-indigo-400" />
             星系图谱
           </h3>
-          {personalityType && (
-            <span className={`text-[10px] px-2.5 py-1 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-600'}`}>
-              你属于 {COSMIC_PERSONALITIES[personalityType]?.name}
-            </span>
-          )}
-        </div>
+          <div className="flex items-center gap-2">
+            {personalityType && !expanded && (
+              <span className={`text-[10px] px-2.5 py-1 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-600'}`}>
+                你属于 {COSMIC_PERSONALITIES[personalityType]?.name}
+              </span>
+            )}
+            <ChevronDown
+              size={16}
+              className={`transition-transform duration-300 ${isDark ? 'text-gray-500' : 'text-gray-400'} ${expanded ? 'rotate-180' : ''}`}
+            />
+          </div>
+        </button>
 
-        <div className="grid grid-cols-2 gap-3">
-          {entries.map(([type, data]) => {
-            const isMine = type === personalityType;
-            const count = GALAXY_COUNTS[type] || 0;
-            return (
-              <div
-                key={type}
-                className={`p-4 rounded-2xl border transition-all ${
-                  isMine
-                    ? (isDark ? 'bg-indigo-900/20 border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.1)]' : 'bg-indigo-50 border-indigo-300 shadow-sm')
-                    : (isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm')
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`text-xs font-medium ${isMine ? (isDark ? 'text-indigo-300' : 'text-indigo-700') : (isDark ? 'text-gray-300' : 'text-gray-700')}`}>
-                    {data.name}
-                  </span>
-                  <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-                    {type}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {data.tags.slice(0, 2).map((tag, i) => (
-                    <span key={i} className={`text-[9px] px-1.5 py-0.5 rounded-full ${isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-                <div className={`flex items-center gap-1 text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                  <Users size={10} />
-                  <span>{count} 位旅人</span>
-                </div>
-                {isMine && (
-                  <div className={`mt-2 text-[9px] text-center py-1 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-600'}`}>
-                    ✦ 你的归属星系
+        <div className={`grid transition-all duration-500 ease-in-out ${expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+          <div className="overflow-hidden">
+            <div className="grid grid-cols-2 gap-3 pb-1">
+              {entries.map(([type, data]) => {
+                const isMine = type === personalityType;
+                const count = GALAXY_COUNTS[type] || 0;
+                return (
+                  <div
+                    key={type}
+                    className={`p-4 rounded-2xl border transition-all ${
+                      isMine
+                        ? (isDark ? 'bg-indigo-900/20 border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.1)]' : 'bg-indigo-50 border-indigo-300 shadow-sm')
+                        : (isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm')
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`text-xs font-medium ${isMine ? (isDark ? 'text-indigo-300' : 'text-indigo-700') : (isDark ? 'text-gray-300' : 'text-gray-700')}`}>
+                        {data.name}
+                      </span>
+                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+                        {type}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {data.tags.slice(0, 2).map((tag, i) => (
+                        <span key={i} className={`text-[9px] px-1.5 py-0.5 rounded-full ${isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                    <div className={`flex items-center gap-1 text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                      <Users size={10} />
+                      <span>{count} 位旅人</span>
+                    </div>
+                    {isMine && (
+                      <div className={`mt-2 text-[9px] text-center py-1 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-600'}`}>
+                        ✦ 你的归属星系
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          </div>
         </div>
       </section>
     );
