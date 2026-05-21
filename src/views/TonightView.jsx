@@ -330,44 +330,160 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
     );
   };
 
-  // 4. 超新星/脉冲星 — 直接横向滑动
+  // 4. 超新星/脉冲星 — 折叠 + 横向滑动轮播
   const SupernovaSection = () => {
+    const [expanded, setExpanded] = useState(false);
     const entries = MOCK_WHISPERS;
+    const total = entries.length;
+    const [activeIndex, setActiveIndex] = useState(0);
     const scrollRef = useRef(null);
+    const isScrollingRef = useRef(false);
+    const scrollTimeoutRef = useRef(null);
+    const CARD_WIDTH = 292; // 276px + 16px gap
+
+    const scrollToRealIndex = useCallback((realIndex, smooth = true) => {
+      if (!scrollRef.current) return;
+      const containerWidth = scrollRef.current.offsetWidth;
+      const offset = realIndex * CARD_WIDTH - (containerWidth - 276) / 2;
+      scrollRef.current.scrollTo({ left: offset, behavior: smooth ? 'smooth' : 'auto' });
+    }, []);
+
+    const setActiveAndScroll = useCallback((virtualIndex) => {
+      const clamped = Math.max(0, Math.min(total - 1, virtualIndex));
+      setActiveIndex(clamped);
+      const realIndex = total + clamped;
+      scrollToRealIndex(realIndex, true);
+    }, [total, scrollToRealIndex]);
+
+    useEffect(() => {
+      if (!expanded) return;
+      const el = scrollRef.current;
+      if (!el) return;
+
+      const handleScroll = () => {
+        if (!el) return;
+        const containerWidth = el.offsetWidth;
+        const scrollLeft = el.scrollLeft;
+        const center = scrollLeft + containerWidth / 2;
+        const realIndex = Math.round((center - containerWidth / 2 + 276 / 2) / CARD_WIDTH);
+
+        if (realIndex < total) {
+          const jumpIndex = realIndex + total;
+          el.scrollTo({ left: jumpIndex * CARD_WIDTH - (containerWidth - 276) / 2, behavior: 'auto' });
+          setActiveIndex(realIndex);
+        } else if (realIndex >= total * 2) {
+          const jumpIndex = realIndex - total;
+          el.scrollTo({ left: jumpIndex * CARD_WIDTH - (containerWidth - 276) / 2, behavior: 'auto' });
+          setActiveIndex(realIndex - total * 2);
+        } else {
+          setActiveIndex(realIndex - total);
+        }
+
+        isScrollingRef.current = true;
+        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+        scrollTimeoutRef.current = setTimeout(() => {
+          isScrollingRef.current = false;
+        }, 150);
+      };
+
+      // 初始居中定位到中间循环区域
+      const initialRealIndex = total + 0;
+      scrollToRealIndex(initialRealIndex, false);
+
+      el.addEventListener('scroll', handleScroll, { passive: true });
+      return () => {
+        el.removeEventListener('scroll', handleScroll);
+        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      };
+    }, [expanded, total, scrollToRealIndex]);
+
+    // 构建循环数据：尾部副本 + 原始数据 + 头部副本
+    const cyclicEntries = [
+      ...entries.map((w, i) => ({ ...w, virtualIndex: i, key: `tail-${w.id}` })),
+      ...entries.map((w, i) => ({ ...w, virtualIndex: i, key: `mid-${w.id}` })),
+      ...entries.map((w, i) => ({ ...w, virtualIndex: i, key: `head-${w.id}` })),
+    ];
 
     return (
-      <section className="space-y-3">
-        <div className="flex items-center gap-2 px-2">
-          <Sparkles size={14} className="text-amber-400" />
-          <h3 className="text-sm font-medium">星际回音</h3>
-        </div>
-
-        <div
-          ref={scrollRef}
-          className="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-4 px-4 pb-2"
+      <section className="space-y-2">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="w-full flex items-center justify-between px-2 py-2 transition-colors rounded-xl"
         >
-          {entries.map((whisper) => (
+          <h3 className="text-sm font-medium flex items-center gap-2">
+            <Sparkles size={16} className="text-amber-400" />
+            超新星 / 脉冲星
+          </h3>
+          <div className="flex items-center gap-2">
+            <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>星际回音精选</span>
+            <ChevronDown
+              size={16}
+              className={`transition-transform duration-300 ${isDark ? 'text-gray-500' : 'text-gray-400'} ${expanded ? 'rotate-180' : ''}`}
+            />
+          </div>
+        </button>
+
+        <div className={`grid transition-all duration-500 ease-in-out ${expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+          <div className="overflow-hidden space-y-2">
+            {/* 轮播容器 */}
             <div
-              key={whisper.id}
-              className="shrink-0 snap-start"
-              style={{ width: '240px' }}
+              ref={scrollRef}
+              className="flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-4 px-4 pb-2"
+              style={{ scrollBehavior: 'auto' }}
             >
-              <div
-                className={`p-4 rounded-[20px] border relative overflow-hidden ${
-                  isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`text-[10px] px-2 py-0.5 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
-                    {whisper.emotion}
-                  </span>
-                </div>
-                <p className={`text-xs leading-relaxed font-light ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
-                  "{whisper.text}"
-                </p>
-              </div>
+              {cyclicEntries.map((whisper) => {
+                const isActive = whisper.virtualIndex === activeIndex;
+                return (
+                  <div
+                    key={whisper.key}
+                    onClick={() => {
+                      if (!isScrollingRef.current) {
+                        setActiveAndScroll(whisper.virtualIndex);
+                      }
+                    }}
+                    className={`shrink-0 snap-center transition-all duration-300 cursor-pointer ${
+                      isActive ? 'scale-100 opacity-100' : 'scale-[0.88] opacity-50'
+                    }`}
+                    style={{ width: '276px' }}
+                  >
+                    <div
+                      className={`p-5 rounded-[24px] border relative overflow-hidden h-full min-h-[160px] flex flex-col ${
+                        isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-3 relative z-10">
+                        <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
+                          {whisper.emotion}
+                        </span>
+                        <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                          <Radio size={10} /> 未知坐标
+                        </span>
+                      </div>
+
+                      <p className={`text-sm leading-relaxed font-light relative z-10 flex-1 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+                        "{whisper.text}"
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          ))}
+
+            {/* 底部指示器 */}
+            <div className="flex justify-center gap-1.5">
+              {entries.map((whisper, index) => (
+                <button
+                  key={whisper.id}
+                  onClick={() => setActiveAndScroll(index)}
+                  className={`rounded-full transition-all duration-300 ${
+                    index === activeIndex
+                      ? 'w-5 h-1.5 bg-amber-400'
+                      : 'w-1.5 h-1.5 bg-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </section>
     );
@@ -412,9 +528,14 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
   );
 
   return (
-    <div className="animate-fade-in space-y-6 pb-10">
-      <HeroSection />
-      <AppIntroSection />
+    <div className="animate-fade-in space-y-4 pb-6">
+      {/* 未测试时显示标题和简介 */}
+      {!personalityData && (
+        <>
+          <HeroSection />
+          <AppIntroSection />
+        </>
+      )}
       <QuizSection />
       <GalaxySection />
       <SupernovaSection />
