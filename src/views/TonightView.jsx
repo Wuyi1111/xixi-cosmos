@@ -45,11 +45,7 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
 
   // 1. 宇宙氛围开头
   const HeroSection = () => (
-    <section className="relative text-center pt-4 pb-8 overflow-hidden">
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -top-10 -right-10 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-4 -left-10 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-
+    <section className="relative text-center pt-4 pb-6 overflow-hidden">
       <div className="relative z-10">
         <h1 className={`text-4xl font-light tracking-[0.2em] mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
           息息·宇宙
@@ -538,9 +534,19 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
     </section>
   );
 
+  // 应用简介
+  const AppIntroSection = () => (
+    <section className="text-center px-4">
+      <p className={`text-xs leading-relaxed max-w-[280px] mx-auto ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+        一个温柔的睡前陪伴空间，在这里记录心情、探索自我、与宇宙对话，让每一天的结束都充满仪式感
+      </p>
+    </section>
+  );
+
   return (
     <div className="animate-fade-in space-y-8 pb-10">
       <HeroSection />
+      <AppIntroSection />
       <QuizSection />
       <GalaxySection />
       <SupernovaSection />
