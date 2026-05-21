@@ -2,19 +2,20 @@
  * TonightView.jsx — 「此刻」综合门户首页。
  *
  * 屏幕从上到下：
- *   1) 宇宙氛围开头：大标题「此刻」+ 副标题 + 渐变背景装饰
- *   2) 探索内宇宙测试：从 MineView 迁移的性格测试入口
- *   3) 星系呈现：用户所属星系高亮 + 所有星系列表
+ *   1) 宇宙氛围开头：大标题「息息·宇宙」+ 副标题 + 渐变背景装饰
+ *   2) 探索内宇宙测试：点击弹出 QuizWidget 弹窗，完成后直接更新 personality
+ *   3) 星系呈现：用户所属星系高亮 + 所有星系列表（可折叠）
  *   4) 超新星/脉冲星：优秀内容卡片（MOCK_WHISPERS）
- *   5) 跳转引导：雷达入口（发射台）+ 心愿池入口（星愿池）
+ *   5) 跳转引导：雷达入口（发射台）+ 心愿池入口（归星页内嵌）
  *
  * Props:
- *   isDark, userData, saveUserData, onStartQuiz, onNavigate
+ *   isDark, userData, saveUserData, onNavigate
  */
 
 import React, { useState } from 'react';
 import { Radio, Heart, Gift, Compass, Sparkles, ChevronRight, Users, ChevronDown } from 'lucide-react';
 import { COSMIC_PERSONALITIES, MOCK_WHISPERS } from '../constants.js';
+import QuizWidget from '../widgets/QuizWidget.jsx';
 
 // 星系 mock 人数数据
 const GALAXY_COUNTS = {
@@ -24,9 +25,23 @@ const GALAXY_COUNTS = {
   'ESTJ': 145, 'ESFJ': 267, 'ENFJ': 298, 'ENTJ': 176,
 };
 
-export default function TonightView({ isDark, userData, saveUserData, onStartQuiz, onNavigate }) {
+export default function TonightView({ isDark, userData, saveUserData, onNavigate }) {
+  const [showQuiz, setShowQuiz] = useState(false);
   const personalityData = typeof userData.personality === 'object' ? userData.personality : null;
   const personalityType = personalityData?.type || null;
+
+  const handleQuizComplete = (result) => {
+    const isFirstTest = !userData.personality;
+    const nextData = {
+      ...userData,
+      personality: result,
+    };
+    if (isFirstTest) {
+      nextData.stardust = (userData.stardust || 0) + 30;
+    }
+    saveUserData(nextData);
+    setShowQuiz(false);
+  };
 
   // 1. 宇宙氛围开头
   const HeroSection = () => (
@@ -55,7 +70,7 @@ export default function TonightView({ isDark, userData, saveUserData, onStartQui
     if (!personalityData) {
       return (
         <section
-          onClick={onStartQuiz}
+          onClick={() => setShowQuiz(true)}
           className={`p-5 rounded-[28px] cursor-pointer border transition-all hover:scale-[1.02] active:scale-95 ${
             isDark ? 'bg-gradient-to-r from-[#1f1f2e] to-[#171724] border-indigo-500/20' : 'bg-gradient-to-r from-indigo-50 to-white border-indigo-100 shadow-sm'
           }`}
@@ -80,7 +95,7 @@ export default function TonightView({ isDark, userData, saveUserData, onStartQui
 
     return (
       <section
-        onClick={onStartQuiz}
+        onClick={() => setShowQuiz(true)}
         className={`p-6 rounded-[28px] cursor-pointer border transition-all hover:scale-[1.01] active:scale-95 relative overflow-hidden ${
           isDark ? 'bg-[#1f1f2e] border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.05)]' : 'bg-indigo-50 border-indigo-200 shadow-sm'
         }`}
@@ -259,7 +274,7 @@ export default function TonightView({ isDark, userData, saveUserData, onStartQui
       </button>
 
       <button
-        onClick={() => onNavigate('wish')}
+        onClick={() => onNavigate('star')}
         className={`p-5 rounded-[28px] border text-left transition-all hover:scale-[1.02] active:scale-95 group ${
           isDark ? 'bg-[#171724] border-white/5 hover:border-pink-500/30' : 'bg-white border-gray-100 shadow-sm hover:border-pink-200'
         }`}
@@ -284,6 +299,14 @@ export default function TonightView({ isDark, userData, saveUserData, onStartQui
       <GalaxySection />
       <SupernovaSection />
       <NavigationSection />
+
+      {showQuiz && (
+        <QuizWidget
+          isDark={isDark}
+          onClose={() => setShowQuiz(false)}
+          onComplete={handleQuizComplete}
+        />
+      )}
     </div>
   );
 }

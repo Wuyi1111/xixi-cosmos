@@ -386,7 +386,6 @@ export default function App() {
             isDark={isDark}
             userData={userData}
             saveUserData={saveUserData}
-            onStartQuiz={() => setActiveTab('mine')}
             onNavigate={(tab) => setActiveTab(tab)}
           />
         )}
