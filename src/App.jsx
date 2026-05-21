@@ -20,13 +20,13 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { Home, Radar, Heart, User, Loader2, ChevronUp, ChevronDown } from 'lucide-react';
+import { Home, Radar, Sparkles, Moon, Loader2, ChevronUp, ChevronDown } from 'lucide-react';
 
 import TabButton from './components/TabButton.jsx';
 import TonightView from './views/TonightView.jsx';
 import TreeholeView from './views/TreeholeView.jsx';
-import WishPoolView from './views/WishPoolView.jsx';
-import MineView from './views/MineView.jsx';
+import GalaxyView from './views/GalaxyView.jsx';
+import StarView from './views/StarView.jsx';
 import SplashScreen from './components/SplashScreen.jsx';
 import { EMOTIONS } from './constants.js';
 
@@ -402,17 +402,16 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'wish' && (
-          <WishPoolView
-            key={`wish-${refreshKey}`}
+        {activeTab === 'galaxy' && (
+          <GalaxyView
+            key={`galaxy-${refreshKey}`}
             isDark={isDark}
             userData={userData}
-            saveUserData={saveUserData}
           />
         )}
-        {activeTab === 'mine' && (
-          <MineView
-            key={`mine-${refreshKey}`}
+        {activeTab === 'star' && (
+          <StarView
+            key={`star-${refreshKey}`}
             isDark={isDark}
             theme={theme}
             setTheme={setTheme}
@@ -430,8 +429,8 @@ export default function App() {
         <div className="max-w-md mx-auto flex justify-around items-center h-20 px-4">
           <TabButton id="tonight" icon={Home} label="此刻" active={activeTab === 'tonight'} onClick={() => setActiveTab('tonight')} isDark={isDark} />
           <TabButton id="radar" icon={Radar} label="雷达" active={activeTab === 'radar'} onClick={() => setActiveTab('radar')} isDark={isDark} />
-          <TabButton id="wish" icon={Heart} label="心愿池" active={activeTab === 'wish'} onClick={() => setActiveTab('wish')} isDark={isDark} />
-          <TabButton id="mine" icon={User} label="我的" active={activeTab === 'mine'} onClick={() => setActiveTab('mine')} isDark={isDark} />
+          <TabButton id="galaxy" icon={Sparkles} label="星系" active={activeTab === 'galaxy'} onClick={() => setActiveTab('galaxy')} isDark={isDark} />
+          <TabButton id="star" icon={Moon} label="归星" active={activeTab === 'star'} onClick={() => setActiveTab('star')} isDark={isDark} />
         </div>
       </nav>
     </div>
