@@ -40,7 +40,7 @@ export default function App() {
     id: 'TR755',                  // 固定编号，不可改
     displayName: '星星旅人',
     avatarEmoji: '🪐',
-    fontScale: 1.0,
+    fontScale: 0.85,
     totalDays: 0,
     continuousDays: 0,
     stardust: 0,
@@ -88,7 +88,7 @@ export default function App() {
       parsed.id = 'TR755';
       if (!parsed.displayName) parsed.displayName = '星星旅人';
       if (!parsed.avatarEmoji) parsed.avatarEmoji = '🪐';
-      if (typeof parsed.fontScale !== 'number') parsed.fontScale = 1.0;
+      if (typeof parsed.fontScale !== 'number') parsed.fontScale = 0.85;
       if (!Array.isArray(parsed.huggedWhispers)) parsed.huggedWhispers = [];
       if (typeof parsed.tomorrowDoneTotal !== 'number') parsed.tomorrowDoneTotal = 0;
       if (!parsed.tomorrowDoneToday || typeof parsed.tomorrowDoneToday !== 'object') {
@@ -299,7 +299,7 @@ export default function App() {
               parsed.id = 'TR755';
               if (!parsed.displayName) parsed.displayName = '星星旅人';
               if (!parsed.avatarEmoji) parsed.avatarEmoji = '🪐';
-              if (typeof parsed.fontScale !== 'number') parsed.fontScale = 1.0;
+              if (typeof parsed.fontScale !== 'number') parsed.fontScale = 0.85;
               if (!Array.isArray(parsed.huggedWhispers)) parsed.huggedWhispers = [];
               if (typeof parsed.tomorrowDoneTotal !== 'number') parsed.tomorrowDoneTotal = 0;
               if (!parsed.tomorrowDoneToday || typeof parsed.tomorrowDoneToday !== 'object') {

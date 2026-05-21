@@ -27,20 +27,34 @@ const GALAXY_COUNTS = {
 
 export default function TonightView({ isDark, userData, saveUserData, onNavigate }) {
   const [showQuiz, setShowQuiz] = useState(false);
+  const [flyInResult, setFlyInResult] = useState(null);
+  const [showFlyInAnim, setShowFlyInAnim] = useState(false);
+  const quizCardRef = useRef(null);
   const personalityData = typeof userData.personality === 'object' ? userData.personality : null;
   const personalityType = personalityData?.type || null;
 
-  const handleQuizComplete = (result) => {
-    const isFirstTest = !userData.personality;
-    const nextData = {
-      ...userData,
-      personality: result,
-    };
-    if (isFirstTest) {
-      nextData.stardust = (userData.stardust || 0) + 30;
+  const handleQuizComplete = (savedResult, unsavedResult) => {
+    if (savedResult) {
+      // 点击保存
+      const isFirstTest = !userData.personality;
+      const nextData = {
+        ...userData,
+        personality: savedResult,
+      };
+      if (isFirstTest) {
+        nextData.stardust = (userData.stardust || 0) + 30;
+      }
+      saveUserData(nextData);
+      setShowQuiz(false);
+    } else if (unsavedResult) {
+      // 点击关闭，触发飞入动画
+      setFlyInResult(unsavedResult);
+      setShowQuiz(false);
+      // 延迟一点等弹窗关闭后再开始飞入
+      setTimeout(() => {
+        setShowFlyInAnim(true);
+      }, 100);
     }
-    saveUserData(nextData);
-    setShowQuiz(false);
   };
 
   // 1. 宇宙氛围开头
@@ -55,6 +69,87 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
   // 2. 探索内宇宙测试 — 简洁卡片
   const QuizSection = () => {
     const [showDetail, setShowDetail] = useState(false);
+
+    // 飞入动画结束后清理状态
+    useEffect(() => {
+      if (showFlyInAnim && flyInResult) {
+        const timer = setTimeout(() => {
+          setShowFlyInAnim(false);
+        }, 800);
+        return () => clearTimeout(timer);
+      }
+    }, [showFlyInAnim, flyInResult]);
+
+    // 有飞入结果但未保存时，显示临时结果卡片
+    if (flyInResult && !personalityData) {
+      return (
+        <section
+          ref={quizCardRef}
+          className={`p-6 rounded-[24px] border transition-all ${
+            isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm'
+          } ${showFlyInAnim ? 'animate-fly-in-card' : ''}`}
+        >
+          <div className="flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-100'}`}>
+              <Sparkles size={24} className={isDark ? 'text-indigo-300' : 'text-indigo-500'} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={`text-[10px] font-medium tracking-widest ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
+                宇宙睡眠人格
+              </p>
+              <h3 className="text-lg font-medium tracking-wide">
+                {flyInResult.name}
+              </h3>
+              <span className={`text-[10px] px-2 py-0.5 rounded font-mono ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+                {flyInResult.type}
+              </span>
+            </div>
+            <button
+              onClick={() => setShowDetail(!showDetail)}
+              className={`p-2 rounded-full transition-colors ${isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              <ChevronDown size={16} className={`transition-transform duration-300 ${showDetail ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+
+          {/* 展开详情 */}
+          <div className={`grid transition-all duration-300 ease-in-out ${showDetail ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0'}`}>
+            <div className="overflow-hidden">
+              <div className="flex flex-wrap gap-2 mb-3">
+                {flyInResult.tags.map((tag, idx) => (
+                  <span key={idx} className={`text-[10px] px-2.5 py-1 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-200' : 'bg-indigo-100/80 text-indigo-700'}`}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              <p className={`text-xs leading-relaxed font-light ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                {flyInResult.desc}
+              </p>
+              <div className="flex gap-3 mt-3">
+                <button
+                  onClick={() => {
+                    const isFirstTest = !userData.personality;
+                    const nextData = { ...userData, personality: flyInResult };
+                    if (isFirstTest) nextData.stardust = (userData.stardust || 0) + 30;
+                    saveUserData(nextData);
+                    setFlyInResult(null);
+                  }}
+                  className="text-[10px] px-3 py-1.5 rounded-full bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
+                >
+                  保存结果
+                </button>
+                <button
+                  onClick={() => setShowQuiz(true)}
+                  className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-500'}`}
+                >
+                  重新探测 <ChevronRight size={10} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
 
     if (!personalityData) {
       return (
