@@ -59,16 +59,8 @@ export default function App() {
 
   const [currentDateStr, setCurrentDateStr] = useState(new Date().toDateString());
 
-  // 启动页状态：仅在每日首次打开时显示
-  const [showSplash, setShowSplash] = useState(() => {
-    const lastSplashDate = localStorage.getItem('xixi_cosmos_splash_date');
-    const today = new Date().toDateString();
-    if (lastSplashDate !== today) {
-      localStorage.setItem('xixi_cosmos_splash_date', today);
-      return true;
-    }
-    return false;
-  });
+  // 启动页状态：每次打开都显示
+  const [showSplash, setShowSplash] = useState(true);
 
   const handleSplashComplete = () => {
     setShowSplash(false);

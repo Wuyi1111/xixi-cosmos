@@ -1,18 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
+import { X } from 'lucide-react';
 
 export default function SplashScreen({ onComplete, isDark }) {
-  const [phase, setPhase] = useState('particles-scatter'); // particles-scatter, particles-gather, planet-idle, dissolve
+  const [phase, setPhase] = useState('particles-scatter');
   const [showText, setShowText] = useState(false);
+  const [showBreathing, setShowBreathing] = useState(false);
+  const [breathingPhase, setBreathingPhase] = useState('吸气');
   const animationRef = useRef(null);
   const canvasRef = useRef(null);
   const particlesRef = useRef([]);
+  const breathingTimerRef = useRef(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
 
-    // 设置 canvas 尺寸
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -20,7 +23,6 @@ export default function SplashScreen({ onComplete, isDark }) {
     resize();
     window.addEventListener('resize', resize);
 
-    // 初始化粒子
     const particleCount = 120;
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2 - 30;
@@ -40,8 +42,6 @@ export default function SplashScreen({ onComplete, isDark }) {
         speed: Math.random() * 0.02 + 0.015,
         gatherProgress: 0,
         dissolveProgress: 0,
-        dx: 0,
-        dy: 0,
         originalAngle: angle,
         originalDistance: distance
       });
@@ -51,7 +51,6 @@ export default function SplashScreen({ onComplete, isDark }) {
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // 绘制背景渐变
       const gradient = ctx.createRadialGradient(
         centerX, centerY, 0,
         centerX, centerY, Math.max(canvas.width, canvas.height) * 0.6
@@ -69,29 +68,17 @@ export default function SplashScreen({ onComplete, isDark }) {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       particlesRef.current.forEach((particle, index) => {
-        // 根据阶段更新粒子位置
         if (phase === 'particles-scatter') {
-          // 粒子分散在屏幕周围，轻微漂浮
           particle.x += Math.sin(frame * particle.speed + index) * 0.3;
           particle.y += Math.cos(frame * particle.speed + index) * 0.3;
         } else if (phase === 'particles-gather') {
-          // 聚集到星球位置
           particle.gatherProgress += particle.speed * 1.5;
           if (particle.gatherProgress > 1) particle.gatherProgress = 1;
 
           const eased = easeOutCubic(particle.gatherProgress);
-          particle.x = lerp(
-            particle.x,
-            particle.targetX,
-            eased * 0.08
-          );
-          particle.y = lerp(
-            particle.y,
-            particle.targetY,
-            eased * 0.08
-          );
-        } else if (phase === 'planet-idle') {
-          // 星球轻微呼吸
+          particle.x = lerp(particle.x, particle.targetX, eased * 0.08);
+          particle.y = lerp(particle.y, particle.targetY, eased * 0.08);
+        } else if (phase === 'planet-idle' || phase === 'breathing') {
           const breathe = Math.sin(frame * 0.03) * 2;
           const angle = particle.originalAngle;
           const dist = planetRadius * (0.85 + Math.random() * 0.3) + breathe;
@@ -101,7 +88,6 @@ export default function SplashScreen({ onComplete, isDark }) {
           particle.x = lerp(particle.x, particle.targetX, 0.05);
           particle.y = lerp(particle.y, particle.targetY, 0.05);
         } else if (phase === 'dissolve') {
-          // 向外消散
           particle.dissolveProgress += particle.speed * 0.8;
           if (particle.dissolveProgress > 1) particle.dissolveProgress = 1;
 
@@ -112,7 +98,6 @@ export default function SplashScreen({ onComplete, isDark }) {
           particle.opacity = 1 - eased;
         }
 
-        // 绘制粒子
         if (particle.opacity > 0) {
           ctx.beginPath();
           ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
@@ -121,7 +106,6 @@ export default function SplashScreen({ onComplete, isDark }) {
             : `rgba(99, 102, 241, ${particle.opacity * 0.9})`;
           ctx.fill();
 
-          // 添加光晕
           ctx.beginPath();
           ctx.arc(particle.x, particle.y, particle.size * 2.5, 0, Math.PI * 2);
           const glowGradient = ctx.createRadialGradient(
@@ -137,8 +121,7 @@ export default function SplashScreen({ onComplete, isDark }) {
         }
       });
 
-      // 星球核心光晕
-      if (phase === 'planet-idle' || phase === 'dissolve') {
+      if (phase === 'planet-idle' || phase === 'breathing' || phase === 'dissolve') {
         const coreOpacity = phase === 'dissolve' ? 1 - particlesRef.current[0]?.dissolveProgress : 1;
 
         ctx.beginPath();
@@ -164,17 +147,14 @@ export default function SplashScreen({ onComplete, isDark }) {
 
     animate();
 
-    // 动画时序控制
     const timers = [
       setTimeout(() => setPhase('particles-gather'), 800),
       setTimeout(() => setPhase('planet-idle'), 2800),
       setTimeout(() => {
         setShowText(true);
-        setPhase('dissolve');
-      }, 4500),
-      setTimeout(() => {
-        onComplete();
-      }, 6500)
+        setShowBreathing(true);
+        setPhase('breathing');
+      }, 3500)
     ];
 
     return () => {
@@ -183,13 +163,38 @@ export default function SplashScreen({ onComplete, isDark }) {
         cancelAnimationFrame(animationRef.current);
       }
       timers.forEach(t => clearTimeout(t));
+      if (breathingTimerRef.current) {
+        clearInterval(breathingTimerRef.current);
+      }
     };
-  }, [phase, isDark, onComplete]);
+  }, [phase, isDark]);
 
-  // 辅助函数
+  // 呼吸动画
+  useEffect(() => {
+    if (!showBreathing) return;
+
+    const interval = setInterval(() => {
+      setBreathingPhase(prev => prev === '吸气' ? '呼气' : '吸气');
+    }, 4000);
+
+    breathingTimerRef.current = interval;
+
+    return () => clearInterval(interval);
+  }, [showBreathing]);
+
+  const handleClose = () => {
+    setPhase('dissolve');
+    setTimeout(() => {
+      onComplete();
+    }, 1500);
+  };
+
   const lerp = (start, end, t) => start + (end - start) * t;
   const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
   const easeInCubic = (t) => t * t * t;
+
+  const breatheScale = breathingPhase === '吸气' ? 1.1 : 0.9;
+  const breatheOpacity = breathingPhase === '吸气' ? 1 : 0.7;
 
   return (
     <div
@@ -197,34 +202,84 @@ export default function SplashScreen({ onComplete, isDark }) {
         isDark ? 'bg-[#0f0f1a]' : 'bg-[#f8fafc]'
       }`}
     >
+      {/* 关闭按钮 */}
+      <button
+        onClick={handleClose}
+        className={`absolute top-[max(env(safe-area-inset-top)+1rem,2rem)] right-6 z-20 p-2 rounded-full transition-all active:scale-95 ${
+          isDark ? 'text-gray-400 hover:text-gray-200 hover:bg-white/10' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+        }`}
+      >
+        <X size={24} />
+      </button>
+
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full"
         style={{ pointerEvents: 'none' }}
       />
 
-      {/* "息息" 文字 */}
-      <div
-        className={`relative z-10 transition-all duration-1000 ${
-          showText
-            ? 'opacity-100 translate-y-0'
-            : 'opacity-0 translate-y-8'
-        }`}
-      >
-        <h1
-          className={`text-5xl font-light tracking-widest ${
-            isDark
-              ? 'text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-indigo-300'
-              : 'text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500'
+      {/* 内容区域 */}
+      <div className="relative z-10 flex flex-col items-center space-y-8">
+        {/* 品牌标语 */}
+        <div
+          className={`transition-all duration-1000 ${
+            showText
+              ? 'opacity-100 translate-y-0'
+              : 'opacity-0 translate-y-8'
           }`}
-          style={{
-            textShadow: isDark
-              ? '0 0 40px rgba(99, 102, 241, 0.3)'
-              : '0 0 40px rgba(99, 102, 241, 0.2)'
-          }}
         >
-          息息
-        </h1>
+          <h1
+            className={`text-5xl font-light tracking-widest ${
+              isDark
+                ? 'text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-indigo-300'
+                : 'text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500'
+            }`}
+            style={{
+              textShadow: isDark
+                ? '0 0 40px rgba(99, 102, 241, 0.3)'
+                : '0 0 40px rgba(99, 102, 241, 0.2)'
+            }}
+          >
+            息息 · 宇宙
+          </h1>
+        </div>
+
+        {/* 舒缓调息 */}
+        <div
+          className={`transition-all duration-1000 delay-500 ${
+            showBreathing
+              ? 'opacity-100 translate-y-0'
+              : 'opacity-0 translate-y-8'
+          }`}
+        >
+          <div className="flex flex-col items-center space-y-4">
+            {/* 呼吸光晕 */}
+            <div
+              className="relative w-32 h-32 flex items-center justify-center transition-all duration-[4000ms] ease-in-out"
+              style={{
+                transform: `scale(${breatheScale})`,
+                opacity: breatheOpacity
+              }}
+            >
+              <div className={`absolute inset-0 rounded-full ${isDark ? 'bg-indigo-500/20' : 'bg-indigo-400/15'} blur-xl`} />
+              <div className={`absolute inset-4 rounded-full ${isDark ? 'bg-indigo-400/15' : 'bg-indigo-300/10'} blur-lg`} />
+              <div className={`absolute inset-8 rounded-full ${isDark ? 'bg-indigo-300/10' : 'bg-indigo-200/10'} blur-md`} />
+              <span className={`text-2xl relative z-10 ${isDark ? 'text-indigo-200' : 'text-indigo-600'}`}>
+                🌙
+              </span>
+            </div>
+
+            {/* 呼吸文字 */}
+            <div className="text-center space-y-1">
+              <p className={`text-lg font-light tracking-wider transition-all duration-[4000ms] ${isDark ? 'text-indigo-200' : 'text-indigo-600'}`}>
+                {breathingPhase}
+              </p>
+              <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                跟随呼吸，慢慢进入
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
