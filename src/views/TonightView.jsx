@@ -149,7 +149,7 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
     const scrollRef = useRef(null);
     const isScrollingRef = useRef(false);
     const scrollTimeoutRef = useRef(null);
-    const CARD_WIDTH = 244; // 228px + 16px gap
+    const CARD_WIDTH = 276; // 260px + 16px gap
 
     const getVirtualIndex = useCallback((realIndex) => {
       // 将真实索引映射到虚拟循环索引
@@ -159,7 +159,7 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
     const scrollToRealIndex = useCallback((realIndex, smooth = true) => {
       if (!scrollRef.current) return;
       const containerWidth = scrollRef.current.offsetWidth;
-      const offset = realIndex * CARD_WIDTH - (containerWidth - 228) / 2;
+      const offset = realIndex * CARD_WIDTH - (containerWidth - 260) / 2;
       scrollRef.current.scrollTo({ left: offset, behavior: smooth ? 'smooth' : 'auto' });
     }, []);
 
@@ -170,6 +170,12 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
       const realIndex = total + clamped;
       scrollToRealIndex(realIndex, true);
     }, [total, scrollToRealIndex]);
+
+    const scrollToMine = useCallback(() => {
+      if (defaultIndex >= 0) {
+        setActiveAndScroll(defaultIndex);
+      }
+    }, [defaultIndex, setActiveAndScroll]);
 
     useEffect(() => {
       const el = scrollRef.current;
@@ -190,12 +196,12 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
         if (realIndex < total) {
           // 滚动到了头部副本区域，跳转到尾部副本
           const jumpIndex = realIndex + total;
-          el.scrollTo({ left: jumpIndex * CARD_WIDTH - (containerWidth - 228) / 2, behavior: 'auto' });
+          el.scrollTo({ left: jumpIndex * CARD_WIDTH - (containerWidth - 260) / 2, behavior: 'auto' });
           setActiveIndex(getVirtualIndex(realIndex));
         } else if (realIndex >= total * 2) {
           // 滚动到了尾部副本区域，跳转到头部副本
           const jumpIndex = realIndex - total;
-          el.scrollTo({ left: jumpIndex * CARD_WIDTH - (containerWidth - 228) / 2, behavior: 'auto' });
+          el.scrollTo({ left: jumpIndex * CARD_WIDTH - (containerWidth - 260) / 2, behavior: 'auto' });
           setActiveIndex(getVirtualIndex(realIndex));
         } else {
           setActiveIndex(getVirtualIndex(realIndex));
@@ -230,9 +236,12 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
             <Users size={16} className="text-indigo-400" />
             星系图谱
           </h3>
-          <span className={`text-[10px] px-2.5 py-1 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-600'}`}>
+          <button
+            onClick={scrollToMine}
+            className={`text-[10px] px-2.5 py-1 rounded-full transition-all active:scale-95 ${isDark ? 'bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30' : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200'}`}
+          >
             你属于 {COSMIC_PERSONALITIES[personalityType]?.name}
-          </span>
+          </button>
         </div>
 
         {/* 轮播容器 */}
@@ -257,7 +266,7 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
                 className={`shrink-0 snap-center transition-all duration-300 cursor-pointer ${
                   isActive ? 'scale-100 opacity-100' : 'scale-[0.88] opacity-50'
                 }`}
-                style={{ width: '228px' }}
+                style={{ width: '260px' }}
               >
                 <div
                   className={`h-full p-5 rounded-[24px] border transition-all ${
@@ -266,7 +275,7 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
                       : (isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm')
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center justify-between mb-3">
                     <span className={`text-[10px] font-mono px-2 py-1 rounded-md ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
                       {type}
                     </span>
@@ -277,23 +286,23 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
                     )}
                   </div>
 
-                  <h4 className={`text-lg font-medium mb-2 ${isMine ? (isDark ? 'text-indigo-300' : 'text-indigo-700') : (isDark ? 'text-gray-200' : 'text-gray-800')}`}>
+                  <h4 className={`text-lg font-medium mb-3 ${isMine ? (isDark ? 'text-indigo-300' : 'text-indigo-700') : (isDark ? 'text-gray-200' : 'text-gray-800')}`}>
                     {data.name}
                   </h4>
 
-                  <div className="flex flex-wrap gap-1.5 mb-4">
+                  <div className="flex flex-wrap gap-1.5 mb-3">
                     {data.tags.map((tag, i) => (
-                      <span key={i} className={`text-[9px] px-2 py-1 rounded-full ${isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>
+                      <span key={i} className={`text-[9px] px-2 py-1 rounded-full whitespace-nowrap ${isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>
                         {tag}
                       </span>
                     ))}
                   </div>
 
-                  <p className={`text-[11px] leading-relaxed mb-4 line-clamp-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <p className={`text-[11px] leading-relaxed mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                     {data.desc}
-  </p>
+                  </p>
 
-                  <div className={`flex items-center gap-1.5 text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                  <div className={`flex items-center gap-1.5 text-[10px] mt-auto ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
                     <Users size={10} />
                     <span>{count.toLocaleString()} 位旅人</span>
                   </div>
