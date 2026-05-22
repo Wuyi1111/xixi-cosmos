@@ -1,20 +1,19 @@
 /**
- * TreeholeView.jsx — "微澜"树洞，三栏 tab：星际回音 / 发射台 / 明日。
+ * TreeholeView.jsx — "雷达"板块，三栏滑动：星际回音 / 发射台 / 明日。
  *
- * 三个 tab（mode）：
- *   - 'browse'   星际回音：浏览示例心语，每张卡底部"送出温暖"心形按钮
- *   - 'emit'     发射台：选标签 + 写心语 + 选可见度 + 发射（每日上限 5 条）
- *                       下方接"我的信号" — 搜索 + 历史心语列表（v4.5.0 起合并进来）
- *   - 'tomorrow' 明日：给用户的温柔建议清单，原则是不逼用户改变只陪着
+ * 三个 mode：
+ *   - 'echo'     星际回音（左侧）：浏览示例心语，每张卡底部"送出温暖"
+ *   - 'emit'     发射台（中间，默认）：选标签 + 写心语 + 选可见度 + 发射
+ *                       下方接"我的信号" — 搜索 + 历史心语列表
+ *   - 'tomorrow' 明日（右侧）：展示他人的挑战/计划，"跟随"按钮
  *
- * 三个 tab 可以手指**横向滑动切换**（v4.5.0 起），也可以继续点击顶部按钮。
+ * 三个栏可以手指**横向滑动切换**，也可以继续点击顶部按钮。
  *
  * 改什么：
  *   - 改"星际回音"展示的示例心语 → src/constants.js 的 MOCK_WHISPERS
  *   - 改发射台的预设波段标签 → src/constants.js 的 PRESET_TAGS
  *   - 改每日发射上限（默认 5 次）→ 这里 postsLeft 那行的 5
- *   - 改"送出温暖"心形点亮 / 取消交互、粒子动效 → handleToggleHug
- *   - 改"明日"tab 的建议条目（emoji / 主文 / 副文）→ src/constants.js 的 TOMORROW_SUGGESTIONS
+ *   - 改"明日"tab 的挑战条目 → src/constants.js 的 TOMORROW_SUGGESTIONS
  *   - 调整手势滑动灵敏度（默认 20% 容器宽即触发切换）→ SWIPE_THRESHOLD_RATIO
  *   - 改边界阻尼 / 拖动反馈曲线 → onTouchMove 里的 0.3 系数
  *
@@ -23,24 +22,21 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { Radio, Heart, Search, X, Star, ChevronDown, Trash2, Send, AlertTriangle, CheckCircle2, RefreshCw, Plus, BookOpen } from 'lucide-react';
+import { Radio, Heart, Search, X, Star, ChevronDown, Trash2, Send, AlertTriangle, CheckCircle2, BookOpen, RefreshCw, Plus, Flame, TrendingUp, RotateCcw } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import { MOCK_WHISPERS, PRESET_TAGS, TOMORROW_SUGGESTIONS } from '../constants.js';
 
-const MODES = ['browse', 'emit', 'tomorrow'];
-const MODE_LABELS = { browse: '星际回音', emit: '发射台', tomorrow: '明日' };
-const SWIPE_THRESHOLD_RATIO = 0.2; // 拖过容器 20% 宽就切到下一页
-const SPOTS_COUNT = 3; // 默认光点数量
+const MODES = ['echo', 'emit', 'tomorrow'];
+const MODE_LABELS = { echo: '星际回音', emit: '发射台', tomorrow: '明日' };
+const SWIPE_THRESHOLD_RATIO = 0.2;
 
-// 从任务池中随机抽取指定数量的任务
-const getRandomSuggestions = (count, excludeIds = []) => {
-  const available = TOMORROW_SUGGESTIONS.filter(s => !excludeIds.includes(s.id));
-  const shuffled = [...available].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
-};
-
-export default function TreeholeView({ isDark, userData, saveUserData, currentDateStr }) {
-  const [mode, setMode] = useState('browse');
+export default function TreeholeView({
+  isDark,
+  userData,
+  saveUserData,
+  currentDateStr,
+}) {
+  const [mode, setMode] = useState('emit');
   const [whisperText, setWhisperText] = useState('');
   const [selectedTag, setSelectedTag] = useState('');
   const [visibility, setVisibility] = useState('public');
@@ -49,11 +45,14 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedWhisperId, setExpandedWhisperId] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
-  // 明日页面状态
-  const [showCustomInput, setShowCustomInput] = useState(false);
+  // 明日板块状态（必须从组件顶层调用，不能放在 renderTomorrow 内部）
+  const [displayedSuggestions, setDisplayedSuggestions] = useState(() =>
+    TOMORROW_SUGGESTIONS.map(s => ({ ...s, _instanceId: Math.random().toString(36).slice(2) }))
+  );
   const [customText, setCustomText] = useState('');
-  const [showHistory, setShowHistory] = useState(false);
+  const [showCustomInput, setShowCustomInput] = useState(false);
 
   const textareaRef = useRef(null);
 
@@ -199,108 +198,8 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
     w.emotion.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-<<<<<<< HEAD
-=======
-  // === 明日页面逻辑 ===
-  // 获取今日光点（如果没有则生成）
-  const getTodaySpots = () => {
-    const saved = userData.tomorrowSpots;
-    if (saved?.date === currentDateStr && saved?.spots?.length >= SPOTS_COUNT) {
-      return saved.spots;
-    }
-    // 生成新的光点
-    const spots = Array.from({ length: SPOTS_COUNT }, (_, i) => ({
-      id: `spot_${Date.now()}_${i}`,
-      type: 'random',
-      suggestion: getRandomSuggestions(1)[0] || null,
-      customText: '',
-      status: 'pending', // pending | done | skipped
-    }));
-    saveUserData({
-      ...userData,
-      tomorrowSpots: { date: currentDateStr, spots }
-    });
-    return spots;
-  };
-
-  const todaySpots = getTodaySpots();
-  const doneCount = todaySpots.filter(s => s.status === 'done').length;
-
-  const updateSpot = (spotId, updates) => {
-    const newSpots = todaySpots.map(s => s.id === spotId ? { ...s, ...updates } : s);
-    saveUserData({
-      ...userData,
-      tomorrowSpots: { date: currentDateStr, spots: newSpots }
-    });
-  };
-
-  const handleDone = (spotId) => {
-    const spot = todaySpots.find(s => s.id === spotId);
-    if (!spot || spot.status === 'done') return;
-
-    // 添加到历史记录
-    const historyEntry = {
-      id: Date.now(),
-      date: currentDateStr,
-      text: spot.type === 'custom' ? spot.customText : (spot.suggestion?.main || ''),
-      emoji: spot.type === 'custom' ? '✨' : (spot.suggestion?.emoji || '✨'),
-    };
-
-    saveUserData({
-      ...userData,
-      tomorrowDoneTotal: (userData.tomorrowDoneTotal || 0) + 1,
-      tomorrowSpots: { date: currentDateStr, spots: todaySpots.map(s => s.id === spotId ? { ...s, status: 'done' } : s) },
-      tomorrowHistory: [historyEntry, ...(userData.tomorrowHistory || [])],
-    });
-  };
-
-  const handleAddNewSpot = () => {
-    const newSpot = {
-      id: `spot_${Date.now()}_${todaySpots.length}`,
-      type: 'empty',
-      suggestion: null,
-      customText: '',
-      status: 'pending',
-    };
-    saveUserData({
-      ...userData,
-      tomorrowSpots: { date: currentDateStr, spots: [...todaySpots, newSpot] }
-    });
-  };
-
-  const handleRefresh = (spotId) => {
-    const usedIds = todaySpots
-      .filter(s => s.type === 'random' && s.suggestion && s.id !== spotId)
-      .map(s => s.suggestion.id);
-    const newSuggestion = getRandomSuggestions(1, usedIds)[0];
-    updateSpot(spotId, { type: 'random', suggestion: newSuggestion || null });
-  };
-
-  const handleAddCustom = (spotId) => {
-    if (!customText.trim()) return;
-    updateSpot(spotId, {
-      type: 'custom',
-      customText: customText.trim(),
-      suggestion: null,
-      status: 'pending'
-    });
-    setCustomText('');
-    setShowCustomInput(false);
-  };
-
-  const handleClearCustom = (spotId) => {
-    const newSuggestion = getRandomSuggestions(1)[0];
-    updateSpot(spotId, {
-      type: 'random',
-      customText: '',
-      suggestion: newSuggestion || null,
-      status: 'pending'
-    });
-  };
-
->>>>>>> origin/main
   // === 三个页面内容 ===
-  const renderBrowse = () => (
+  const renderEcho = () => (
     <div className="space-y-6">
       {MOCK_WHISPERS.map((whisper, i) => {
         const isHugged = (userData.huggedWhispers || []).includes(whisper.id);
@@ -309,11 +208,11 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
             key={whisper.id}
             className={`p-6 rounded-[28px] ${isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border-white/5' : 'bg-gradient-to-br from-indigo-50/50 to-white border-indigo-50'} border shadow-sm relative overflow-hidden`}
           >
-            <div className={`absolute -right-4 -top-4 w-20 h-20 rounded-full blur-3xl opacity-50 ${whisper.isPositive ? 'bg-amber-500/20' : 'bg-blue-500/20'}`}></div>
-            <div className={`absolute -bottom-10 -left-4 w-16 h-16 rounded-full blur-2xl opacity-30 ${whisper.isPositive ? 'bg-pink-500/10' : 'bg-indigo-500/10'}`}></div>
+            <div className={`absolute -right-4 -top-4 w-32 h-32 rounded-full blur-3xl opacity-50 ${whisper.isPositive ? 'bg-amber-500/20' : 'bg-blue-500/20'}`}></div>
+            <div className={`absolute -bottom-10 -left-4 w-24 h-24 rounded-full blur-2xl opacity-30 ${whisper.isPositive ? 'bg-pink-500/10' : 'bg-indigo-500/10'}`}></div>
 
             <div className="flex items-center gap-2 mb-5 relative z-10">
-              <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
+              <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-200'}`}>
                 {whisper.emotion}
               </span>
               <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
@@ -332,7 +231,7 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
                 className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 active:scale-95 ${
                   isHugged
                     ? (isDark
-                        ? 'bg-pink-500/25 text-pink-300 border border-pink-400/60 shadow-[0_0_20px_rgba(236,72,153,0.35)]'
+                        ? 'bg-pink-500/25 text-pink-300 border border-pink-500/60 shadow-[0_0_20px_rgba(236,72,153,0.35)]'
                         : 'bg-pink-100 text-pink-600 border border-pink-300 shadow-[0_0_18px_rgba(236,72,153,0.25)]')
                     : (isDark
                         ? 'bg-white/5 hover:bg-white/10 text-pink-400 border border-white/5 hover:border-pink-500/30'
@@ -354,7 +253,7 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
     </div>
   );
 
-  const renderEmitAndMine = () => (
+  const renderEmit = () => (
     <div className="space-y-6">
       {/* 发射区 */}
       <div className="space-y-3">
@@ -388,7 +287,7 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
           placeholder="宇宙无边无际，你的心声在这里不再受限。倾诉吧..."
           value={whisperText}
           onChange={e => setWhisperText(e.target.value)}
-        ></textarea>
+        />
       </div>
 
       <div className="flex justify-between items-center px-2">
@@ -425,7 +324,7 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
         {postsLeft > 0 ? `今日还可发射 ${postsLeft} 次信号` : '明日 00:00 信号能量自动恢复'}
       </p>
 
-      {/* === 我的信号 列表（合并进发射台底部） === */}
+      {/* === 我的信号 列表 === */}
       <div className={`pt-6 mt-2 border-t ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
         <div className="flex items-center justify-between mb-3 px-1">
           <h3 className="text-sm font-medium flex items-center gap-2">
@@ -435,7 +334,7 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
           <span className="text-[10px] text-gray-500">{myWhispers.length} 条</span>
         </div>
 
-        <div className={`flex items-center px-4 py-3 rounded-2xl mb-3 ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
+        <div className={`flex items-center px-4 py-3 rounded-xl mb-3 ${isDark ? 'bg-[#171724]' : 'bg-white shadow-sm'}`}>
           <Search size={16} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
           <input
             type="text"
@@ -455,7 +354,7 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
           {filteredWhispers.length === 0 ? (
             <div className={`py-10 text-center text-xs flex flex-col items-center gap-3 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
               <Radio size={28} className="opacity-40" />
-              {searchQuery ? '在广袤宇宙中未寻得该信号' : '暂未发射过任何信号'}
+              {searchQuery ? '在广袤宇宙中未寻得该信号' : '还未发射过任何信号'}
             </div>
           ) : (
             filteredWhispers.map(whisper => {
@@ -472,7 +371,7 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
                   <div className="p-5 flex items-center justify-between">
                     <div className="flex flex-col gap-1.5 overflow-hidden pr-3">
                       <div className="flex items-center gap-2">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-sm ${isDark ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-sm ${isDark ? 'bg-indigo-500/15 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
                           {whisper.emotion}
                         </span>
                         <span className={`text-[9px] px-1.5 py-0.5 rounded-sm border ${whisper.visibility === 'private' ? (isDark ? 'bg-gray-800/50 text-gray-400 border-gray-700' : 'bg-gray-100 text-gray-500 border-gray-200') : (isDark ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30' : 'bg-indigo-50 text-indigo-500 border-indigo-100')}`}>
@@ -521,326 +420,465 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
     </div>
   );
 
-  // === 明日页面：光点机制 ===
   const renderTomorrow = () => {
-    const totalSpots = todaySpots.length;
-    const progress = totalSpots > 0 ? Math.round((doneCount / totalSpots) * 100) : 0;
+    const followedList = userData.followedSuggestions || [];
+
+    // 用户发布的自定义挑战
+    const userChallenges = userData.userChallenges || [];
+
+    // 已跟随的任务列表（包含完成状态）
+    const myTasks = userData.myTomorrowTasks || [];
+
+    // 过滤出今天跟随的任务
+    const todayTasks = myTasks.filter(t => t.date === currentDateStr);
+    const completedTasks = todayTasks.filter(t => t.completed);
+    const progressPercent = todayTasks.length > 0 ? Math.round((completedTasks.length / todayTasks.length) * 100) : 0;
+
+    // 热度排行：按跟随次数排序（系统推荐 + 用户发布）
+    const allForHot = [
+      ...TOMORROW_SUGGESTIONS.map(s => ({ ...s, followCount: Math.floor(Math.random() * 50) + 10 })),
+      ...userChallenges.map(c => ({ ...c, followCount: (c.followers || []).length })),
+    ];
+    const hotChallenges = [...allForHot].sort((a, b) => b.followCount - a.followCount).slice(0, 3);
+
+    const handleRefreshOne = (instanceId) => {
+      // 只替换当前这一条为另一条随机推荐
+      const available = TOMORROW_SUGGESTIONS.filter(s => !displayedSuggestions.find(d => d.id === s.id && d._instanceId !== instanceId));
+      const pool = available.length > 0 ? available : TOMORROW_SUGGESTIONS;
+      const random = pool[Math.floor(Math.random() * pool.length)];
+      setDisplayedSuggestions(prev =>
+        prev.map(d => d._instanceId === instanceId ? { ...random, _instanceId: instanceId } : d)
+      );
+    };
+
+    const handlePublishCustom = () => {
+      if (!customText.trim()) return;
+      const newChallenge = {
+        id: `user_${Date.now()}`,
+        emoji: '✨',
+        main: customText.trim(),
+        sub: '来自你的明日约定',
+        source: 'user',
+        followers: [],
+        date: currentDateStr,
+      };
+      saveUserData({
+        ...userData,
+        userChallenges: [newChallenge, ...userChallenges],
+      });
+      setCustomText('');
+      setShowCustomInput(false);
+    };
+
+    const handleFollowTask = (challenge) => {
+      const isSystem = !challenge.id.startsWith('user_');
+      const taskId = challenge.id;
+
+      // 检查是否已经跟随
+      if (todayTasks.find(t => t.taskId === taskId)) return;
+
+      // 添加到已跟随列表
+      const newTask = {
+        taskId,
+        date: currentDateStr,
+        completed: false,
+        emoji: challenge.emoji,
+        main: challenge.main,
+        sub: challenge.sub,
+        source: isSystem ? 'system' : 'user',
+      };
+
+      if (isSystem) {
+        const newFollowedList = [...followedList, taskId];
+        saveUserData({
+          ...userData,
+          totalFollows: (userData.totalFollows || 0) + 1,
+          followedSuggestions: newFollowedList,
+          myTomorrowTasks: [...myTasks, newTask],
+        });
+      } else {
+        const newChallenges = userChallenges.map(c => {
+          if (c.id === taskId) {
+            const followers = c.followers || [];
+            if (followers.includes(userData.id)) return c;
+            return { ...c, followers: [...followers, userData.id] };
+          }
+          return c;
+        });
+        saveUserData({
+          ...userData,
+          totalFollows: (userData.totalFollows || 0) + 1,
+          userChallenges: newChallenges,
+          myTomorrowTasks: [...myTasks, newTask],
+        });
+      }
+    };
+
+    const handleToggleComplete = (taskId) => {
+      const newTasks = myTasks.map(t => {
+        if (t.taskId === taskId && t.date === currentDateStr) {
+          return { ...t, completed: !t.completed };
+        }
+        return t;
+      });
+      saveUserData({
+        ...userData,
+        myTomorrowTasks: newTasks,
+      });
+    };
+
+    const handleUnfollowTask = (taskId) => {
+      const newTasks = myTasks.filter(t => !(t.taskId === taskId && t.date === currentDateStr));
+      const isUserChallenge = taskId.startsWith('user_');
+
+      if (isUserChallenge) {
+        const newChallenges = userChallenges.map(c => {
+          if (c.id === taskId) {
+            return { ...c, followers: (c.followers || []).filter(id => id !== userData.id) };
+          }
+          return c;
+        });
+        saveUserData({
+          ...userData,
+          totalFollows: Math.max(0, (userData.totalFollows || 0) - 1),
+          userChallenges: newChallenges,
+          myTomorrowTasks: newTasks,
+        });
+      } else {
+        saveUserData({
+          ...userData,
+          totalFollows: Math.max(0, (userData.totalFollows || 0) - 1),
+          followedSuggestions: followedList.filter(id => id !== taskId),
+          myTomorrowTasks: newTasks,
+        });
+      }
+    };
+
+    const isFollowed = (challengeId) => {
+      return todayTasks.some(t => t.taskId === challengeId);
+    };
 
     return (
-      <div className="space-y-5">
-        {/* 头部卡片 */}
-        <div className={`p-6 rounded-[28px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a24] to-[#171724] border border-indigo-500/15' : 'bg-gradient-to-br from-indigo-50/70 to-white border border-indigo-100'}`}>
+      <div className="space-y-6">
+        {/* 头部卡片 + 进度条 */}
+        <div className={`p-6 rounded-[28px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a24] to-[#171724] border border-emerald-500/15' : 'bg-gradient-to-br from-emerald-50/70 to-white border border-emerald-100'}`}>
           <div className="absolute -top-8 -right-6 w-32 h-32 rounded-full bg-amber-300/15 blur-3xl pointer-events-none"></div>
-          <div className="absolute -bottom-8 -left-6 w-24 h-24 rounded-full bg-indigo-300/15 blur-3xl pointer-events-none"></div>
+          <div className="absolute -bottom-8 -left-6 w-24 h-24 rounded-full bg-emerald-300/15 blur-3xl pointer-events-none"></div>
 
           <div className="relative z-10">
-            {/* 顶部标签与进度 */}
-            <div className="flex justify-between items-start mb-3">
-              <div className="flex items-center gap-2">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? 'bg-indigo-500/20' : 'bg-indigo-100'}`}>
-                  <span className="text-base">🌅</span>
-                </div>
-                <p className={`text-[10px] tracking-[0.2em] ${isDark ? 'text-indigo-300' : 'text-indigo-500'}`}>TOMORROW</p>
+            <div className="flex items-center gap-2 mb-3">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? 'bg-emerald-500/20' : 'bg-emerald-100'}`}>
+                <span className="text-base">🌅</span>
               </div>
-              <div className="flex items-center gap-2">
-                {(userData.tomorrowDoneTotal || 0) > 0 && (
-                  <span className={`text-[10px] px-2.5 py-1 rounded-full flex items-center gap-1 ${isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'}`}>
-                    <CheckCircle2 size={10} /> 已完成 {userData.tomorrowDoneTotal} 次
-                  </span>
-                )}
-                <button
-                  onClick={() => setShowHistory(true)}
-                  className={`text-[10px] px-2.5 py-1 rounded-full flex items-center gap-1 transition-colors ${isDark ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25' : 'bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100'}`}
-                >
-                  <BookOpen size={10} /> 我的光点
-                </button>
-              </div>
+              <p className={`text-[10px] tracking-[0.2em] ${isDark ? 'text-emerald-300' : 'text-emerald-500'}`}>TOMORROW</p>
             </div>
 
-            <h2 className="text-xl font-light mb-2 tracking-wide">轻轻陪你走向明天</h2>
-            <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              今天有 {totalSpots} 颗小光点等你拾起，<br/>
-              不是任务，只是温柔的陪伴。
+            <h2 className="text-xl font-light mb-2 tracking-wide">明日约定</h2>
+            <p className={`text-xs leading-relaxed mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              定下一个温柔约定，或跟随一颗别人的光点。
             </p>
 
-            {/* 今日进度 */}
-            <div className="mt-4 space-y-2">
-              <div className="flex justify-between items-center">
-                <p className={`text-[11px] ${doneCount > 0 ? (isDark ? 'text-emerald-300' : 'text-emerald-600') : (isDark ? 'text-gray-500' : 'text-gray-400')}`}>
-                  {doneCount > 0 ? `今天已经拾起了 ${doneCount} 颗 · 谢谢你照顾了自己` : '还没有拾起光点，慢慢来'}
-                </p>
-                <span className={`text-[10px] font-medium ${isDark ? 'text-emerald-300/70' : 'text-emerald-600/70'}`}>{progress}%</span>
+            {/* 进度条 */}
+            {todayTasks.length > 0 && (
+              <div className={`p-3 rounded-xl ${isDark ? 'bg-[#1f1f2e]/60' : 'bg-white/60'}`}>
+                <div className="flex justify-between text-[10px] mb-1.5">
+                  <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>
+                    今日进度 {completedTasks.length}/{todayTasks.length}
+                  </span>
+                  <span className={isDark ? 'text-emerald-300' : 'text-emerald-600'}>
+                    {progressPercent}%
+                  </span>
+                </div>
+                <div className={`h-2 rounded-full overflow-hidden ${isDark ? 'bg-[#0f0f1a]' : 'bg-gray-100'}`}>
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${
+                      progressPercent === 100
+                        ? 'bg-gradient-to-r from-emerald-400 to-amber-400'
+                        : 'bg-emerald-500'
+                    }`}
+                    style={{ width: `${progressPercent}%` }}
+                  ></div>
+                </div>
               </div>
-              <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-[#13131a]' : 'bg-gray-100'}`}>
-                <div
-                  className="h-full rounded-full bg-emerald-500 transition-all duration-700 ease-out"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
-        {/* 光点列表 */}
-        <div className="space-y-3">
-          {todaySpots.map((spot, index) => {
-            const isDone = spot.status === 'done';
-            const isCustom = spot.type === 'custom';
-            const suggestion = spot.suggestion;
-
-            return (
-              <div
-                key={spot.id}
-                className={`p-5 rounded-[24px] transition-all duration-500 ${
-                  isDone
-                    ? (isDark ? 'bg-[#13131a]/60 border border-emerald-500/20' : 'bg-emerald-50/50 border border-emerald-200/50')
-                    : (isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm')
-                }`}
-              >
-                {/* 光点头部 */}
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-indigo-500/15 text-indigo-300' : 'bg-indigo-50 text-indigo-600'}`}>
-                      光点 {index + 1}/{totalSpots}
-                    </span>
-                    {isDone && (
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 ${isDark ? 'bg-emerald-500/15 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
-                        <CheckCircle2 size={8} /> 已完成
-                      </span>
-                    )}
+        {/* 我的今日任务 */}
+        {todayTasks.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-1">
+              <CheckCircle2 size={14} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
+              <h3 className="text-sm font-medium">我的今日约定</h3>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
+                {completedTasks.length}/{todayTasks.length}
+              </span>
+            </div>
+            <div className="space-y-3">
+              {todayTasks.map((task) => (
+                <div
+                  key={task.taskId}
+                  className={`p-4 rounded-[20px] border transition-all ${
+                    task.completed
+                      ? (isDark ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50/30 border-emerald-200/50')
+                      : (isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm')
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'} shadow-sm`}>
+                      {task.completed ? '✅' : task.emoji}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium ${task.completed ? (isDark ? 'text-emerald-300 line-through opacity-60' : 'text-emerald-600 line-through opacity-60') : (isDark ? 'text-gray-100' : 'text-gray-800')}`}>
+                        {task.main}
+                      </p>
+                      <p className={`text-[11px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        {task.sub}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleToggleComplete(task.taskId)}
+                        className={`px-3 py-1.5 rounded-full text-[10px] font-medium transition-all active:scale-95 ${
+                          task.completed
+                            ? (isDark ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-100 text-emerald-600 border border-emerald-200')
+                            : (isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100')
+                        }`}
+                      >
+                        {task.completed ? '已完成' : '未完成'}
+                      </button>
+                      <button
+                        onClick={() => handleUnfollowTask(task.taskId)}
+                        className={`p-1.5 rounded-full transition-colors ${isDark ? 'text-gray-600 hover:text-red-400' : 'text-gray-400 hover:text-red-500'}`}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-                {/* 光点内容 */}
-                {isDone ? (
-                  // 已完成状态
+        {/* 热度排行 */}
+        {hotChallenges.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-1">
+              <TrendingUp size={14} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
+              <h3 className="text-sm font-medium">热度排行</h3>
+            </div>
+            <div className="space-y-3">
+              {hotChallenges.map((challenge, index) => {
+                const followed = isFollowed(challenge.id);
+                return (
+                  <div
+                    key={challenge.id}
+                    className={`p-4 rounded-[20px] border transition-all ${
+                      index === 0
+                        ? (isDark ? 'bg-amber-500/5 border-amber-500/20' : 'bg-amber-50/50 border-amber-200/50')
+                        : (isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm')
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-lg ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
+                        {index === 0 ? '🔥' : challenge.emoji}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className={`text-sm font-medium truncate ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
+                            {challenge.main}
+                          </p>
+                          {index === 0 && (
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${isDark ? 'bg-amber-500/20 text-amber-300' : 'bg-amber-100 text-amber-600'}`}>
+                              最热
+                            </span>
+                          )}
+                        </div>
+                        <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                          {challenge.followCount} 人跟随
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => followed ? null : handleFollowTask(challenge)}
+                        disabled={followed}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-medium transition-all active:scale-95 ${
+                          followed
+                            ? (isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200')
+                            : (isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100')
+                        }`}
+                      >
+                        <CheckCircle2 size={10} />
+                        {followed ? '已跟随' : '跟随'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 发现更多 */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <BookOpen size={14} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+              <h3 className="text-sm font-medium">发现更多</h3>
+            </div>
+            <button
+              onClick={() => setShowCustomInput(!showCustomInput)}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-medium transition-all active:scale-95 ${
+                showCustomInput
+                  ? (isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-600')
+                  : (isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100')
+              }`}
+            >
+              <Plus size={12} />
+              发布我的
+            </button>
+          </div>
+
+          {/* 自定义输入 */}
+          {showCustomInput && (
+            <div className={`p-4 rounded-[20px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm'}`}>
+              <textarea
+                className={`w-full p-3 rounded-xl resize-none text-sm focus:outline-none transition-all ${
+                  isDark
+                    ? 'bg-[#1f1f2e] text-gray-200 placeholder-gray-600 focus:ring-1 focus:ring-indigo-500/30'
+                    : 'bg-gray-50 text-gray-800 placeholder-gray-400 focus:ring-1 focus:ring-indigo-400/30'
+                }`}
+                rows={2}
+                placeholder="写下你明天想做的一件小事..."
+                value={customText}
+                onChange={e => setCustomText(e.target.value)}
+              />
+              <div className="flex justify-end mt-2">
+                <button
+                  onClick={handlePublishCustom}
+                  disabled={!customText.trim()}
+                  className={`px-4 py-2 rounded-full text-xs font-medium transition-all active:scale-95 ${
+                    customText.trim()
+                      ? 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                      : (isDark ? 'bg-[#1f1f2e] text-gray-600 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed')
+                  }`}
+                >
+                  发布出去
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 挑战列表（带单独刷新） */}
+          <div className="space-y-3">
+            {displayedSuggestions.map((suggestion) => {
+              const followed = isFollowed(suggestion.id);
+              return (
+                <div
+                  key={suggestion._instanceId}
+                  className={`p-4 rounded-[20px] transition-all ${
+                    followed
+                      ? (isDark ? 'bg-[#13131a]/60 border border-emerald-500/20' : 'bg-emerald-50/50 border border-emerald-200/50')
+                      : (isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm')
+                  }`}
+                >
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-emerald-500/20' : 'bg-emerald-100'}`}>
-                      {isCustom ? '✨' : (suggestion?.emoji || '✨')}
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'} shadow-sm`}>
+                      {suggestion.emoji}
                     </div>
-                    <div className="flex-1">
-                      <p className={`text-sm font-medium ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>
-                        {isCustom ? spot.customText : (suggestion?.main || '')}
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
+                        {suggestion.main}
                       </p>
-                      <p className={`text-[11px] ${isDark ? 'text-emerald-400/60' : 'text-emerald-600/60'}`}>
-                        谢谢你，这颗光点已经被你拾起
+                      <p className={`text-[11px] leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {suggestion.sub}
                       </p>
                     </div>
-                  </div>
-                ) : isCustom ? (
-                  // 自定义任务
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'} shadow-sm`}>
-                        ✨
-                      </div>
-                      <div className="flex-1">
-                        <p className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
-                          {spot.customText}
-                        </p>
-                        <p className={`text-[11px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                          这是你自己写下的光点
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-1.5">
                       <button
-                        onClick={() => handleDone(spot.id)}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
-                          isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25' : 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100'
-                        }`}
+                        onClick={() => handleRefreshOne(suggestion._instanceId)}
+                        className={`p-1.5 rounded-full transition-all active:scale-90 ${isDark ? 'text-gray-600 hover:text-gray-400' : 'text-gray-400 hover:text-gray-600'}`}
+                        title="换一条"
                       >
-                        <CheckCircle2 size={12} /> 完成
+                        <RotateCcw size={12} />
                       </button>
                       <button
-                        onClick={() => handleClearCustom(spot.id)}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
-                          isDark ? 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
+                        onClick={() => followed ? null : handleFollowTask(suggestion)}
+                        disabled={followed}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-medium transition-all active:scale-95 ${
+                          followed
+                            ? (isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200')
+                            : (isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100')
                         }`}
                       >
-                        <RefreshCw size={12} /> 换成随机的
+                        <CheckCircle2 size={10} />
+                        {followed ? '已跟随' : '跟随'}
                       </button>
                     </div>
                   </div>
-                ) : suggestion ? (
-                  // 随机推荐任务
-                  <div className="space-y-3">
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 用户发布的挑战 */}
+        {userChallenges.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-1">
+              <Star size={14} className={isDark ? 'text-purple-400' : 'text-purple-500'} />
+              <h3 className="text-sm font-medium">来自星旅人</h3>
+            </div>
+            <div className="space-y-3">
+              {userChallenges.map((challenge) => {
+                const followed = isFollowed(challenge.id);
+                return (
+                  <div
+                    key={challenge.id}
+                    className={`p-4 rounded-[20px] transition-all ${
+                      followed
+                        ? (isDark ? 'bg-[#13131a]/60 border border-purple-500/20' : 'bg-purple-50/50 border border-purple-200/50')
+                        : (isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm')
+                    }`}
+                  >
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'} shadow-sm`}>
-                        {suggestion.emoji}
+                        {challenge.emoji}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
-                          {suggestion.main}
+                          {challenge.main}
                         </p>
-                        <p className={`text-[11px] leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {suggestion.sub}
+                        <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                          {(challenge.followers || []).length} 人跟随 · {challenge.date}
                         </p>
                       </div>
-                    </div>
-                    <div className="flex gap-2">
                       <button
-                        onClick={() => handleDone(spot.id)}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
-                          isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25' : 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100'
+                        onClick={() => followed ? null : handleFollowTask(challenge)}
+                        disabled={followed}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-medium transition-all active:scale-95 ${
+                          followed
+                            ? (isDark ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30' : 'bg-purple-50 text-purple-600 border border-purple-200')
+                            : (isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100')
                         }`}
                       >
-                        <CheckCircle2 size={12} /> 完成
-                      </button>
-                      <button
-                        onClick={() => handleRefresh(spot.id)}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
-                          isDark ? 'bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
-                        }`}
-                      >
-                        <RefreshCw size={12} /> 换一换
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowCustomInput(true);
-                          setCustomText('');
-                        }}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
-                          isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
-                        }`}
-                      >
-                        <Plus size={12} /> 自己写
+                        <CheckCircle2 size={10} />
+                        {followed ? '已跟随' : '跟随'}
                       </button>
                     </div>
                   </div>
-                ) : (
-                  // 空状态 - 等待用户选择
-                  <div className="space-y-3">
-                    <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                      这颗光点还是空的，你想怎么填满它？
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleRefresh(spot.id)}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
-                          isDark ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25' : 'bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100'
-                        }`}
-                      >
-                        <RefreshCw size={12} /> 随机一颗
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowCustomInput(true);
-                          setCustomText('');
-                        }}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium transition-all active:scale-95 ${
-                          isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
-                        }`}
-                      >
-                        <Plus size={12} /> 自己写
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* 底部添加按钮 */}
-        <div className="flex justify-center pt-2">
-          <button
-            onClick={handleAddNewSpot}
-            className={`flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-all active:scale-95 ${
-              isDark ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25 hover:shadow-lg hover:shadow-indigo-500/20' : 'bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100 hover:shadow-lg hover:shadow-indigo-500/20'
-            }`}
-          >
-            <Plus size={16} /> 添加光点
-          </button>
-        </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* 底部温馨语句 */}
-        <div className={`p-4 rounded-2xl text-center ${isDark ? 'bg-[#171724]/50 border border-white/5' : 'bg-indigo-50/30 border border-indigo-100/50'}`}>
+        <div className={`p-4 rounded-2xl text-center ${isDark ? 'bg-[#171724]/50 border border-white/5' : 'bg-emerald-50/30 border border-emerald-100/50'}`}>
           <p className={`text-[11px] leading-relaxed ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
             明天醒来时，记得只是先睁开眼，剩下的慢慢来。
           </p>
         </div>
-
-        {/* 自定义输入弹窗 */}
-        {showCustomInput && (
-          <Portal>
-            <div className={`fixed inset-0 z-[60] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setShowCustomInput(false)}>
-              <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`} onClick={e => e.stopPropagation()}>
-                <button onClick={() => setShowCustomInput(false)} className={`absolute top-4 right-4 p-1 rounded-full ${isDark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-600'}`}>
-                  <X size={18} />
-                </button>
-                <h3 className={`text-lg font-medium mb-4 ${isDark ? 'text-white' : 'text-gray-800'}`}>写下你的光点</h3>
-                <textarea
-                  className={`w-full p-4 rounded-2xl resize-none h-24 text-sm focus:outline-none transition-all ${
-                    isDark ? 'bg-[#1f1f2e] text-gray-200 placeholder-gray-600 border border-gray-800' : 'bg-gray-50 text-gray-800 placeholder-gray-400 border border-gray-200'
-                  }`}
-                  placeholder="想为自己做一件什么事..."
-                  value={customText}
-                  onChange={e => setCustomText(e.target.value)}
-                />
-                <button
-                  onClick={() => {
-                    const emptySpot = todaySpots.find(s => s.type === 'empty');
-                    if (emptySpot && customText.trim()) {
-                      handleAddCustom(emptySpot.id);
-                    }
-                  }}
-                  disabled={!customText.trim()}
-                  className={`w-full mt-4 py-3 rounded-2xl font-medium transition-all active:scale-95 ${
-                    customText.trim()
-                      ? 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                      : (isDark ? 'bg-[#1f1f2e] text-gray-600 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed')
-                  }`}
-                >
-                  添加光点
-                </button>
-              </div>
-            </div>
-          </Portal>
-        )}
-
-        {/* 历史记录弹窗 */}
-        {showHistory && (
-          <Portal>
-            <div className={`fixed inset-0 z-[60] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setShowHistory(false)}>
-              <div className={`w-full max-w-sm max-h-[80vh] overflow-y-auto p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`} onClick={e => e.stopPropagation()}>
-                <button onClick={() => setShowHistory(false)} className={`absolute top-4 right-4 p-1 rounded-full ${isDark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-600'}`}>
-                  <X size={18} />
-                </button>
-                <h3 className={`text-lg font-medium mb-1 ${isDark ? 'text-white' : 'text-gray-800'}`}>我的光点记录</h3>
-                <p className={`text-xs mb-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                  你拾起的每一颗光点，都在这里发光
-                </p>
-
-                {(userData.tomorrowHistory || []).length === 0 ? (
-                  <div className={`py-10 text-center text-xs ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                    还没有拾起过光点，慢慢来
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {Object.entries(
-                      (userData.tomorrowHistory || []).reduce((acc, item) => {
-                        if (!acc[item.date]) acc[item.date] = [];
-                        acc[item.date].push(item);
-                        return acc;
-                      }, {})
-                    ).map(([date, items]) => (
-                      <div key={date} className="space-y-2">
-                        <p className={`text-[10px] font-medium ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{date}</p>
-                        {items.map(item => (
-                          <div key={item.id} className={`flex items-center gap-2 p-3 rounded-xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
-                            <span className="text-lg">{item.emoji}</span>
-                            <span className={`text-sm ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{item.text}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </Portal>
-        )}
       </div>
     );
   };
@@ -887,10 +925,10 @@ export default function TreeholeView({ isDark, userData, saveUserData, currentDa
           }}
         >
           <div className="shrink-0 px-4" style={{ width: `${100 / MODES.length}%` }}>
-            {renderBrowse()}
+            {renderEcho()}
           </div>
           <div className="shrink-0 px-4" style={{ width: `${100 / MODES.length}%` }}>
-            {renderEmitAndMine()}
+            {renderEmit()}
           </div>
           <div className="shrink-0 px-4" style={{ width: `${100 / MODES.length}%` }}>
             {renderTomorrow()}

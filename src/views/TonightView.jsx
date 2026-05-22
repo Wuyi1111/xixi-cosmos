@@ -23,14 +23,14 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Music, Wind, Moon, Sparkles, ChevronDown, X, Edit3, Calendar, ChevronLeft, ChevronRight, Sun } from 'lucide-react';
+import { Music, Wind, Moon, Sparkles, ChevronDown, X, Edit3, Calendar, ChevronLeft, ChevronRight, Sun, Radar, Gift } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import BreathingWidget from '../widgets/BreathingWidget.jsx';
 import DreamCard from '../widgets/DreamCard.jsx';
 import { EMOTIONS } from '../constants.js';
 
 // --- 页面 1：此刻 (Tonight) ---
-export default function TonightView({ isDark, hasCheckedInToday, onCheckIn, userData, saveUserData, currentDateStr }) {
+export default function TonightView({ isDark, hasCheckedInToday, onCheckIn, userData, saveUserData, currentDateStr, onNavigate }) {
   const [selectedMood, setSelectedMood] = useState(null);
   const [whisper, setWhisper] = useState('');
   const [comfortText, setComfortText] = useState('此刻，你的内心是何种风景？');
@@ -515,6 +515,45 @@ export default function TonightView({ isDark, hasCheckedInToday, onCheckIn, user
         saveUserData={saveUserData}
         currentDateStr={currentDateStr}
       />
+      
+      {/* 底部固定占位，给下方导航上方一点点，避免内容被遮挡 */}
+      <div className="h-28"></div>
+      
+      {/* 底部固定的雷达和心愿池按钮 */}
+      <div className="fixed bottom-20 left-0 right-0 z-40 px-4 pb-2 pt-1">
+        <div className="max-w-md mx-auto flex gap-4">
+          <button
+            onClick={() => onNavigate('treehole')}
+            className={`flex-1 py-5 rounded-[28px] flex flex-col items-center justify-center gap-2 transition-all active:scale-95 ${
+              isDark 
+                ? 'bg-gradient-to-br from-[#171724] to-[#13131a] border border-indigo-500/20 hover:border-indigo-400/40 shadow-[0_0_30px_rgba(99,102,241,0.12)]' 
+                : 'bg-white border border-gray-200 shadow-lg shadow-gray-200'
+            }`}
+          >
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+              isDark ? 'bg-indigo-500/20' : 'bg-indigo-100'
+            }`}>
+              <Radar size={24} className={isDark ? 'text-indigo-400' : 'text-indigo-600'} />
+            </div>
+            <span className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>雷达</span>
+          </button>
+          <button
+            onClick={() => onNavigate('galaxy')}
+            className={`flex-1 py-5 rounded-[28px] flex flex-col items-center justify-center gap-2 transition-all active:scale-95 ${
+              isDark 
+                ? 'bg-gradient-to-br from-[#171724] to-[#13131a] border border-purple-500/20 hover:border-purple-400/40 shadow-[0_0_30px_rgba(168,85,247,0.12)]' 
+                : 'bg-white border border-gray-200 shadow-lg shadow-gray-200'
+            }`}
+          >
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+              isDark ? 'bg-purple-500/20' : 'bg-purple-100'
+            }`}>
+              <Gift size={24} className={isDark ? 'text-purple-400' : 'text-purple-600'} />
+            </div>
+            <span className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>心愿池</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

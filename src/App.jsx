@@ -319,6 +319,7 @@ export default function App() {
             userData={userData}
             saveUserData={saveUserData}
             currentDateStr={currentDateStr}
+            onNavigate={setActiveTab}
           />
         )}
         {activeTab === 'treehole' && (
