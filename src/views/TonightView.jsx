@@ -538,7 +538,7 @@ export default function TonightView({ isDark, hasCheckedInToday, onCheckIn, user
             <span className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>雷达</span>
           </button>
           <button
-            onClick={() => onNavigate('galaxy')}
+            onClick={() => onNavigate('mine')}
             className={`flex-1 py-5 rounded-[28px] flex flex-col items-center justify-center gap-2 transition-all active:scale-95 ${
               isDark 
                 ? 'bg-gradient-to-br from-[#171724] to-[#13131a] border border-purple-500/20 hover:border-purple-400/40 shadow-[0_0_30px_rgba(168,85,247,0.12)]' 
