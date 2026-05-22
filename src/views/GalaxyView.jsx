@@ -1,371 +1,270 @@
 /**
- * GalaxyView.jsx — "星系"板块。
+ * GalaxyView.jsx — "星系"成长图谱。
  *
- * 页面结构：
- *   1) 顶部信息区：宇宙坐标 / 连续驻留夜晚 / 当前星尘
- *   2) 所在星系示意图：星系视觉 + 星系总星尘 + 超新星数量
- *   3) 超新星规则说明
- *   4) 星系里程碑：发展阶段 + 当前阶段 + 距离下一阶段
- *   5) 同星系星尘排名
+ * 屏幕从上到下：
+ *   1) 头部统计："连续驻留 N 夜晚" + "星尘数量"
+ *   2) 星系可视化卡：根据 totalDays 渐进解锁层级
+ *      0 天：紫色弥散云团
+ *      1 天：+ 颜色渐变内核
+ *      7 天：+ 中央太阳
+ *      14 天：+ 倾斜星环
+ *      21 天：+ 公转伴星
+ *      30 天：+ 第二条逆时针轨道
+ *      60 天：+ 整体自转晕染
+ *   3) 星轨里程碑印记：7 个徽章卡片（点击弹出详情）
+ *
+ * 改什么：
+ *   - 加 / 改阶段、改解锁天数 → src/constants.js 的 MILESTONES
+ *     （注意 milestoneIcons 数组里 emoji 顺序要和 MILESTONES.id 对齐）
+ *   - 调光晕跟随手指的灵敏度 / 阻尼 → layersRef 三层的 factor / scaleFactor / dragScale
+ *   - 改光晕拖动的最大偏移半径（默认 60px）→ MAX_OFFSET
+ *   - 改各阶段的具体视觉（颜色 / 大小 / 动画）→ renderGalaxyVisual 里
+ *     `days >= N && (...)` 的条件块
+ *
+ * 性能注意：useEffect 里的 RAF 循环 60fps 一直跑，即使光晕在中心也每帧重写
+ *          transform。在 galaxy tab 切走时 effect cleanup 会停。可以加
+ *          "已静止则停 RAF" 短路再 wake，但目前无感知问题。
  */
 
-import { useState } from 'react';
-import { MapPin, Moon, Sparkles, Star, Trophy, ChevronRight, Zap, Users } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Sparkles, X } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
+import { MILESTONES } from '../constants.js';
 
-// 星系发展阶段
-const GALAXY_STAGES = [
-  { id: 0, name: '虚空尘埃', desc: '微光在虚空中闪烁', minStardust: 0, color: 'gray' },
-  { id: 1, name: '星雾聚集', desc: '紫色光晕开始聚拢', minStardust: 500, color: 'purple' },
-  { id: 2, name: '初生星核', desc: '中央主星体诞生', minStardust: 2000, color: 'indigo' },
-  { id: 3, name: '星环觉醒', desc: '星环缓缓展开', minStardust: 5000, color: 'blue' },
-  { id: 4, name: '伴星环绕', desc: '小星体开始公转', minStardust: 10000, color: 'cyan' },
-  { id: 5, name: '双月引力', desc: '星系引力场增强', minStardust: 20000, color: 'emerald' },
-  { id: 6, name: '宁静星系', desc: '星系进入稳定运转', minStardust: 50000, color: 'amber' },
-];
+// --- 页面 3：星系 (Galaxy) ---
+export default function GalaxyView({ isDark, userData, saveUserData, currentDateStr }) {
+  const [selectedMilestone, setSelectedMilestone] = useState(null);
 
-// 模拟同星系用户排名
-const MOCK_RANKINGS = [
-  { id: 'TR0312', name: '星海旅人', avatar: '🌌', stardust: 2840 },
-  { id: 'TR1989', name: '月行者', avatar: '🌙', stardust: 2156 },
-  { id: 'TR0007', name: '星云漫步', avatar: '🪐', stardust: 1890 },
-  { id: 'TR2024', name: '极光猎人', avatar: '☄️', stardust: 1650 },
-  { id: 'TR0411', name: '深空观测', avatar: '✨', stardust: 1420 },
-  { id: 'TR8888', name: '星际漫游', avatar: '💫', stardust: 1280 },
-  { id: 'TR0521', name: '彗星尾巴', avatar: '🌟', stardust: 980 },
-  { id: 'TR1101', name: '银河拾荒', avatar: '🌠', stardust: 860 },
-];
-
-export default function GalaxyView({ isDark, userData }) {
-  const [showSupernovaRules, setShowSupernovaRules] = useState(false);
-
-  // 计算星系总星尘（个人 + 模拟同星系成员）
-  const galaxyTotalStardust = userData.stardust + MOCK_RANKINGS.reduce((sum, u) => sum + u.stardust, 0);
-
-  // 超新星数量（模拟：基于总互动数）
-  const supernovaCount = Math.floor((userData.totalHugs + (userData.totalFollows || 0)) / 10) + 3;
-
-  // 当前星系阶段
-  const currentStage = [...GALAXY_STAGES].reverse().find(s => galaxyTotalStardust >= s.minStardust) || GALAXY_STAGES[0];
-  const nextStage = GALAXY_STAGES.find(s => s.minStardust > galaxyTotalStardust);
-  const progressToNext = nextStage
-    ? Math.min(100, Math.round(((galaxyTotalStardust - currentStage.minStardust) / (nextStage.minStardust - currentStage.minStardust)) * 100))
-    : 100;
-
-  // 同星系排名（加入当前用户）
-  const allRankings = [
-    ...MOCK_RANKINGS,
-    { id: userData.id, name: userData.displayName, avatar: userData.avatarEmoji, stardust: userData.stardust, isMe: true },
-  ].sort((a, b) => b.stardust - a.stardust);
-
-  const myRankIndex = allRankings.findIndex(r => r.isMe);
-  const myRank = myRankIndex + 1;
-
-  // 连续夜晚显示
-  const lastCheckInDate = userData.checkInHistory[0]?.date;
-  const todayStr = new Date().toDateString();
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const hasCheckedInToday = lastCheckInDate === todayStr;
-  let displayContinuousDays = userData.continuousDays;
-  if (!hasCheckedInToday && userData.checkInHistory.length > 0) {
-    if (lastCheckInDate !== yesterday.toDateString()) {
-      displayContinuousDays = 0;
+  const currentMilestoneIndex = (() => {
+    for (let i = MILESTONES.length - 1; i >= 0; i--) {
+      if (userData.totalDays >= MILESTONES[i].days) return i;
     }
-  }
+    return 0;
+  })();
+  const currentMilestone = MILESTONES[currentMilestoneIndex];
+  const milestoneIcons = ['🌌', '🌫️', '⭐', '🪐', '💫', '🌗', '🌀'];
 
-  const stageColorMap = {
-    gray: isDark ? 'text-gray-400' : 'text-gray-500',
-    purple: isDark ? 'text-purple-400' : 'text-purple-500',
-    indigo: isDark ? 'text-indigo-400' : 'text-indigo-500',
-    blue: isDark ? 'text-blue-400' : 'text-blue-500',
-    cyan: isDark ? 'text-cyan-400' : 'text-cyan-500',
-    emerald: isDark ? 'text-emerald-400' : 'text-emerald-500',
-    amber: isDark ? 'text-amber-400' : 'text-amber-500',
+  // === 光晕跟随手指：RAF 多层缓动，模拟云雾散开 ===
+  const glowAreaRef = useRef(null);
+  const ambientRef = useRef(null);
+  const mainGlowRef = useRef(null);
+  const coreGlowRef = useRef(null);
+  const targetOffsetRef = useRef({ x: 0, y: 0 });
+  const layersRef = useRef([
+    { x: 0, y: 0, scale: 1, factor: 0.06, scaleFactor: 0.12, dragScale: 1.18 },
+    { x: 0, y: 0, scale: 1, factor: 0.13, scaleFactor: 0.15, dragScale: 1.12 },
+    { x: 0, y: 0, scale: 1, factor: 0.24, scaleFactor: 0.18, dragScale: 1.06 },
+  ]);
+  const draggingRef = useRef(false);
+
+  const MAX_OFFSET = 60;
+
+  const updateTarget = (clientX, clientY) => {
+    const el = glowAreaRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const dx = clientX - rect.left - rect.width / 2;
+    const dy = clientY - rect.top - rect.height / 2;
+    targetOffsetRef.current = {
+      x: Math.max(-MAX_OFFSET, Math.min(MAX_OFFSET, dx * 0.65)),
+      y: Math.max(-MAX_OFFSET, Math.min(MAX_OFFSET, dy * 0.65)),
+    };
   };
 
-  const stageBgMap = {
-    gray: isDark ? 'bg-gray-500/10 border-gray-500/20' : 'bg-gray-50 border-gray-200',
-    purple: isDark ? 'bg-purple-500/10 border-purple-500/20' : 'bg-purple-50 border-purple-200',
-    indigo: isDark ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-indigo-50 border-indigo-200',
-    blue: isDark ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-200',
-    cyan: isDark ? 'bg-cyan-500/10 border-cyan-500/20' : 'bg-cyan-50 border-cyan-200',
-    emerald: isDark ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200',
-    amber: isDark ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-200',
+  useEffect(() => {
+    let raf;
+    let active = true;
+    const refs = [ambientRef, mainGlowRef, coreGlowRef];
+
+    const tick = () => {
+      const t = targetOffsetRef.current;
+      const dragging = draggingRef.current;
+
+      for (let i = 0; i < layersRef.current.length; i++) {
+        const layer = layersRef.current[i];
+        layer.x += (t.x - layer.x) * layer.factor;
+        layer.y += (t.y - layer.y) * layer.factor;
+        const targetScale = dragging ? layer.dragScale : 1;
+        layer.scale += (targetScale - layer.scale) * layer.scaleFactor;
+
+        const el = refs[i].current;
+        if (el) {
+          el.style.transform =
+            `translate3d(${layer.x.toFixed(2)}px, ${layer.y.toFixed(2)}px, 0) scale(${layer.scale.toFixed(3)})`;
+        }
+      }
+      if (active) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => { active = false; cancelAnimationFrame(raf); };
+  }, []);
+
+  const onGlowDown = (e) => {
+    draggingRef.current = true;
+    const t = e.touches?.[0];
+    if (t) updateTarget(t.clientX, t.clientY);
+    else updateTarget(e.clientX, e.clientY);
   };
+  const onGlowMove = (e) => {
+    if (!draggingRef.current) return;
+    const t = e.touches?.[0];
+    if (t) updateTarget(t.clientX, t.clientY);
+    else updateTarget(e.clientX, e.clientY);
+  };
+  const onGlowEnd = () => {
+    draggingRef.current = false;
+    targetOffsetRef.current = { x: 0, y: 0 };
+  };
+
+  const days = userData.totalDays;
+  const followTransitionStyle = { willChange: 'transform' };
 
   return (
-    <div className="animate-fade-in pb-10 space-y-6">
-      {/* === 顶部信息区 === */}
-      <div className={`p-5 rounded-[28px] ${isDark ? 'bg-gradient-to-br from-[#1a1a2e]/80 to-[#171724]/60 border-white/5' : 'bg-gradient-to-br from-indigo-50/50 to-white border-indigo-50'} border shadow-sm`}>
-        <div className="flex items-center justify-between">
-          {/* 左侧：宇宙坐标 */}
-          <div className="flex items-center gap-2">
-            <MapPin size={14} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
-            <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              坐标 #{userData.id}
-            </span>
-          </div>
-
-          {/* 中部：连续夜晚 */}
-          <div className="flex items-center gap-1.5">
-            <Moon size={14} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
-            <span className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-              连续 {displayContinuousDays} 夜
-            </span>
-          </div>
-
-          {/* 右侧：星尘 */}
-          <div className="flex items-center gap-1.5">
-            <Sparkles size={14} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
-            <span className={`text-xs font-medium ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>
-              {userData.stardust}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* === 所在星系示意图 === */}
-      <div className={`p-6 rounded-[28px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a2e]/80 to-[#171724]/60 border border-indigo-500/15' : 'bg-gradient-to-br from-indigo-50/70 to-white border border-indigo-100'}`}>
-        <div className="absolute -top-8 -right-6 w-32 h-32 rounded-full bg-indigo-300/10 blur-3xl pointer-events-none"></div>
-        <div className="absolute -bottom-8 -left-6 w-24 h-24 rounded-full bg-purple-300/10 blur-3xl pointer-events-none"></div>
-
-        <div className="relative z-10 text-center">
-          {/* 星系视觉 */}
-          <div className="relative w-32 h-32 mx-auto mb-4">
-            <div className={`absolute inset-0 rounded-full ${isDark ? 'bg-indigo-500/10' : 'bg-indigo-100'} animate-pulse`}></div>
-            <div className={`absolute inset-4 rounded-full ${isDark ? 'bg-indigo-400/15' : 'bg-indigo-50'} animate-pulse`} style={{ animationDelay: '0.5s' }}></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-5xl">🌌</span>
-            </div>
-            {/* 轨道环 */}
-            <div className={`absolute inset-2 rounded-full border-2 border-dashed ${isDark ? 'border-indigo-500/20' : 'border-indigo-200'} animate-spin`} style={{ animationDuration: '20s' }}></div>
-          </div>
-
-          <h2 className="text-lg font-light mb-1 tracking-wide">宁静星系</h2>
-          <p className={`text-xs mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-            这是你与 {MOCK_RANKINGS.length + 1} 位星旅人共同的星系
+    <div className="animate-fade-in pb-10 space-y-8">
+      {/* 头部统计 */}
+      <div className="flex justify-between items-center px-2">
+        <div>
+          <h2 className="text-xl font-light mb-1">你的宇宙坐标</h2>
+          <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            连续驻留 <span className="text-indigo-400 font-medium">{userData.displayContinuousDays}</span> 夜晚
           </p>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className={`p-4 rounded-2xl ${isDark ? 'bg-[#1f1f2e]/70' : 'bg-white/60'}`}>
-              <p className={`text-2xl font-medium mb-1 ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>
-                {galaxyTotalStardust.toLocaleString()}
-              </p>
-              <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>星系累计星尘</p>
-            </div>
-            <div className={`p-4 rounded-2xl ${isDark ? 'bg-[#1f1f2e]/70' : 'bg-white/60'}`}>
-              <p className={`text-2xl font-medium mb-1 ${isDark ? 'text-amber-300' : 'text-amber-500'}`}>
-                {supernovaCount}
-              </p>
-              <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>超新星数量</p>
-            </div>
+        </div>
+        <div className="text-right">
+          <div className="flex items-center gap-1 justify-end text-indigo-400 mb-1">
+            <Sparkles size={16} />
+            <span className="font-medium text-lg">{userData.stardust}</span>
           </div>
+          <p className="text-[10px] text-gray-500">星尘数量</p>
         </div>
       </div>
 
-      {/* === 超新星规则 === */}
-      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724]/70 border border-white/5' : 'bg-white border border-gray-100 shadow-sm'}`}>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Star size={16} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
-            <h3 className="text-sm font-medium">超新星</h3>
-          </div>
-          <button
-            onClick={() => setShowSupernovaRules(true)}
-            className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-600'}`}
-          >
-            了解规则 <ChevronRight size={12} />
-          </button>
-        </div>
-        <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-          超新星是星系中的优秀作品。当发射台的内容获得足够多的温暖与跟随后，
-          便会成为照亮整个星系的超新星，为所属用户带来额外星尘奖励。
-        </p>
-      </div>
+      {/* 星系可视化核心 */}
+      <div
+        ref={glowAreaRef}
+        data-no-pull-refresh="true"
+        onTouchStart={onGlowDown}
+        onTouchMove={onGlowMove}
+        onTouchEnd={onGlowEnd}
+        onTouchCancel={onGlowEnd}
+        onMouseDown={onGlowDown}
+        onMouseMove={onGlowMove}
+        onMouseUp={onGlowEnd}
+        onMouseLeave={onGlowEnd}
+        style={{ touchAction: 'none' }}
+        className={`py-8 rounded-[32px] border space-y-6 relative overflow-hidden flex flex-col items-center select-none cursor-grab active:cursor-grabbing ${isDark ? 'bg-black/20 border-indigo-500/10' : 'bg-indigo-50/50 border-indigo-100 shadow-sm'}`}
+      >
+        <div className="relative w-48 h-48 flex items-center justify-center">
+          {/* 外层弥散云团：最慢、最朦胧 */}
+          <div
+            ref={ambientRef}
+            className={`absolute -inset-2 rounded-full filter blur-[40px] opacity-70 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-400/20'}`}
+            style={followTransitionStyle}
+          ></div>
 
-      {/* === 星系里程碑 === */}
-      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724]/70 border border-white/5' : 'bg-white border border-gray-100 shadow-sm'}`}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Zap size={16} className={isDark ? 'text-cyan-400' : 'text-cyan-500'} />
-            <h3 className="text-sm font-medium">星系里程碑</h3>
-          </div>
-          <span className={`text-[10px] px-2 py-1 rounded-full ${stageBgMap[currentStage.color]}`}>
-            <span className={stageColorMap[currentStage.color]}>{currentStage.name}</span>
+          {/* 主光晕：中速跟随 */}
+          <div
+            ref={mainGlowRef}
+            className="absolute inset-4 bg-indigo-600/10 rounded-full filter blur-xl animate-pulse"
+            style={followTransitionStyle}
+          ></div>
+
+          {days >= 0 && (
+            <div className={`absolute inset-0 border rounded-full galaxy-spin ${isDark ? 'border-white/5' : 'border-indigo-200/50'}`}></div>
+          )}
+          {days >= 1 && (
+            <div
+              ref={coreGlowRef}
+              className="absolute inset-4 bg-gradient-to-tr from-indigo-500/10 to-blue-500/10 rounded-full filter blur-md animate-pulse"
+              style={followTransitionStyle}
+            ></div>
+          )}
+          {days >= 7 && <div className="w-16 h-16 bg-gradient-to-tr from-yellow-400 to-orange-500 rounded-full shadow-[0_0_30px_rgba(234,179,8,0.6)] animate-pulse z-10"></div>}
+          {days >= 14 && <div className={`absolute w-28 h-6 border-2 rounded-full transform -rotate-12 z-20 pointer-events-none ${isDark ? 'border-orange-300/40' : 'border-orange-400/50'}`}></div>}
+          {days >= 21 && (
+            <div className={`absolute w-36 h-36 border rounded-full galaxy-spin ${isDark ? 'border-white/5' : 'border-indigo-200/50'}`}>
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-yellow-300 rounded-full shadow-[0_0_8px_#fde047]"></div>
+            </div>
+          )}
+          {days >= 30 && (
+            <div className={`absolute w-44 h-44 border rounded-full ${isDark ? 'border-indigo-500/10' : 'border-indigo-300/40'}`} style={{ animation: 'spin-slow 30s linear infinite reverse' }}>
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-indigo-400 rounded-full shadow-[0_0_8px_#818cf8]"></div>
+            </div>
+          )}
+          {days >= 60 && <div className={`absolute inset-0 opacity-40 galaxy-spin rounded-full ${isDark ? 'bg-[radial-gradient(circle,transparent,rgba(15,15,26,0.8))]' : 'bg-[radial-gradient(circle,transparent,rgba(255,255,255,0.6))]'}`}></div>}
+        </div>
+
+        <div className="space-y-1 z-10 px-6 text-center pointer-events-none">
+          <span className={`text-[10px] px-3 py-1 rounded-full border ${isDark ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' : 'bg-indigo-100 text-indigo-600 border-indigo-200'}`}>
+            阶段 {currentMilestoneIndex + 1}：{currentMilestone.name}
           </span>
+          <p className={`text-xs pt-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{currentMilestone.desc}</p>
         </div>
+      </div>
 
-        {/* 进度条 */}
-        {nextStage && (
-          <div className="mb-4">
-            <div className="flex justify-between text-[10px] mb-1.5">
-              <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>
-                距离 {nextStage.name}
-              </span>
-              <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>
-                还需 {(nextStage.minStardust - galaxyTotalStardust).toLocaleString()} 星尘
-              </span>
-            </div>
-            <div className={`h-2 rounded-full overflow-hidden ${isDark ? 'bg-[#1f1f2e]/70' : 'bg-gray-100'}`}>
-              <div
-                className={`h-full rounded-full transition-all duration-1000 ${
-                  isDark ? 'bg-gradient-to-r from-indigo-500 to-cyan-400' : 'bg-gradient-to-r from-indigo-400 to-cyan-400'
-                }`}
-                style={{ width: `${progressToNext}%` }}
-              ></div>
-            </div>
-          </div>
-        )}
-
-        {/* 阶段列表 */}
-        <div className="space-y-2">
-          {GALAXY_STAGES.map((stage) => {
-            const isCurrent = stage.id === currentStage.id;
-            const isPast = stage.minStardust < currentStage.minStardust;
+      {/* 星轨里程碑印记 */}
+      <div className="space-y-4 px-1">
+        <h3 className="text-sm font-medium flex items-center gap-2">
+          <Sparkles size={16} className="text-indigo-400" />
+          星轨里程碑印记
+        </h3>
+        <div className="grid grid-cols-2 gap-3">
+          {MILESTONES.map(item => {
+            const isUnlocked = userData.totalDays >= item.days;
             return (
-              <div
-                key={stage.id}
-                className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
-                  isCurrent
-                    ? (isDark ? 'bg-[#1f1f2e]/70 border border-indigo-500/20' : 'bg-indigo-50 border border-indigo-100')
-                    : (isDark ? 'bg-transparent' : 'bg-transparent')
+              <button
+                key={item.id}
+                onClick={() => setSelectedMilestone(item)}
+                className={`p-4 rounded-2xl border text-left flex flex-col justify-between h-28 relative overflow-hidden transition-all ${
+                  isUnlocked
+                    ? (isDark ? 'bg-indigo-900/20 border-indigo-500/30 hover:border-indigo-400/50 shadow-[0_0_15px_rgba(99,102,241,0.15)]' : 'bg-indigo-50 border-indigo-200 hover:border-indigo-300 shadow-sm')
+                    : (isDark ? 'bg-white/[0.01] border-white/[0.03] opacity-45' : 'bg-gray-50 border-gray-100 opacity-60')
                 }`}
               >
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] ${
-                  isCurrent
-                    ? (isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-600')
-                    : isPast
-                    ? (isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-500')
-                    : (isDark ? 'bg-[#1f1f2e]/70 text-gray-600' : 'bg-gray-100 text-gray-400')
-                }`}>
-                  {isPast ? '✓' : stage.id + 1}
+                {isUnlocked && (
+                  <div className="absolute -right-6 -bottom-6 w-12 h-12 rounded-full bg-indigo-500/10 blur-xl animate-pulse"></div>
+                )}
+
+                <div className="flex justify-between items-start w-full">
+                  <span className={`text-2xl ${isUnlocked ? 'animate-float' : 'grayscale'}`}>
+                    {milestoneIcons[item.id] || '✨'}
+                  </span>
+                  <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-mono font-light uppercase tracking-wider ${
+                    isUnlocked
+                      ? (isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-600')
+                      : (isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-200 text-gray-500')
+                  }`}>
+                    {isUnlocked ? '已唤醒' : '星云笼罩'}
+                  </span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-xs font-medium ${isCurrent ? (isDark ? 'text-indigo-300' : 'text-indigo-600') : (isDark ? 'text-gray-300' : 'text-gray-700')}`}>
-                    {stage.name}
-                  </p>
-                  <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                    {stage.desc} · {stage.minStardust.toLocaleString()} 星尘
+
+                <div className="space-y-0.5 relative z-10">
+                  <h4 className={`text-xs font-semibold ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{item.name}</h4>
+                  <p className={`text-[9px] line-clamp-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    {isUnlocked ? item.desc : `需要 ${item.days} 天`}
                   </p>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
       </div>
 
-      {/* === 同星系星尘排名 === */}
-      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724]/70 border border-white/5' : 'bg-white border border-gray-100 shadow-sm'}`}>
-        <div className="flex items-center gap-2 mb-4">
-          <Trophy size={16} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
-          <h3 className="text-sm font-medium">同星系星尘排名</h3>
-        </div>
-
-        <div className="space-y-2">
-          {allRankings.slice(0, 6).map((user, index) => (
-            <div
-              key={user.id}
-              className={`flex items-center gap-3 p-3 rounded-xl ${
-                user.isMe
-                    ? (isDark ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-indigo-50 border border-indigo-100')
-                    : (isDark ? 'bg-[#1f1f2e]/70' : 'bg-gray-50/50')
-              }`}
-            >
-              <span className={`text-xs font-medium w-5 text-center ${
-                index === 0 ? (isDark ? 'text-amber-400' : 'text-amber-500')
-                : index === 1 ? (isDark ? 'text-gray-300' : 'text-gray-400')
-                : index === 2 ? (isDark ? 'text-orange-400' : 'text-orange-500')
-                : (isDark ? 'text-gray-500' : 'text-gray-400')
-              }`}>
-                {index + 1}
-              </span>
-              <span className="text-lg">{user.avatar}</span>
-              <div className="flex-1 min-w-0">
-                <p className={`text-xs font-medium truncate ${user.isMe ? (isDark ? 'text-indigo-300' : 'text-indigo-600') : (isDark ? 'text-gray-200' : 'text-gray-700')}`}>
-                  {user.name} {user.isMe && '(你)'}
-                </p>
-              </div>
-              <span className={`text-xs font-medium ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>
-                {user.stardust}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {myRank > 6 && (
-          <div className={`mt-2 p-3 rounded-xl ${isDark ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-indigo-50 border border-indigo-100'}`}>
-            <div className="flex items-center gap-3">
-              <span className={`text-xs font-medium w-5 text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                {myRank}
-              </span>
-              <span className="text-lg">{userData.avatarEmoji}</span>
-              <div className="flex-1 min-w-0">
-                <p className={`text-xs font-medium ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>
-                  {userData.displayName} (你)
-                </p>
-              </div>
-              <span className={`text-xs font-medium ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>
-                {userData.stardust}
-              </span>
-            </div>
-          </div>
-        )}
-
-        <div className={`mt-3 p-3 rounded-xl text-center ${isDark ? 'bg-[#1f1f2e]/70' : 'bg-gray-50/50'}`}>
-          <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-            <Users size={10} className="inline mr-1" />
-            同星系共 {MOCK_RANKINGS.length + 1} 人，每个人都在为星系成长贡献力量
-          </p>
-        </div>
-      </div>
-
-      {/* === 超新星规则弹窗 === */}
-      {showSupernovaRules && (
+      {/* 点击里程碑弹出的详情 Modal */}
+      {selectedMilestone && (
         <Portal>
-          <div className={`fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setShowSupernovaRules(false)}>
-            <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]/70' : 'bg-white shadow-xl'} relative max-h-[80vh] overflow-y-auto no-scrollbar`} onClick={e => e.stopPropagation()}>
-              <h3 className="text-lg font-medium mb-4 text-center flex items-center justify-center gap-2">
-                <Star size={20} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
-                超新星规则
-              </h3>
-
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-sm font-medium mb-1">什么是超新星</h4>
-                  <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                    超新星代表星系中的优秀作品。它来源于用户在发射台中发出的内容，
-                    当某一条内容获得足够多的关怀、跟随或互动后，可以成为该星系中的超新星。
-                  </p>
-                </div>
-
-                <div>
-                  <h4 className="text-sm font-medium mb-1">如何成为超新星</h4>
-                  <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                    1. 在发射台公开发送内容<br/>
-                    2. 内容被其他用户接收到<br/>
-                    3. 内容获得送出温暖<br/>
-                    4. 内容获得跟随<br/>
-                    5. 内容达到超新星判定标准<br/>
-                    6. 被系统记录为优秀作品
-                  </p>
-                </div>
-
-                <div>
-                  <h4 className="text-sm font-medium mb-1">超新星奖励</h4>
-                  <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                    成为超新星后，该内容所属用户将获得额外星尘奖励、超新星标记，
-                    作品进入星系优秀内容展示，并增加用户在星系中的影响记录。
-                  </p>
-                </div>
+          <div className={`fixed inset-0 z-50 flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`}>
+            <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative text-center`}>
+              <button onClick={() => setSelectedMilestone(null)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-200"><X size={20} /></button>
+              <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center text-3xl mb-3 ${isDark ? 'bg-[#1f1f2e]' : 'bg-indigo-50'}`}>
+                {milestoneIcons[selectedMilestone.id]}
               </div>
-
-              <button
-                onClick={() => setShowSupernovaRules(false)}
-                className={`w-full mt-5 py-3 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-[#1f1f2e]/70 hover:bg-[#262638] text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}
-              >
-                知道了
-              </button>
+              <h3 className="text-lg font-medium mb-1">{selectedMilestone.name}</h3>
+              <p className={`text-xs mb-4 ${isDark ? 'text-indigo-400' : 'text-indigo-500'}`}>
+                {userData.totalDays >= selectedMilestone.days ? '已唤醒该形态' : `还需要累计 ${selectedMilestone.days - userData.totalDays} 天即可唤醒`}
+              </p>
+              <div className={`p-4 rounded-2xl text-sm font-light leading-relaxed ${isDark ? 'bg-[#1f1f2e] text-gray-300' : 'bg-gray-50 text-gray-700'}`}>
+                "{selectedMilestone.desc}"
+              </div>
             </div>
           </div>
         </Portal>

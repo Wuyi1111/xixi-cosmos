@@ -12,7 +12,7 @@
  */
 
 import { useState } from 'react';
-import { X, Save, RotateCcw, CheckCircle2 } from 'lucide-react';
+import { X } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import { COSMIC_PERSONALITIES } from '../constants.js';
 
@@ -20,12 +20,10 @@ import { COSMIC_PERSONALITIES } from '../constants.js';
 export default function QuizWidget({ isDark, onClose, onComplete }) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState([]);
-  const [result, setResult] = useState(null);
-  const [isSaved, setIsSaved] = useState(false);
 
   const questions = [
     { q: "你的就寝时间通常是？", options: [{ text: "像恒星日出日落般规律", val: 'J' }, { text: "像流星一样随机出没", val: 'P' }] },
-    { q: "睡前半小时，你更倾向于？", options: [{ text: "刷手机接收「星际电波」", val: 'E' }, { text: "听音乐/发呆进入「静默舱」", val: 'I' }] },
+    { q: "睡前半小时，你更倾向于？", options: [{ text: "刷手机接收“星际电波”", val: 'E' }, { text: "听音乐/发呆进入“静默舱”", val: 'I' }] },
     { q: "躺下后，你进入睡眠的速度？", options: [{ text: "瞬间断电，跌入黑洞", val: 'N' }, { text: "辗转反侧，在轨道上徘徊", val: 'S' }] },
     { q: "你的梦境通常是怎样的？", options: [{ text: "很少做梦，或梦境很日常现实", val: 'T' }, { text: "光怪陆离的平行宇宙", val: 'F' }] },
     { q: "睡着后，外界的声音能轻易唤醒你吗？", options: [{ text: "一点风吹草动就醒", val: 'S' }, { text: "雷打不动，深度休眠", val: 'N' }] },
@@ -50,25 +48,9 @@ export default function QuizWidget({ isDark, onClose, onComplete }) {
         count('F') >= count('T') ? 'F' : 'T',
         count('J') >= count('P') ? 'J' : 'P'
       ].join('');
-      const personalityResult = COSMIC_PERSONALITIES[type] || COSMIC_PERSONALITIES['ISFJ'];
-      setResult({ ...personalityResult, type });
+      const result = COSMIC_PERSONALITIES[type] || COSMIC_PERSONALITIES['ISFJ'];
+      onComplete({ ...result, type });
     }
-  };
-
-  const handleSave = () => {
-    onComplete(result);
-    setIsSaved(true);
-  };
-
-  const handleCloseWithoutSave = () => {
-    onComplete(null, result);
-  };
-
-  const handleRetake = () => {
-    setStep(0);
-    setAnswers([]);
-    setResult(null);
-    setIsSaved(false);
   };
 
   return (
@@ -78,101 +60,39 @@ export default function QuizWidget({ isDark, onClose, onComplete }) {
           <X size={24} />
         </button>
 
-        {/* 结果弹窗 */}
-        {result ? (
-          <div className="w-full max-w-sm flex flex-col items-center justify-center space-y-6 animate-fade-in">
-            <div className="text-center space-y-2">
-              <p className={`text-xs tracking-widest ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
-                — 探测完成 —
-              </p>
-              <h2 className={`text-3xl font-light ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                {result.name}
-              </h2>
-              <span className={`inline-block text-sm font-mono px-3 py-1 rounded-full ${isDark ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>
-                {result.type}
-              </span>
-            </div>
-
-            <div className="flex flex-wrap justify-center gap-2">
-              {result.tags.map((tag, idx) => (
-                <span key={idx} className={`text-xs px-3 py-1.5 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-200' : 'bg-indigo-100 text-indigo-700'}`}>
-                  {tag}
-                </span>
-              ))}
-            </div>
-
-            <p className={`text-sm leading-relaxed text-center max-w-[280px] font-light ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-              {result.desc}
+        <div className="w-full max-w-sm space-y-8">
+          <div className="space-y-2">
+            <p className={`text-center text-xs tracking-widest ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+              — 睡眠特质探测 —
             </p>
+            <div className={`h-1 w-full rounded-full overflow-hidden ${isDark ? 'bg-gray-800' : 'bg-gray-200'}`}>
+              <div
+                className="h-full bg-indigo-500 transition-all duration-300"
+                style={{ width: `${((step + 1) / questions.length) * 100}%` }}
+              ></div>
+            </div>
+            <p className="text-right text-[10px] text-gray-500">{step + 1} / {questions.length}</p>
+          </div>
 
-            <div className="flex gap-3 w-full pt-4">
-              {isSaved ? (
-                <div className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                  <CheckCircle2 size={16} />
-                  已保存
-                </div>
-              ) : (
-                <button
-                  onClick={handleSave}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium bg-indigo-500 text-white hover:bg-indigo-600 transition-colors active:scale-95"
-                >
-                  <Save size={16} />
-                  保存结果
-                </button>
-              )}
+          <h2 className={`text-xl font-light text-center leading-relaxed h-20 flex items-center justify-center ${isDark ? 'text-gray-200' : 'text-gray-800'}`} key={step}>
+            <span className="animate-fade-in">{questions[step].q}</span>
+          </h2>
+
+          <div className="space-y-4 pt-4">
+            {questions[step].options.map((opt, i) => (
               <button
-                onClick={handleCloseWithoutSave}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium border transition-colors active:scale-95 ${isDark ? 'border-gray-700 text-gray-300 hover:bg-gray-800' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                key={i + '-' + step}
+                onClick={() => handleSelect(opt.val)}
+                className={`w-full p-4 rounded-2xl text-sm transition-all active:scale-95 border animate-fade-in ${
+                  isDark ? 'bg-[#171724] border-gray-800 hover:border-indigo-500/50 hover:bg-[#1f1f2e]' : 'bg-white border-gray-100 hover:border-indigo-200 shadow-sm hover:bg-indigo-50/50'
+                }`}
+                style={{ animationDelay: `${i * 0.1}s` }}
               >
-                <X size={16} />
-                关闭
+                {opt.text}
               </button>
-            </div>
-
-            <button
-              onClick={handleRetake}
-              className={`flex items-center gap-1 text-xs ${isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
-            >
-              <RotateCcw size={12} />
-              重新测试
-            </button>
+            ))}
           </div>
-        ) : (
-          /* 测试界面 */
-          <div className="w-full max-w-sm space-y-8">
-            <div className="space-y-2">
-              <p className={`text-center text-xs tracking-widest ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                — 睡眠特质探测 —
-              </p>
-              <div className={`h-1 w-full rounded-full overflow-hidden ${isDark ? 'bg-gray-800' : 'bg-gray-200'}`}>
-                <div
-                  className="h-full bg-indigo-500 transition-all duration-300"
-                  style={{ width: `${((step + 1) / questions.length) * 100}%` }}
-                ></div>
-              </div>
-              <p className="text-right text-[10px] text-gray-500">{step + 1} / {questions.length}</p>
-            </div>
-
-            <h2 className={`text-xl font-light text-center leading-relaxed h-20 flex items-center justify-center ${isDark ? 'text-gray-200' : 'text-gray-800'}`} key={step}>
-              <span className="animate-fade-in">{questions[step].q}</span>
-            </h2>
-
-            <div className="space-y-4 pt-4">
-              {questions[step].options.map((opt, i) => (
-                <button
-                  key={i + '-' + step}
-                  onClick={() => handleSelect(opt.val)}
-                  className={`w-full p-4 rounded-2xl text-sm transition-all active:scale-95 border animate-fade-in ${
-                    isDark ? 'bg-[#171724] border-gray-800 hover:border-indigo-500/50 hover:bg-[#1f1f2e]' : 'bg-white border-gray-100 hover:border-indigo-200 shadow-sm hover:bg-indigo-50/50'
-                  }`}
-                  style={{ animationDelay: `${i * 0.1}s` }}
-                >
-                  {opt.text}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </Portal>
   );

@@ -4,11 +4,11 @@
  * 这里只做三件事：
  *   1) 持有全部全局 state（userData / theme / activeTab）+ localStorage 读写 / 迁移
  *   2) 下拉刷新逻辑（仅刷新当前 tab）
- *   3) tab 路由切换（此刻 / 雷达 / 心愿池 / 我的）
+ *   3) tab 路由切换（此刻 / 微澜 / 星系 / 我的）
  *
  * 改什么：
  *   - 改 userData 字段、加新字段、写迁移 → 这里 useState 初值 + 初始化 useEffect
- *   - 改打卡奖励规则（连签 bonus / 星尘换算）→ handleCheckIn() / handleInteractionCheckIn()
+ *   - 改打卡奖励规则（连签 bonus / 星尘换算）→ handleCheckIn()
  *   - 调整下拉刷新阻尼或阈值 → useEffect 内 onTouchMove / onTouchEnd
  *   - 加 / 改 / 删 tab 本身 → 同步改 main 里的条件渲染 + nav 里的 TabButton
  *   - 加全局装饰光晕（深色背景的紫色 blur）→ "fixed inset-0 pointer-events-none" 那块
@@ -20,15 +20,14 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { Home, Radar, Sparkles, Moon, Loader2, ChevronUp, ChevronDown } from 'lucide-react';
+import { Moon, Wind, Sparkles, User, Loader2, ChevronUp, ChevronDown } from 'lucide-react';
 
 import TabButton from './components/TabButton.jsx';
 import TonightView from './views/TonightView.jsx';
 import TreeholeView from './views/TreeholeView.jsx';
 import GalaxyView from './views/GalaxyView.jsx';
-import StarView from './views/StarView.jsx';
+import MineView from './views/MineView.jsx';
 import SplashScreen from './components/SplashScreen.jsx';
-import StarField from './components/StarField.jsx';
 import { EMOTIONS } from './constants.js';
 
 // --- 主应用组件：全局 state + pull-to-refresh + 路由壳 ---
@@ -40,7 +39,7 @@ export default function App() {
     id: 'TR755',                  // 固定编号，不可改
     displayName: '星星旅人',
     avatarEmoji: '🪐',
-    fontScale: 0.85,
+    fontScale: 1.0,
     totalDays: 0,
     continuousDays: 0,
     stardust: 0,
@@ -55,9 +54,7 @@ export default function App() {
     dailyPosts: 0,
     lastPostDate: '',
     reminderEnabled: false,
-    reminderTime: '22:30',
-    interactionHistory: [], // 记录温暖/跟随行为
-    lastInteractionDate: '', // 最后互动日期
+    reminderTime: '22:30'
   });
 
   const [currentDateStr, setCurrentDateStr] = useState(new Date().toDateString());
@@ -88,15 +85,12 @@ export default function App() {
       parsed.id = 'TR755';
       if (!parsed.displayName) parsed.displayName = '星星旅人';
       if (!parsed.avatarEmoji) parsed.avatarEmoji = '🪐';
-      if (typeof parsed.fontScale !== 'number') parsed.fontScale = 0.85;
+      if (typeof parsed.fontScale !== 'number') parsed.fontScale = 1.0;
       if (!Array.isArray(parsed.huggedWhispers)) parsed.huggedWhispers = [];
       if (typeof parsed.tomorrowDoneTotal !== 'number') parsed.tomorrowDoneTotal = 0;
       if (!parsed.tomorrowDoneToday || typeof parsed.tomorrowDoneToday !== 'object') {
         parsed.tomorrowDoneToday = { date: '', ids: [] };
       }
-      // v5.0.0 新增字段迁移
-      if (!Array.isArray(parsed.interactionHistory)) parsed.interactionHistory = [];
-      if (!parsed.lastInteractionDate) parsed.lastInteractionDate = '';
       setUserData(parsed);
     }
     const savedTheme = localStorage.getItem('xixi_cosmos_theme') || 'light';
@@ -194,68 +188,6 @@ export default function App() {
     // 不再强制 setTheme('dark')，保留用户在设置里的主题偏好
   };
 
-  // === 新打卡逻辑：用户点击「送出温暖」或「跟随」时触发打卡 ===
-  const handleInteractionCheckIn = (type, targetId) => {
-    // type: 'hug' | 'follow'
-    // targetId: 被互动对象的标识
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    const isFirstInteractionToday = userData.lastInteractionDate !== currentDateStr;
-
-    // 记录互动行为
-    const newInteraction = {
-      id: Date.now(),
-      type,
-      targetId,
-      date: currentDateStr,
-      timestamp: Date.now(),
-    };
-
-    let nextUserData = {
-      ...userData,
-      interactionHistory: [newInteraction, ...userData.interactionHistory],
-      lastInteractionDate: currentDateStr,
-    };
-
-    // 24小时内首次点击记为当天打卡，给予星尘
-    if (isFirstInteractionToday) {
-      const lastCheckIn = userData.checkInHistory[0]?.date;
-      const isConsecutive = lastCheckIn === yesterday.toDateString();
-      const newContinuousDays = isConsecutive ? userData.continuousDays + 1 : 1;
-      const streakBonus = isConsecutive ? Math.min((newContinuousDays - 1) * 2, 10) : 0;
-      const earned = 10 + streakBonus;
-
-      const hours = today.getHours().toString().padStart(2, '0');
-      const minutes = today.getMinutes().toString().padStart(2, '0');
-
-      const newEntry = {
-        id: Date.now(),
-        date: currentDateStr,
-        timeStr: `${hours}:${minutes}`,
-        timestamp: Date.now(),
-        moodId: 'interaction',
-        moodName: type === 'hug' ? '送出温暖' : '跟随',
-        whisper: `通过「${type === 'hug' ? '送出温暖' : '跟随'}」完成今日打卡`,
-        stardustEarned: earned,
-        isFirstCheckIn: userData.checkInHistory.length === 0,
-        triggeredBy: type,
-        targetId,
-      };
-
-      nextUserData = {
-        ...nextUserData,
-        totalDays: userData.totalDays + 1,
-        continuousDays: newContinuousDays,
-        stardust: userData.stardust + earned,
-        checkInHistory: [newEntry, ...userData.checkInHistory],
-      };
-    }
-
-    saveUserData(nextUserData);
-  };
-
   const isDark = theme === 'dark' || (theme === 'auto' && (new Date().getHours() >= 18 || new Date().getHours() < 6));
 
   // === 下拉刷新：仅刷新当前 tab 内容 ===
@@ -299,15 +231,12 @@ export default function App() {
               parsed.id = 'TR755';
               if (!parsed.displayName) parsed.displayName = '星星旅人';
               if (!parsed.avatarEmoji) parsed.avatarEmoji = '🪐';
-              if (typeof parsed.fontScale !== 'number') parsed.fontScale = 0.85;
+              if (typeof parsed.fontScale !== 'number') parsed.fontScale = 1.0;
               if (!Array.isArray(parsed.huggedWhispers)) parsed.huggedWhispers = [];
               if (typeof parsed.tomorrowDoneTotal !== 'number') parsed.tomorrowDoneTotal = 0;
               if (!parsed.tomorrowDoneToday || typeof parsed.tomorrowDoneToday !== 'object') {
                 parsed.tomorrowDoneToday = { date: '', ids: [] };
               }
-              // v5.0.0 新增字段迁移（下拉刷新时再次兼容）
-              if (!Array.isArray(parsed.interactionHistory)) parsed.interactionHistory = [];
-              if (!parsed.lastInteractionDate) parsed.lastInteractionDate = '';
               setUserData(parsed);
             }
           } catch {}
@@ -364,8 +293,15 @@ export default function App() {
         </div>
       )}
 
-      {/* 动态星空背景 */}
-      <StarField isDark={isDark} />
+      {/* 暗色模式下的全局装饰光晕 */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        {isDark && (
+          <>
+            <div className="absolute top-10 left-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl"></div>
+            <div className="absolute top-40 right-20 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl"></div>
+          </>
+        )}
+      </div>
 
       <main
         className="relative z-10 px-4 max-w-md mx-auto min-h-screen pt-[max(env(safe-area-inset-top),0.75rem)] pb-[calc(env(safe-area-inset-bottom)+6rem)]"
@@ -378,33 +314,35 @@ export default function App() {
           <TonightView
             key={`tonight-${refreshKey}`}
             isDark={isDark}
+            hasCheckedInToday={hasCheckedInToday}
+            onCheckIn={handleCheckIn}
             userData={userData}
             saveUserData={saveUserData}
-            onNavigate={(tab) => setActiveTab(tab)}
+            currentDateStr={currentDateStr}
+            onNavigate={setActiveTab}
           />
         )}
-        {activeTab === 'radar' && (
+        {activeTab === 'treehole' && (
           <TreeholeView
-            key={`radar-${refreshKey}`}
+            key={`treehole-${refreshKey}`}
             isDark={isDark}
             userData={userData}
             saveUserData={saveUserData}
             currentDateStr={currentDateStr}
-            onGiveHug={(whisperId) => handleInteractionCheckIn('hug', whisperId)}
-            onFollow={(suggestionId) => handleInteractionCheckIn('follow', suggestionId)}
           />
         )}
-
         {activeTab === 'galaxy' && (
           <GalaxyView
             key={`galaxy-${refreshKey}`}
             isDark={isDark}
-            userData={userData}
+            userData={{...userData, displayContinuousDays}}
+            saveUserData={saveUserData}
+            currentDateStr={currentDateStr}
           />
         )}
-        {activeTab === 'star' && (
-          <StarView
-            key={`star-${refreshKey}`}
+        {activeTab === 'mine' && (
+          <MineView
+            key={`mine-${refreshKey}`}
             isDark={isDark}
             theme={theme}
             setTheme={setTheme}
@@ -420,10 +358,10 @@ export default function App() {
 
       <nav className={`fixed bottom-0 w-full z-50 transition-colors duration-500 ${isDark ? 'bg-[#13131a]/90 border-[#2a2a35]' : 'bg-white/90 border-gray-200'} backdrop-blur-md border-t pb-[env(safe-area-inset-bottom)]`}>
         <div className="max-w-md mx-auto flex justify-around items-center h-20 px-4">
-          <TabButton id="tonight" icon={Home} label="此刻" active={activeTab === 'tonight'} onClick={() => setActiveTab('tonight')} isDark={isDark} />
-          <TabButton id="radar" icon={Radar} label="雷达" active={activeTab === 'radar'} onClick={() => setActiveTab('radar')} isDark={isDark} />
+          <TabButton id="tonight" icon={Moon} label="此刻" active={activeTab === 'tonight'} onClick={() => setActiveTab('tonight')} isDark={isDark} />
+          <TabButton id="treehole" icon={Wind} label="微澜" active={activeTab === 'treehole'} onClick={() => setActiveTab('treehole')} isDark={isDark} />
           <TabButton id="galaxy" icon={Sparkles} label="星系" active={activeTab === 'galaxy'} onClick={() => setActiveTab('galaxy')} isDark={isDark} />
-          <TabButton id="star" icon={Moon} label="归星" active={activeTab === 'star'} onClick={() => setActiveTab('star')} isDark={isDark} />
+          <TabButton id="mine" icon={User} label="我的" active={activeTab === 'mine'} onClick={() => setActiveTab('mine')} isDark={isDark} />
         </div>
       </nav>
     </div>
