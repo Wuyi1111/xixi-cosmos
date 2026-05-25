@@ -1,5 +1,5 @@
 /**
- * TreeholeView.jsx — "雷达"板块，方案A：双tab（星海/明日）+ 底部悬浮发射按钮
+ * TreeholeView.jsx — "雷达"板块，方案A：双tab（星海/明日）
  *
  * Tab 1 — 星海：
  *   - 快速输入框（点击展开）
@@ -7,16 +7,17 @@
  *   - 星际回音（别人的心语，左右滑动）
  *
  * Tab 2 — 明日：
- *   - 明日小事（底部弹窗，含推荐标签+可见度+发布）
+ *   - 明日约定（底部弹窗，含推荐标签+可见度+发布）
  *   - 我的今日清单（只显示自己的任务，可标记完成）
  *   - 热门任务（按跟随人数排序，系统推荐）
+ *   - 星际足迹（历史已完成任务，永久积累）
  */
 
 import { useState, useEffect, useRef } from 'react';
 import {
   Heart, Search, X, Star, ChevronDown, Trash2, Send,
   BookOpen, Sparkles, Compass, Plus, CheckCircle2,
-  RotateCcw, Edit3, Radio, Flame
+  RotateCcw, Edit3, Radio, Flame, Footprints
 } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import { MOCK_WHISPERS, PRESET_TAGS, TOMORROW_SUGGESTIONS } from '../constants.js';
@@ -24,7 +25,7 @@ import { MOCK_WHISPERS, PRESET_TAGS, TOMORROW_SUGGESTIONS } from '../constants.j
 const MODES = ['starsea', 'tomorrow'];
 const MODE_LABELS = { starsea: '星海', tomorrow: '明日' };
 
-// 明日小事推荐标签
+// 明日约定推荐标签
 const TOMORROW_QUICK_TAGS = [
   { emoji: '🌅', text: '早起看日出' },
   { emoji: '📚', text: '读10页书' },
@@ -52,8 +53,6 @@ export default function TreeholeView({
   const [selectedTag, setSelectedTag] = useState('');
   const [visibility, setVisibility] = useState('public');
   const [showToast, setShowToast] = useState(false);
-  const [toastExpanded, setToastExpanded] = useState(false);
-  const [lastPublishedWhisper, setLastPublishedWhisper] = useState(null);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   const handleVisibilityChange = (v) => {
@@ -90,6 +89,7 @@ export default function TreeholeView({
   const [displayedSuggestions, setDisplayedSuggestions] = useState(() =>
     TOMORROW_SUGGESTIONS.map(s => ({ ...s, _instanceId: Math.random().toString(36).slice(2) }))
   );
+  const [showAllFootprints, setShowAllFootprints] = useState(false);
 
   const textareaRef = useRef(null);
 
@@ -171,8 +171,6 @@ export default function TreeholeView({
     setSelectedTag('');
     setVisibility('public');
     setShowEmitModal(false);
-    setLastPublishedWhisper(newWhisper);
-    setToastExpanded(false);
     setShowToast(true);
   };
 
@@ -199,6 +197,9 @@ export default function TreeholeView({
   const userChallenges = userData.userChallenges || [];
   const myTasks = userData.myTomorrowTasks || [];
   const todayTasks = myTasks.filter(t => t.date === currentDateStr);
+
+  // 星际足迹：所有已完成的任务历史
+  const taskFootprints = userData.taskFootprints || [];
 
   // 热门任务：只显示系统推荐，使用稳定的跟随人数（基于id生成伪随机）
   const getStableFollowCount = (id) => {
@@ -228,8 +229,6 @@ export default function TreeholeView({
 
   // === 明日成功toast ===
   const [showTomorrowToast, setShowTomorrowToast] = useState(false);
-  const [tomorrowToastExpanded, setTomorrowToastExpanded] = useState(false);
-  const [lastPublishedTask, setLastPublishedTask] = useState(null);
 
   const handlePublishTomorrow = () => {
     if (!tomorrowText.trim()) return;
@@ -270,8 +269,6 @@ export default function TreeholeView({
     setTomorrowText('');
     setTomorrowVisibility('public');
     setShowTomorrowModal(false);
-    setLastPublishedTask(newTask);
-    setTomorrowToastExpanded(false);
     setShowTomorrowToast(true);
   };
 
@@ -300,15 +297,40 @@ export default function TreeholeView({
   };
 
   const handleToggleComplete = (taskId) => {
+    const task = myTasks.find(t => t.taskId === taskId && t.date === currentDateStr);
+    if (!task) return;
+
+    const newCompleted = !task.completed;
     const newTasks = myTasks.map(t => {
       if (t.taskId === taskId && t.date === currentDateStr) {
-        return { ...t, completed: !t.completed };
+        return { ...t, completed: newCompleted };
       }
       return t;
     });
+
+    // 更新足迹：如果标记为完成，添加到足迹；如果取消完成，从足迹移除
+    let newFootprints = [...taskFootprints];
+    if (newCompleted) {
+      // 避免重复添加
+      if (!newFootprints.some(f => f.taskId === taskId && f.date === currentDateStr)) {
+        newFootprints.unshift({
+          taskId: task.taskId,
+          date: currentDateStr,
+          emoji: task.emoji,
+          main: task.main,
+          sub: task.sub,
+          source: task.source,
+          completedAt: Date.now(),
+        });
+      }
+    } else {
+      newFootprints = newFootprints.filter(f => !(f.taskId === taskId && f.date === currentDateStr));
+    }
+
     saveUserData({
       ...userData,
       myTomorrowTasks: newTasks,
+      taskFootprints: newFootprints,
     });
   };
 
@@ -329,15 +351,15 @@ export default function TreeholeView({
   // === 渲染：星海 tab ===
   const renderStarSea = () => (
     <div className="space-y-5">
-      {/* 快速输入框 — 橙色主题 */}
+      {/* 快速输入框 — 粉红主题 */}
       <div
         onClick={() => setShowEmitModal(true)}
         className={`p-4 rounded-[20px] border cursor-pointer transition-all active:scale-[0.98] flex items-center gap-3 ${
           isDark ? 'bg-[#171724]/70 border-white/5 hover:bg-[#1a1a2e]' : 'bg-white border-gray-100 shadow-sm hover:shadow-md'
         }`}
       >
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-amber-500/15' : 'bg-amber-100'}`}>
-          <Edit3 size={20} className={isDark ? 'text-amber-300' : 'text-amber-500'} />
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-pink-500/15' : 'bg-pink-100'}`}>
+          <Edit3 size={20} className={isDark ? 'text-pink-300' : 'text-pink-500'} />
         </div>
         <div className="flex-1">
           <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -357,7 +379,7 @@ export default function TreeholeView({
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-sm font-medium flex items-center gap-2">
-              <Radio size={14} className="text-amber-400" />
+              <Radio size={14} className="text-pink-400" />
               我的心语流
             </h3>
             <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-[#1f1f2e] text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
@@ -366,7 +388,7 @@ export default function TreeholeView({
           </div>
 
           {/* 搜索 */}
-          <div className={`flex items-center px-4 py-2.5 rounded-2xl border transition-all ${isDark ? 'bg-[#171724] border-white/5 focus-within:border-amber-500/30' : 'bg-white shadow-sm border-gray-100 focus-within:border-amber-200 focus-within:shadow-md'}`}>
+          <div className={`flex items-center px-4 py-2.5 rounded-2xl border transition-all ${isDark ? 'bg-[#171724] border-white/5 focus-within:border-pink-500/30' : 'bg-white shadow-sm border-gray-100 focus-within:border-pink-200 focus-within:shadow-md'}`}>
             <Search size={14} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
             <input
               type="text"
@@ -397,18 +419,18 @@ export default function TreeholeView({
                     onClick={() => setExpandedWhisperId(isExpanded ? null : whisper.id)}
                     className={`rounded-[20px] transition-all duration-300 border cursor-pointer ${
                       isExpanded
-                        ? (isDark ? 'bg-[#1f1f2e] border-amber-500/30 shadow-lg shadow-amber-500/5' : 'bg-white border-amber-200 shadow-md')
-                        : (isDark ? 'bg-white/[0.02] border-white/5 hover:bg-white/[0.04]' : 'bg-white/60 border-white/50 hover:bg-white shadow-sm')
+                        ? (isDark ? 'bg-[#171724] border-pink-500/30 shadow-lg shadow-pink-500/5' : 'bg-white border-pink-200 shadow-md')
+                        : (isDark ? 'bg-[#1a1a2e] border-white/10 hover:bg-[#1f1f2e]' : 'bg-white/60 border-white/50 hover:bg-white shadow-sm')
                     } active:scale-[0.98]`}
                   >
                     {/* 卡片头部：标签 + 操作 */}
                     <div className="p-4">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`text-[10px] px-2 py-0.5 rounded-sm ${isDark ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600'}`}>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-sm ${isDark ? 'bg-pink-500/10 text-pink-400' : 'bg-pink-50 text-pink-600'}`}>
                             {whisper.emotion}
                           </span>
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded-sm border ${whisper.visibility === 'private' ? (isDark ? 'bg-gray-800/50 text-gray-400 border-gray-700' : 'bg-gray-100 text-gray-500 border-gray-200') : (isDark ? 'bg-amber-500/10 text-amber-300 border-amber-500/30' : 'bg-amber-50 text-amber-500 border-amber-100')}`}>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded-sm border ${whisper.visibility === 'private' ? (isDark ? 'bg-gray-800/50 text-gray-400 border-gray-700' : 'bg-gray-100 text-gray-500 border-gray-200') : (isDark ? 'bg-pink-500/10 text-pink-300 border-pink-500/30' : 'bg-pink-50 text-pink-500 border-pink-100')}`}>
                             {whisper.visibility === 'private' ? '深空折叠' : '散落星海'}
                           </span>
                         </div>
@@ -440,7 +462,7 @@ export default function TreeholeView({
                     <div className={`grid transition-all duration-300 ease-in-out ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                       <div className="overflow-hidden">
                         <div className="px-4 pb-4 space-y-3 pt-1 border-t border-white/5">
-                          <div className={`p-3 rounded-xl ${isDark ? 'bg-black/20' : 'bg-gray-50/80'}`}>
+                          <div className={`p-3 rounded-xl ${isDark ? 'bg-[#0f0f1a]/50' : 'bg-gray-50/80'}`}>
                             <p className={`text-sm font-light leading-relaxed whitespace-pre-wrap ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                               {whisper.text}
                             </p>
@@ -469,7 +491,7 @@ export default function TreeholeView({
       {/* 星际回音 */}
       <div className="space-y-3">
         <div className="flex items-center gap-2 px-1">
-          <Sparkles size={14} className="text-amber-400" />
+          <Sparkles size={14} className="text-pink-400" />
           <h3 className="text-sm font-medium">星际回音</h3>
         </div>
 
@@ -480,11 +502,11 @@ export default function TreeholeView({
               <div
                 key={whisper.id}
                 className={`shrink-0 snap-center w-[280px] p-5 rounded-[24px] border relative overflow-hidden ${
-                  isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border-white/5' : 'bg-gradient-to-br from-indigo-50/50 to-white border-indigo-50'
+                  isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border-white/5' : 'bg-gradient-to-br from-pink-50/50 to-white border-pink-50'
                 } shadow-sm`}
               >
-                <div className={`absolute -right-4 -top-4 w-20 h-20 rounded-full blur-3xl opacity-50 ${whisper.isPositive ? 'bg-amber-500/20' : 'bg-blue-500/20'}`}></div>
-                <div className={`absolute -bottom-10 -left-4 w-16 h-16 rounded-full blur-2xl opacity-30 ${whisper.isPositive ? 'bg-pink-500/10' : 'bg-indigo-500/10'}`}></div>
+                <div className={`absolute -right-4 -top-4 w-20 h-20 rounded-full blur-3xl opacity-50 ${whisper.isPositive ? 'bg-pink-500/20' : 'bg-blue-500/20'}`}></div>
+                <div className={`absolute -bottom-10 -left-4 w-16 h-16 rounded-full blur-2xl opacity-30 ${whisper.isPositive ? 'bg-pink-500/10' : 'bg-pink-500/10'}`}></div>
 
                 <div className="flex items-center gap-2 mb-4 relative z-10">
                   <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
@@ -533,7 +555,7 @@ export default function TreeholeView({
   // === 渲染：明日 tab ===
   const renderTomorrow = () => (
     <div className="space-y-5">
-      {/* 明日小事 — 顶部输入框 */}
+      {/* 明日约定 — 顶部输入框 */}
       <div
         onClick={() => setShowTomorrowModal(true)}
         className={`p-4 rounded-[20px] border cursor-pointer transition-all active:scale-[0.98] flex items-center gap-3 ${
@@ -545,7 +567,7 @@ export default function TreeholeView({
         </div>
         <div className="flex-1">
           <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-            明日小事
+            明日约定
           </p>
           <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
             给自己定一个小目标
@@ -665,6 +687,52 @@ export default function TreeholeView({
         </div>
       )}
 
+      {/* 星际足迹 */}
+      {taskFootprints.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 px-1">
+            <Footprints size={14} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
+            <h3 className="text-sm font-medium">星际足迹</h3>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
+              {taskFootprints.length} 个
+            </span>
+          </div>
+          <div className="space-y-2">
+            {(showAllFootprints ? taskFootprints : taskFootprints.slice(0, 5)).map((footprint) => (
+              <div
+                key={`${footprint.taskId}-${footprint.date}`}
+                className={`p-3 rounded-[16px] border flex items-center gap-3 ${
+                  isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm'
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-lg ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
+                  {footprint.emoji}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
+                    {footprint.main}
+                  </p>
+                  <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    {footprint.date}
+                  </p>
+                </div>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
+                  已完成
+                </span>
+              </div>
+            ))}
+            {taskFootprints.length > 5 && !showAllFootprints && (
+              <button
+                onClick={() => setShowAllFootprints(true)}
+                className={`w-full py-2.5 rounded-xl text-xs transition-colors ${isDark ? 'text-gray-400 hover:text-gray-300 hover:bg-white/5' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+              >
+                查看全部 {taskFootprints.length} 个足迹
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* 底部温馨语句 */}
       <div className={`p-4 rounded-2xl text-center ${isDark ? 'bg-[#171724]/50 border border-white/5' : 'bg-emerald-50/30 border border-emerald-100/50'}`}>
         <p className={`text-[11px] leading-relaxed ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
@@ -703,8 +771,8 @@ export default function TreeholeView({
                 ref={textareaRef}
                 className={`w-full p-4 rounded-2xl resize-none min-h-[120px] text-sm focus:outline-none transition-all ${
                   isDark
-                    ? 'bg-[#1f1f2e] text-gray-200 placeholder-gray-600 focus:ring-2 focus:ring-indigo-500/30'
-                    : 'bg-gray-50 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-indigo-400/30'
+                    ? 'bg-[#1f1f2e] text-gray-200 placeholder-gray-600 focus:ring-2 focus:ring-pink-500/30'
+                    : 'bg-gray-50 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-pink-400/30'
                 }`}
                 placeholder="宇宙无边无际，你的心声在这里不再受限。倾诉吧..."
                 value={whisperText}
@@ -730,7 +798,7 @@ export default function TreeholeView({
                     }}
                     className={`text-xs px-3 py-2 rounded-full border transition-all active:scale-95 ${
                       selectedTag === tag
-                        ? (isDark ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300' : 'bg-indigo-100 border-indigo-300 text-indigo-700')
+                        ? (isDark ? 'bg-pink-500/20 border-pink-500/50 text-pink-300' : 'bg-pink-100 border-pink-300 text-pink-700')
                         : (isDark ? 'border-gray-700 text-gray-400 hover:border-gray-500' : 'border-gray-200 text-gray-500 hover:border-gray-300')
                     }`}
                   >
@@ -746,14 +814,14 @@ export default function TreeholeView({
               <div className={`flex p-1 rounded-full ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-100'}`}>
                 <button
                   onClick={() => handleVisibilityChange('public')}
-                  className={`px-3 py-1.5 rounded-full text-[10px] font-medium transition-all ${visibility === 'public' ? (isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white text-indigo-600 shadow-sm') : 'text-gray-400'}`}
+                  className={`px-3 py-1.5 rounded-full text-[10px] font-medium transition-all ${visibility === 'public' ? (isDark ? 'bg-pink-500/20 text-pink-300' : 'bg-white text-pink-600 shadow-sm') : 'text-gray-400'}`}
                 >
                   <Sparkles size={10} className="inline mr-1" />
                   散落星海
                 </button>
                 <button
                   onClick={() => handleVisibilityChange('private')}
-                  className={`px-3 py-1.5 rounded-full text-[10px] font-medium transition-all ${visibility === 'private' ? (isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white text-indigo-600 shadow-sm') : 'text-gray-400'}`}
+                  className={`px-3 py-1.5 rounded-full text-[10px] font-medium transition-all ${visibility === 'private' ? (isDark ? 'bg-pink-500/20 text-pink-300' : 'bg-white text-pink-600 shadow-sm') : 'text-gray-400'}`}
                 >
                   <BookOpen size={10} className="inline mr-1" />
                   深空折叠
@@ -767,7 +835,7 @@ export default function TreeholeView({
               disabled={!whisperText.trim() || postsLeft <= 0}
               className={`w-full py-3.5 rounded-2xl font-medium tracking-wider transition-all flex items-center justify-center gap-2 ${
                 whisperText.trim() && postsLeft > 0
-                  ? 'bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-lg shadow-indigo-500/25 active:scale-[0.98]'
+                  ? 'bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white shadow-lg shadow-pink-500/25 active:scale-[0.98]'
                   : (isDark ? 'bg-[#1f1f2e] text-gray-600 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed')
               }`}
             >
@@ -780,7 +848,7 @@ export default function TreeholeView({
     );
   };
 
-  // === 渲染：明日小事弹窗 ===
+  // === 渲染：明日约定弹窗 ===
   const renderTomorrowModal = () => {
     if (!showTomorrowModal) return null;
     return (
@@ -797,7 +865,7 @@ export default function TreeholeView({
             </div>
 
             <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-lg font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>明日小事</h3>
+              <h3 className={`text-lg font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>明日约定</h3>
               <button onClick={() => setShowTomorrowModal(false)} className={`p-1 rounded-full ${isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}>
                 <X size={20} />
               </button>
@@ -957,89 +1025,25 @@ export default function TreeholeView({
         </div>
       ))}
 
-      {/* 星海发射成功 — 可折叠卡片 */}
-      {showToast && lastPublishedWhisper && (
+      {/* 星海发射成功 — 简洁提示 */}
+      {showToast && (
         <Portal>
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 animate-fade-in" onClick={() => setShowToast(false)}>
-            <div className={`w-full max-w-sm rounded-[24px] border overflow-hidden ${isDark ? 'bg-[#171724] border-amber-500/30 shadow-lg shadow-amber-500/10' : 'bg-white border-amber-200 shadow-xl'}`} onClick={e => e.stopPropagation()}>
-              {/* 头部 */}
-              <div className={`p-4 flex items-center justify-between ${isDark ? 'bg-amber-500/10' : 'bg-amber-50/50'}`}>
-                <div className="flex items-center gap-2">
-                  <Send size={16} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
-                  <span className={`text-sm font-medium ${isDark ? 'text-amber-300' : 'text-amber-700'}`}>信号已封存</span>
-                </div>
-                <button onClick={() => setShowToast(false)} className={`p-1 rounded-full transition-colors ${isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}>
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* 卡片内容 */}
-              <div className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className={`text-[10px] px-2 py-0.5 rounded-sm ${isDark ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600'}`}>
-                    {lastPublishedWhisper.emotion}
-                  </span>
-                  <span className={`text-[9px] px-1.5 py-0.5 rounded-sm border ${lastPublishedWhisper.visibility === 'private' ? (isDark ? 'bg-gray-800/50 text-gray-400 border-gray-700' : 'bg-gray-100 text-gray-500 border-gray-200') : (isDark ? 'bg-amber-500/10 text-amber-300 border-amber-500/30' : 'bg-amber-50 text-amber-500 border-amber-100')}`}>
-                    {lastPublishedWhisper.visibility === 'private' ? '深空折叠' : '散落星海'}
-                  </span>
-                  <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{lastPublishedWhisper.date}</span>
-                </div>
-
-                <p className={`text-sm font-light leading-relaxed ${isDark ? 'text-gray-200' : 'text-gray-700'} ${!toastExpanded ? 'line-clamp-3' : ''}`}>
-                  {lastPublishedWhisper.text}
-                </p>
-
-                <button
-                  onClick={() => setToastExpanded(!toastExpanded)}
-                  className={`mt-3 text-xs flex items-center gap-1 transition-colors ${isDark ? 'text-amber-400 hover:text-amber-300' : 'text-amber-500 hover:text-amber-600'}`}
-                >
-                  <ChevronDown size={14} className={`transition-transform duration-300 ${toastExpanded ? 'rotate-180' : ''}`} />
-                  {toastExpanded ? '收起' : '展开'}
-                </button>
-              </div>
+            <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl border ${isDark ? 'bg-[#171724] border-pink-500/30 shadow-lg shadow-pink-500/10' : 'bg-white border-pink-200 shadow-xl'}`} onClick={e => e.stopPropagation()}>
+              <Send size={18} className={isDark ? 'text-pink-400' : 'text-pink-500'} />
+              <span className={`text-sm font-medium ${isDark ? 'text-pink-300' : 'text-pink-600'}`}>你的信号已飘向星海</span>
             </div>
           </div>
         </Portal>
       )}
 
-      {/* 明日发布成功 — 可折叠卡片 */}
-      {showTomorrowToast && lastPublishedTask && (
+      {/* 明日发布成功 — 简洁提示 */}
+      {showTomorrowToast && (
         <Portal>
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 animate-fade-in" onClick={() => setShowTomorrowToast(false)}>
-            <div className={`w-full max-w-sm rounded-[24px] border overflow-hidden ${isDark ? 'bg-[#171724] border-emerald-500/30 shadow-lg shadow-emerald-500/10' : 'bg-white border-emerald-200 shadow-xl'}`} onClick={e => e.stopPropagation()}>
-              {/* 头部 */}
-              <div className={`p-4 flex items-center justify-between ${isDark ? 'bg-emerald-500/10' : 'bg-emerald-50/50'}`}>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 size={16} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
-                  <span className={`text-sm font-medium ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>明日小事已添加</span>
-                </div>
-                <button onClick={() => setShowTomorrowToast(false)} className={`p-1 rounded-full transition-colors ${isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}>
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* 卡片内容 */}
-              <div className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-lg">{lastPublishedTask.emoji}</span>
-                  <span className={`text-[9px] px-1.5 py-0.5 rounded-sm border ${lastPublishedTask.source === 'user' && tomorrowVisibility === 'private' ? (isDark ? 'bg-gray-800/50 text-gray-400 border-gray-700' : 'bg-gray-100 text-gray-500 border-gray-200') : (isDark ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' : 'bg-emerald-50 text-emerald-500 border-emerald-100')}`}>
-                    {lastPublishedTask.source === 'user' && tomorrowVisibility === 'private' ? '仅自己可见' : '公开'}
-                  </span>
-                  <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{lastPublishedTask.date}</span>
-                </div>
-
-                <p className={`text-sm font-light leading-relaxed ${isDark ? 'text-gray-200' : 'text-gray-700'} ${!tomorrowToastExpanded ? 'line-clamp-3' : ''}`}>
-                  {lastPublishedTask.main}
-                </p>
-
-                <button
-                  onClick={() => setTomorrowToastExpanded(!tomorrowToastExpanded)}
-                  className={`mt-3 text-xs flex items-center gap-1 transition-colors ${isDark ? 'text-emerald-400 hover:text-emerald-300' : 'text-emerald-500 hover:text-emerald-600'}`}
-                >
-                  <ChevronDown size={14} className={`transition-transform duration-300 ${tomorrowToastExpanded ? 'rotate-180' : ''}`} />
-                  {tomorrowToastExpanded ? '收起' : '展开'}
-                </button>
-              </div>
+            <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl border ${isDark ? 'bg-[#171724] border-emerald-500/30 shadow-lg shadow-emerald-500/10' : 'bg-white border-emerald-200 shadow-xl'}`} onClick={e => e.stopPropagation()}>
+              <CheckCircle2 size={18} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
+              <span className={`text-sm font-medium ${isDark ? 'text-emerald-300' : 'text-emerald-600'}`}>明日约定已立下</span>
             </div>
           </div>
         </Portal>
@@ -1048,7 +1052,7 @@ export default function TreeholeView({
       {/* 星海发射弹窗 */}
       {renderEmitModal()}
 
-      {/* 明日小事弹窗 */}
+      {/* 明日约定弹窗 */}
       {renderTomorrowModal()}
 
       {/* 星海隐私确认弹窗 */}
@@ -1056,7 +1060,7 @@ export default function TreeholeView({
         <Portal>
           <div className={`fixed inset-0 z-[60] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={cancelPrivacy}>
             <div className={`w-full max-w-xs p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative text-center`} onClick={e => e.stopPropagation()}>
-              <div className="mx-auto w-12 h-12 mb-4 rounded-full flex items-center justify-center bg-indigo-500/10 text-indigo-500">
+              <div className="mx-auto w-12 h-12 mb-4 rounded-full flex items-center justify-center bg-pink-500/10 text-pink-500">
                 <BookOpen size={24} />
               </div>
               <h3 className={`text-lg font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>深空折叠</h3>
@@ -1070,7 +1074,7 @@ export default function TreeholeView({
                 <button onClick={cancelPrivacy} className={`flex-1 py-3 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-[#1f1f2e] hover:bg-[#262638] text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}>
                   取消
                 </button>
-                <button onClick={confirmPrivacy} className={`flex-1 py-3 rounded-xl text-sm font-medium bg-indigo-500 hover:bg-indigo-600 text-white transition-colors shadow-lg shadow-indigo-500/20 active:scale-95`}>
+                <button onClick={confirmPrivacy} className={`flex-1 py-3 rounded-xl text-sm font-medium bg-pink-500 hover:bg-pink-600 text-white transition-colors shadow-lg shadow-pink-500/20 active:scale-95`}>
                   确认
                 </button>
               </div>
