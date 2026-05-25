@@ -143,6 +143,15 @@ push 前手动跑一遍：
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
 
+### v4.23.4 · 2026-05-25 — 数值字段类型防御 + totalFollows 注册（M-3）
+
+- App.jsx 迁移加循环：totalDays / continuousDays / stardust / totalHugs /
+  totalFollows / dailyPosts / tomorrowDoneTotal 任一不是 number 都回落 0
+- StarView "同行者"统计 + GalaxyView 超新星计算去掉冗余的 `|| 0` 兜底
+  （字段已在 INITIAL_USER_DATA 注册 + 迁移做了类型兜底，消费端无需重复）
+- 老用户首次升到本版本后，"同行者"数字会从 0 正确累加（之前 totalFollows
+  从未在初值中存在，加 1 操作的结果不会被持久化到下次会话之外）
+
 ### v4.23.3 · 2026-05-25 — 提取 INITIAL_USER_DATA 常量（M-2）
 
 - `src/constants.js` 新增 `INITIAL_USER_DATA` 常量作为 userData 形态的单一来源

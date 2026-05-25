@@ -424,13 +424,13 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
           </div>
           <div>
             <p className={`text-xl font-medium mb-1 ${isDark ? 'text-pink-300' : 'text-pink-500'}`}>
-              {userData.totalHugs || 0}
+              {userData.totalHugs}
             </p>
             <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>传递温暖</p>
           </div>
           <div>
             <p className={`text-xl font-medium mb-1 ${isDark ? 'text-cyan-300' : 'text-cyan-500'}`}>
-              {userData.totalFollows || 0}
+              {userData.totalFollows}
             </p>
             <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>同行者</p>
           </div>

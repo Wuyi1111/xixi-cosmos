@@ -66,7 +66,11 @@ export default function App() {
         const merged = { ...INITIAL_USER_DATA, ...parsed, id: 'TR755' };
         // 类型/形态敏感字段防御（防止旧版数据里残留 null / 错误类型）
         if (typeof merged.fontScale !== 'number') merged.fontScale = INITIAL_USER_DATA.fontScale;
-        if (typeof merged.tomorrowDoneTotal !== 'number') merged.tomorrowDoneTotal = 0;
+        // 数值计数器：任何不是 number 的（null / undefined / 字符串）都回落到 INITIAL 的 0
+        for (const key of ['totalDays', 'continuousDays', 'stardust', 'totalHugs',
+                            'totalFollows', 'dailyPosts', 'tomorrowDoneTotal']) {
+          if (typeof merged[key] !== 'number') merged[key] = INITIAL_USER_DATA[key];
+        }
         if (!merged.tomorrowDoneToday || typeof merged.tomorrowDoneToday !== 'object') {
           merged.tomorrowDoneToday = { date: '', ids: [] };
         }

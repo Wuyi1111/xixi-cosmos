@@ -44,8 +44,8 @@ export default function GalaxyView({ isDark, userData }) {
   // 计算星系总星尘
   const galaxyTotalStardust = userData.stardust + MOCK_RANKINGS.reduce((sum, u) => sum + u.stardust, 0);
 
-  // 超新星数量
-  const supernovaCount = Math.floor((userData.totalHugs + (userData.totalFollows || 0)) / 10) + 3;
+  // 超新星数量（totalFollows 在 INITIAL_USER_DATA 已注册，迁移里类型也兜底，无需 || 0）
+  const supernovaCount = Math.floor((userData.totalHugs + userData.totalFollows) / 10) + 3;
 
   // 当前星系阶段
   const currentStage = [...GALAXY_STAGES].reverse().find(s => galaxyTotalStardust >= s.minStardust) || GALAXY_STAGES[0];
