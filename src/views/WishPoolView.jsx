@@ -229,9 +229,17 @@ export default function WishPoolView({ isDark, userData, saveUserData }) {
                 <X size={20} />
               </button>
               <h3 className="text-lg font-medium mb-1 text-center">许下你的星愿</h3>
-              <p className="text-[11px] text-gray-500 text-center mb-5">
+              <p className="text-[11px] text-gray-500 text-center mb-3">
                 选择一件想要的物品，留下一句心声
               </p>
+
+              {/* 预览版标注 — 让用户在选商品前就知道这是 mock，不会扣星尘 */}
+              <div className={`flex items-center justify-center gap-1.5 mb-5 px-3 py-1.5 rounded-full mx-auto w-fit ${
+                isDark ? 'bg-amber-500/10 border border-amber-500/20 text-amber-300' : 'bg-amber-50 border border-amber-100 text-amber-600'
+              }`}>
+                <span className="text-[10px]">🔖</span>
+                <span className="text-[10px] font-medium">预览版 · 不会扣除星尘</span>
+              </div>
 
               {/* 商品 grid */}
               <div className="grid grid-cols-3 gap-2 mb-4 max-h-56 overflow-y-auto no-scrollbar">
@@ -283,10 +291,10 @@ export default function WishPoolView({ isDark, userData, saveUserData }) {
                 }`}
               >
                 <Send size={14} />
-                {selectedProduct ? `送上宇宙 · ${selectedProduct.stardust} 颗星尘` : '请先选择一件物品'}
+                {selectedProduct ? '许下心愿（预览）' : '请先选择一件物品'}
               </button>
               <p className="text-[10px] text-center text-gray-500 mt-3 leading-relaxed">
-                此功能目前为预览版，许愿不会真的扣除星尘或下单。
+                未来接通后端 / 支付后，"许下心愿"会真正消费星尘并生成订单。
               </p>
             </div>
           </div>
