@@ -144,9 +144,37 @@ input[type="range"].font-scale-slider::-moz-range-thumb {
 @keyframes spin-slow { 100% { transform: rotate(360deg); } }
 .galaxy-spin { animation: spin-slow 40s linear infinite; }
 
+/* 星星闪烁动画 */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
+.animate-twinkle {
+  animation: twinkle 3s ease-in-out infinite;
+}
+
 /* 隐藏滚动条 */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* 飞入卡片动画 */
+@keyframes fly-in-card {
+  0% {
+    opacity: 0;
+    transform: translateY(-40px) scale(0.9);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(5px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-fly-in-card {
+  animation: fly-in-card 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
 
 /* === 粒子扩散：从中心向 (--dx,--dy) 方向漂移并淡出 === */
 @keyframes particle-burst {

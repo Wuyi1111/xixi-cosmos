@@ -19,8 +19,8 @@
  *   - 常量数据 → src/constants.js
  */
 
-import { useState, useEffect, useRef } from 'react';
-import { Home, Radar, Sparkles, Moon, Loader2, ChevronUp, ChevronDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Home, Radar, Sparkles, Moon } from 'lucide-react';
 
 import TabButton from './components/TabButton.jsx';
 import TonightView from './views/TonightView.jsx';
@@ -28,6 +28,7 @@ import TreeholeView from './views/TreeholeView.jsx';
 import GalaxyView from './views/GalaxyView.jsx';
 import StarView from './views/StarView.jsx';
 import SplashScreen from './components/SplashScreen.jsx';
+import StarField from './components/StarField.jsx';
 import { EMOTIONS } from './constants.js';
 
 // --- 主应用组件：全局 state + pull-to-refresh + 路由壳 ---
@@ -39,7 +40,7 @@ export default function App() {
     id: 'TR755',                  // 固定编号，不可改
     displayName: '星星旅人',
     avatarEmoji: '🪐',
-    fontScale: 1.0,
+    fontScale: 0.85,
     totalDays: 0,
     continuousDays: 0,
     stardust: 0,
@@ -87,7 +88,7 @@ export default function App() {
       parsed.id = 'TR755';
       if (!parsed.displayName) parsed.displayName = '星星旅人';
       if (!parsed.avatarEmoji) parsed.avatarEmoji = '🪐';
-      if (typeof parsed.fontScale !== 'number') parsed.fontScale = 1.0;
+      if (typeof parsed.fontScale !== 'number') parsed.fontScale = 0.85;
       if (!Array.isArray(parsed.huggedWhispers)) parsed.huggedWhispers = [];
       if (typeof parsed.tomorrowDoneTotal !== 'number') parsed.tomorrowDoneTotal = 0;
       if (!parsed.tomorrowDoneToday || typeof parsed.tomorrowDoneToday !== 'object') {
@@ -105,7 +106,7 @@ export default function App() {
   // 全局字号缩放：写到 <html> font-size 上，所有 rem 跟着变
   // 基准 18.4px (= 16 * 1.15)
   useEffect(() => {
-    const scale = userData.fontScale || 1.0;
+    const scale = userData.fontScale ?? 0.85;
     document.documentElement.style.fontSize = (18.4 * scale) + 'px';
   }, [userData.fontScale]);
 
@@ -257,78 +258,7 @@ export default function App() {
 
   const isDark = theme === 'dark' || (theme === 'auto' && (new Date().getHours() >= 18 || new Date().getHours() < 6));
 
-  // === 下拉刷新：仅刷新当前 tab 内容 ===
-  const [pullDistance, setPullDistance] = useState(0);
-  const [refreshing, setRefreshing] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const pullStartY = useRef(0);
-  const pullActive = useRef(false);
 
-  useEffect(() => {
-    const onTouchStart = (e) => {
-      // 若 touch 落在标了 data-no-pull-refresh 的元素里（光晕可拖区、全屏 widget），不触发
-      if (e.target?.closest && e.target.closest('[data-no-pull-refresh]')) {
-        pullActive.current = false;
-        return;
-      }
-      if (window.scrollY <= 0 && !refreshing) {
-        pullStartY.current = e.touches[0].clientY;
-        pullActive.current = true;
-      } else {
-        pullActive.current = false;
-      }
-    };
-    const onTouchMove = (e) => {
-      if (!pullActive.current) return;
-      const dy = e.touches[0].clientY - pullStartY.current;
-      if (dy <= 0) { setPullDistance(0); return; }
-      const distance = Math.min(Math.pow(dy, 0.85) * 0.7, 120);
-      setPullDistance(distance);
-    };
-    const onTouchEnd = () => {
-      if (!pullActive.current) return;
-      pullActive.current = false;
-      if (pullDistance > 60) {
-        setRefreshing(true);
-        setTimeout(() => {
-          try {
-            const saved = localStorage.getItem('xixi_cosmos_data');
-            if (saved) {
-              const parsed = JSON.parse(saved);
-              parsed.id = 'TR755';
-              if (!parsed.displayName) parsed.displayName = '星星旅人';
-              if (!parsed.avatarEmoji) parsed.avatarEmoji = '🪐';
-              if (typeof parsed.fontScale !== 'number') parsed.fontScale = 1.0;
-              if (!Array.isArray(parsed.huggedWhispers)) parsed.huggedWhispers = [];
-              if (typeof parsed.tomorrowDoneTotal !== 'number') parsed.tomorrowDoneTotal = 0;
-              if (!parsed.tomorrowDoneToday || typeof parsed.tomorrowDoneToday !== 'object') {
-                parsed.tomorrowDoneToday = { date: '', ids: [] };
-              }
-              // v5.0.0 新增字段迁移（下拉刷新时再次兼容）
-              if (!Array.isArray(parsed.interactionHistory)) parsed.interactionHistory = [];
-              if (!parsed.lastInteractionDate) parsed.lastInteractionDate = '';
-              setUserData(parsed);
-            }
-          } catch {}
-          setRefreshKey(k => k + 1);
-          setRefreshing(false);
-          setPullDistance(0);
-        }, 500);
-      } else {
-        setPullDistance(0);
-      }
-    };
-    window.addEventListener('touchstart', onTouchStart, { passive: true });
-    window.addEventListener('touchmove', onTouchMove, { passive: true });
-    window.addEventListener('touchend', onTouchEnd, { passive: true });
-    window.addEventListener('touchcancel', onTouchEnd, { passive: true });
-    return () => {
-      window.removeEventListener('touchstart', onTouchStart);
-      window.removeEventListener('touchmove', onTouchMove);
-      window.removeEventListener('touchend', onTouchEnd);
-      window.removeEventListener('touchcancel', onTouchEnd);
-    };
-  }, [pullDistance, refreshing]);
 
   return (
     <>
@@ -341,27 +271,6 @@ export default function App() {
       )}
 
       <div className={`min-h-screen transition-colors duration-1000 ${isDark ? 'dark bg-[#0f0f1a] text-[#f1f5f9]' : 'bg-[#f8fafc] text-[#1e293b]'}`}>
-        {/* 下拉刷新指示器 */}
-        {(pullDistance > 0 || refreshing) && (
-          <div
-            className="fixed left-0 right-0 z-[60] flex items-center justify-center pointer-events-none"
-            style={{
-              top: 'env(safe-area-inset-top)',
-              height: refreshing ? '60px' : `${pullDistance}px`,
-              transition: pullActive.current ? 'none' : 'height 0.3s ease',
-            }}
-          >
-            <div className={`flex items-center gap-2 text-xs ${isDark ? 'text-indigo-300' : 'text-indigo-500'}`}>
-            {refreshing ? (
-              <><Loader2 size={16} className="animate-spin" /> 正在刷新…</>
-            ) : pullDistance > 60 ? (
-              <><ChevronUp size={16} /> 释放刷新</>
-            ) : (
-              <><ChevronDown size={16} /> 下拉刷新</>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* 暗色模式下的全局装饰光晕 */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
@@ -373,16 +282,14 @@ export default function App() {
         )}
       </div>
 
+      {/* 星空背景 */}
+      <StarField isDark={isDark} />
+
       <main
         className="relative z-10 px-4 max-w-md mx-auto min-h-screen pt-[max(env(safe-area-inset-top),0.75rem)] pb-[calc(env(safe-area-inset-bottom)+6rem)]"
-        style={{
-          transform: pullDistance > 0 ? `translateY(${pullDistance}px)` : undefined,
-          transition: pullActive.current ? 'none' : 'transform 0.3s ease',
-        }}
       >
         {activeTab === 'tonight' && (
           <TonightView
-            key={`tonight-${refreshKey}`}
             isDark={isDark}
             userData={userData}
             saveUserData={saveUserData}
@@ -391,7 +298,6 @@ export default function App() {
         )}
         {activeTab === 'radar' && (
           <TreeholeView
-            key={`radar-${refreshKey}`}
             isDark={isDark}
             userData={userData}
             saveUserData={saveUserData}
@@ -403,14 +309,12 @@ export default function App() {
 
         {activeTab === 'galaxy' && (
           <GalaxyView
-            key={`galaxy-${refreshKey}`}
             isDark={isDark}
             userData={userData}
           />
         )}
         {activeTab === 'star' && (
           <StarView
-            key={`star-${refreshKey}`}
             isDark={isDark}
             theme={theme}
             setTheme={setTheme}
