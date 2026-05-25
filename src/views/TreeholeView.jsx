@@ -90,6 +90,15 @@ export default function TreeholeView({
     TOMORROW_SUGGESTIONS.map(s => ({ ...s, _instanceId: Math.random().toString(36).slice(2) }))
   );
   const [showAllFootprints, setShowAllFootprints] = useState(false);
+  const [footprintsExpanded, setFootprintsExpanded] = useState(false);
+
+  // 星际回音当前索引
+  const [echoIndex, setEchoIndex] = useState(0);
+  const echoContainerRef = useRef(null);
+
+  // 热门任务当前索引
+  const [hotTaskIndex, setHotTaskIndex] = useState(0);
+  const hotTaskContainerRef = useRef(null);
 
   const textareaRef = useRef(null);
 
@@ -488,65 +497,94 @@ export default function TreeholeView({
         </div>
       )}
 
-      {/* 星际回音 */}
+      {/* 星际回音 — 垂直滑动卡片堆叠 */}
       <div className="space-y-3">
         <div className="flex items-center gap-2 px-1">
           <Sparkles size={14} className="text-pink-400" />
           <h3 className="text-sm font-medium">星际回音</h3>
+          <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-[#1f1f2e] text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+            {echoIndex + 1} / {MOCK_WHISPERS.length}
+          </span>
         </div>
 
-        <div className="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-4 px-4 pb-1">
-          {MOCK_WHISPERS.map((whisper) => {
-            const isHugged = (userData.huggedWhispers || []).includes(whisper.id);
-            return (
-              <div
-                key={whisper.id}
-                className={`shrink-0 snap-center w-[280px] p-5 rounded-[24px] border relative overflow-hidden ${
-                  isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border-white/5' : 'bg-gradient-to-br from-pink-50/50 to-white border-pink-50'
-                } shadow-sm`}
-              >
-                <div className={`absolute -right-4 -top-4 w-20 h-20 rounded-full blur-3xl opacity-50 ${whisper.isPositive ? 'bg-pink-500/20' : 'bg-blue-500/20'}`}></div>
-                <div className={`absolute -bottom-10 -left-4 w-16 h-16 rounded-full blur-2xl opacity-30 ${whisper.isPositive ? 'bg-pink-500/10' : 'bg-pink-500/10'}`}></div>
+        <div
+          ref={echoContainerRef}
+          className="relative h-[320px] overflow-hidden -mx-4 px-4"
+          onScroll={(e) => {
+            const container = e.currentTarget;
+            const scrollTop = container.scrollTop;
+            const cardHeight = 280 + 12; // card height + gap
+            const newIndex = Math.round(scrollTop / cardHeight);
+            if (newIndex !== echoIndex && newIndex >= 0 && newIndex < MOCK_WHISPERS.length) {
+              setEchoIndex(newIndex);
+            }
+          }}
+          style={{ scrollSnapType: 'y mandatory', overflowY: 'scroll' }}
+        >
+          <div className="py-[20px]">
+            {MOCK_WHISPERS.map((whisper, idx) => {
+              const isHugged = (userData.huggedWhispers || []).includes(whisper.id);
+              const distance = Math.abs(idx - echoIndex);
+              const isActive = idx === echoIndex;
 
-                <div className="flex items-center gap-2 mb-4 relative z-10">
-                  <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
-                    {whisper.emotion}
-                  </span>
-                  <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                    <Radio size={10} /> 未知坐标
-                  </span>
-                </div>
-
-                <p className={`text-sm leading-relaxed mb-5 font-light relative z-10 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
-                  "{whisper.text}"
-                </p>
-
-                <div className="flex justify-end relative z-10">
-                  <button
-                    onClick={(e) => handleGiveHug(whisper.id, e)}
-                    disabled={isHugged}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 active:scale-95 ${
-                      isHugged
-                        ? (isDark
-                            ? 'bg-pink-500/25 text-pink-300 border border-pink-400/60 shadow-[0_0_20px_rgba(236,72,153,0.35)]'
-                            : 'bg-pink-100 text-pink-600 border border-pink-300 shadow-[0_0_18px_rgba(236,72,153,0.25)]')
-                        : (isDark
-                            ? 'bg-white/5 hover:bg-white/10 text-pink-400 border border-white/5 hover:border-pink-500/30'
-                            : 'bg-pink-50 hover:bg-pink-100 text-pink-500 border border-pink-100')
-                    }`}
+              return (
+                <div
+                  key={whisper.id}
+                  className="mb-3"
+                  style={{ scrollSnapAlign: 'center' }}
+                >
+                  <div
+                    className={`relative h-[280px] p-5 rounded-[24px] border overflow-hidden transition-all duration-500 ${
+                      isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border-white/5' : 'bg-gradient-to-br from-pink-50/50 to-white border-pink-50'
+                    } ${isActive ? 'shadow-lg scale-100 opacity-100' : 'shadow-sm scale-95 opacity-50 blur-[1px]'}`}
                   >
-                    <Heart
-                      size={14}
-                      fill={isHugged ? 'currentColor' : 'none'}
-                      strokeWidth={isHugged ? 2.5 : 2}
-                      className={`transition-transform duration-300 ${isHugged ? 'scale-110' : 'scale-100'}`}
-                    />
-                    <span className="text-[11px]">{isHugged ? '已送出温暖' : '送出温暖'}</span>
-                  </button>
+                    <div className={`absolute -right-4 -top-4 w-20 h-20 rounded-full blur-3xl opacity-50 ${whisper.isPositive ? 'bg-pink-500/20' : 'bg-blue-500/20'}`}></div>
+                    <div className={`absolute -bottom-10 -left-4 w-16 h-16 rounded-full blur-2xl opacity-30 ${whisper.isPositive ? 'bg-pink-500/10' : 'bg-pink-500/10'}`}></div>
+
+                    <div className="flex items-center gap-2 mb-4 relative z-10">
+                      <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
+                        {whisper.emotion}
+                      </span>
+                      <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        <Radio size={10} /> 未知坐标
+                      </span>
+                    </div>
+
+                    <p className={`text-sm leading-relaxed font-light relative z-10 ${isDark ? 'text-gray-200' : 'text-gray-700'} line-clamp-4`}>
+                      "{whisper.text}"
+                    </p>
+
+                    {/* 按钮固定在底部 */}
+                    <div className="absolute bottom-5 right-5 left-5 z-10">
+                      <div className="flex justify-end">
+                        <button
+                          onClick={(e) => handleGiveHug(whisper.id, e)}
+                          disabled={isHugged}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 active:scale-95 ${
+                            isHugged
+                              ? (isDark
+                                  ? 'bg-pink-500/25 text-pink-300 border border-pink-400/60 shadow-[0_0_20px_rgba(236,72,153,0.35)]'
+                                  : 'bg-pink-100 text-pink-600 border border-pink-300 shadow-[0_0_18px_rgba(236,72,153,0.25)]')
+                              : (isDark
+                                  ? 'bg-white/5 hover:bg-white/10 text-pink-400 border border-white/5 hover:border-pink-500/30'
+                                  : 'bg-pink-50 hover:bg-pink-100 text-pink-500 border border-pink-100')
+                          }`}
+                        >
+                          <Heart
+                            size={14}
+                            fill={isHugged ? 'currentColor' : 'none'}
+                            strokeWidth={isHugged ? 2.5 : 2}
+                            className={`transition-transform duration-300 ${isHugged ? 'scale-110' : 'scale-100'}`}
+                          />
+                          <span className="text-[11px]">{isHugged ? '已送出温暖' : '送出温暖'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
@@ -622,113 +660,159 @@ export default function TreeholeView({
         </div>
       )}
 
-      {/* 热门任务 */}
+      {/* 热门任务 — 垂直滑动卡片堆叠 */}
       {hotTasks.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <Flame size={14} className={isDark ? 'text-orange-400' : 'text-orange-500'} />
             <h3 className="text-sm font-medium">热门任务</h3>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-[#1f1f2e] text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+              {hotTaskIndex + 1} / {hotTasks.length}
+            </span>
           </div>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-4 px-4 pb-1">
-            {hotTasks.map((challenge) => {
-              const followed = isFollowed(challenge.id);
-              return (
-                <div
-                  key={challenge._instanceId}
-                  className={`shrink-0 snap-center w-[260px] p-4 rounded-[20px] border transition-all ${
-                    followed
-                      ? (isDark ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50/50 border-emerald-200/50')
-                      : (isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm')
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'} shadow-sm shrink-0`}>
-                      {challenge.emoji}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
-                        {challenge.main}
-                      </p>
-                      <p className={`text-[11px] leading-relaxed mb-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                        {challenge.sub}
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                          <Flame size={10} /> {challenge.followCount} 人跟随
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => handleRefreshOne(challenge._instanceId)}
-                            className={`p-1.5 rounded-full transition-all active:scale-90 ${isDark ? 'text-gray-600 hover:text-gray-400' : 'text-gray-400 hover:text-gray-600'}`}
-                            title="换一条"
-                          >
-                            <RotateCcw size={12} />
-                          </button>
-                          <button
-                            onClick={() => followed ? null : handleFollowTask(challenge)}
-                            disabled={followed}
-                            className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-medium transition-all active:scale-95 ${
-                              followed
-                                ? (isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200')
-                                : (isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100')
-                            }`}
-                          >
-                            <CheckCircle2 size={10} />
-                            {followed ? '已跟随' : '跟随'}
-                          </button>
+          <div
+            ref={hotTaskContainerRef}
+            className="relative h-[200px] overflow-hidden -mx-4 px-4"
+            onScroll={(e) => {
+              const container = e.currentTarget;
+              const scrollTop = container.scrollTop;
+              const cardHeight = 160 + 12;
+              const newIndex = Math.round(scrollTop / cardHeight);
+              if (newIndex !== hotTaskIndex && newIndex >= 0 && newIndex < hotTasks.length) {
+                setHotTaskIndex(newIndex);
+              }
+            }}
+            style={{ scrollSnapType: 'y mandatory', overflowY: 'scroll' }}
+          >
+            <div className="py-[20px]">
+              {hotTasks.map((challenge, idx) => {
+                const followed = isFollowed(challenge.id);
+                const isActive = idx === hotTaskIndex;
+
+                return (
+                  <div
+                    key={challenge._instanceId}
+                    className="mb-3"
+                    style={{ scrollSnapAlign: 'center' }}
+                  >
+                    <div
+                      className={`relative h-[160px] p-4 rounded-[20px] border transition-all duration-500 ${
+                        followed
+                          ? (isDark ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50/50 border-emerald-200/50')
+                          : (isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm')
+                      } ${isActive ? 'shadow-lg scale-100 opacity-100' : 'shadow-sm scale-95 opacity-50 blur-[1px]'}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'} shadow-sm shrink-0`}>
+                          {challenge.emoji}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
+                            {challenge.main}
+                          </p>
+                          <p className={`text-[11px] leading-relaxed mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                            {challenge.sub}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* 按钮固定在底部 */}
+                      <div className="absolute bottom-4 right-4 left-4">
+                        <div className="flex items-center justify-between">
+                          <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                            <Flame size={10} /> {challenge.followCount} 人跟随
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleRefreshOne(challenge._instanceId)}
+                              className={`p-1.5 rounded-full transition-all active:scale-90 ${isDark ? 'text-gray-600 hover:text-gray-400' : 'text-gray-400 hover:text-gray-600'}`}
+                              title="换一条"
+                            >
+                              <RotateCcw size={12} />
+                            </button>
+                            <button
+                              onClick={() => followed ? null : handleFollowTask(challenge)}
+                              disabled={followed}
+                              className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-medium transition-all active:scale-95 ${
+                                followed
+                                  ? (isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200')
+                                  : (isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100')
+                              }`}
+                            >
+                              <CheckCircle2 size={10} />
+                              {followed ? '已跟随' : '跟随'}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
 
-      {/* 星际足迹 */}
+      {/* 星际足迹 — 可折叠 */}
       {taskFootprints.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 px-1">
-            <Footprints size={14} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
-            <h3 className="text-sm font-medium">星际足迹</h3>
-            <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
-              {taskFootprints.length} 个
-            </span>
+        <div className={`rounded-[20px] border transition-all duration-300 ${
+          isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm'
+        }`}>
+          {/* 标题栏 — 点击折叠/展开 */}
+          <div
+            onClick={() => setFootprintsExpanded(!footprintsExpanded)}
+            className="p-4 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-transform"
+          >
+            <div className="flex items-center gap-2">
+              <Footprints size={14} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
+              <h3 className="text-sm font-medium">星际足迹</h3>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
+                {taskFootprints.length} 个
+              </span>
+            </div>
+            <div className={`transition-transform duration-300 ${footprintsExpanded ? 'rotate-180' : ''}`}>
+              <ChevronDown size={16} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
+            </div>
           </div>
-          <div className="space-y-2">
-            {(showAllFootprints ? taskFootprints : taskFootprints.slice(0, 5)).map((footprint) => (
-              <div
-                key={`${footprint.taskId}-${footprint.date}`}
-                className={`p-3 rounded-[16px] border flex items-center gap-3 ${
-                  isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm'
-                }`}
-              >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-lg ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
-                  {footprint.emoji}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
-                    {footprint.main}
-                  </p>
-                  <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                    {footprint.date}
-                  </p>
-                </div>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
-                  已完成
-                </span>
+
+          {/* 展开内容 */}
+          <div className={`grid transition-all duration-300 ease-in-out ${footprintsExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+            <div className="overflow-hidden">
+              <div className="px-4 pb-4 space-y-2">
+                {(showAllFootprints ? taskFootprints : taskFootprints.slice(0, 5)).map((footprint) => (
+                  <div
+                    key={`${footprint.taskId}-${footprint.date}`}
+                    className={`p-3 rounded-[16px] border flex items-center gap-3 ${
+                      isDark ? 'bg-[#1a1a2e] border-white/5' : 'bg-gray-50/50 border-gray-100'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-lg ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
+                      {footprint.emoji}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
+                        {footprint.main}
+                      </p>
+                      <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        {footprint.date}
+                      </p>
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
+                      已完成
+                    </span>
+                  </div>
+                ))}
+                {taskFootprints.length > 5 && !showAllFootprints && (
+                  <button
+                    onClick={() => setShowAllFootprints(true)}
+                    className={`w-full py-2.5 rounded-xl text-xs transition-colors ${isDark ? 'text-gray-400 hover:text-gray-300 hover:bg-white/5' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+                  >
+                    查看全部 {taskFootprints.length} 个足迹
+                  </button>
+                )}
               </div>
-            ))}
-            {taskFootprints.length > 5 && !showAllFootprints && (
-              <button
-                onClick={() => setShowAllFootprints(true)}
-                className={`w-full py-2.5 rounded-xl text-xs transition-colors ${isDark ? 'text-gray-400 hover:text-gray-300 hover:bg-white/5' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
-              >
-                查看全部 {taskFootprints.length} 个足迹
-              </button>
-            )}
+            </div>
           </div>
         </div>
       )}
