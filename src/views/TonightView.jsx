@@ -482,26 +482,7 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
               </div>
             </div>
 
-            {/* 底部指示器 */}
-            <div className="flex justify-center gap-1.5">
-              {entries.map((whisper, index) => (
-                <button
-                  key={whisper.id}
-                  onClick={() => {
-                    setActiveIndex(index);
-                    if (scrollRef.current) {
-                      const cardHeight = 160 + 16;
-                      scrollRef.current.scrollTo({ top: index * cardHeight, behavior: 'smooth' });
-                    }
-                  }}
-                  className={`rounded-full transition-all duration-300 ${
-                    index === activeIndex
-                      ? 'w-5 h-1.5 bg-pink-400'
-                      : 'w-1.5 h-1.5 bg-gray-300'
-                  }`}
-                />
-              ))}
-            </div>
+
           </div>
         </div>
       </section>
