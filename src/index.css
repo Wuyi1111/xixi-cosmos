@@ -198,3 +198,13 @@ input[type="range"].font-scale-slider::-moz-range-thumb {
   100% { opacity: 0; transform: scale(1.3); }
 }
 .animate-tap-flash { animation: tap-flash 500ms ease-out forwards; }
+
+/* === 心形粒子上浮 & 淡出（TreeholeView 的"送出温暖"喷溅效果） ===
+ * 从原点 (0,0) 漂移到 (--tx, --ty)，同时缩小并淡出。
+ * --tx / --ty 必须设在 .animate-particle-float 自身上（CSS 变量只向下级联）。
+ */
+@keyframes particle-float {
+  0%   { transform: translate(0, 0) scale(1);                              opacity: 1; }
+  100% { transform: translate(var(--tx, 0), var(--ty, -40px)) scale(0.2);  opacity: 0; }
+}
+.animate-particle-float { animation: particle-float 1s ease-out forwards; }

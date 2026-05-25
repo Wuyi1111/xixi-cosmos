@@ -143,6 +143,24 @@ push 前手动跑一遍：
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
 
+### v4.23.2 · 2026-05-25 — P1 级 bug 修复（稳定性 + 安全）
+
+- **修复白屏崩溃**：App.jsx 初始化 useEffect 给 JSON.parse 加 try-catch，
+  localStorage 数据损坏时清除 key 并使用初始 state（之前会直接白屏）
+- **修复归星仪式刷星尘漏洞**：StarView 的 setTimeout 链 ID 全部收集到
+  ritualTimersRef，closeRitual / 组件卸载时统一 clear；completeRitual 加
+  hasCheckedInToday 防御（之前关闭弹窗后定时器继续跑，会反复发奖励）
+- **修复 TonightView Section 重建**：QuizSection / GalaxySection /
+  SupernovaSection 提到文件顶层作为正经 React 组件，HeroSection /
+  AppIntroSection / NavigationSection 内联 JSX。父级 re-render 不再让子组件
+  unmount/remount，展开态、滚动位置、当前卡片索引都能保持
+- **修复送出温暖 / 跟随的双重保存覆盖**：handleInteractionCheckIn 新增
+  extraPatch 参数，TreeholeView 把 hug / follow 的字段更新作为 patch 传过来，
+  由 App 端一次合并保存。原本两边各自 saveUserData 用旧闭包覆盖对方，导致
+  huggedWhispers / totalHugs / followedSuggestions 等不持久
+- **修复心形粒子残留**：index.css 补上缺失的 @keyframes particle-float；
+  --tx/--ty 从子 Heart 元素移到父级动画元素（CSS 变量只向下级联）
+
 ### v4.23.0 · 2026-05-25 — 星系界面简化（方案A折叠式）
 
 - 星系页改为折叠式布局：默认只展示当前阶段卡片 + 总览数字

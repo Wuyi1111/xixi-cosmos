@@ -79,25 +79,30 @@ export default function App() {
 
   // 初始化加载数据 + 字段迁移
   useEffect(() => {
-    const saved = localStorage.getItem('xixi_cosmos_data');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed.continuousDays === undefined) parsed.continuousDays = 0;
-      if (!parsed.dreamLogs) parsed.dreamLogs = [];
-      if (!parsed.myWhispers) parsed.myWhispers = [];
-      parsed.id = 'TR755';
-      if (!parsed.displayName) parsed.displayName = '星星旅人';
-      if (!parsed.avatarEmoji) parsed.avatarEmoji = '🪐';
-      if (typeof parsed.fontScale !== 'number') parsed.fontScale = 0.85;
-      if (!Array.isArray(parsed.huggedWhispers)) parsed.huggedWhispers = [];
-      if (typeof parsed.tomorrowDoneTotal !== 'number') parsed.tomorrowDoneTotal = 0;
-      if (!parsed.tomorrowDoneToday || typeof parsed.tomorrowDoneToday !== 'object') {
-        parsed.tomorrowDoneToday = { date: '', ids: [] };
+    try {
+      const saved = localStorage.getItem('xixi_cosmos_data');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.continuousDays === undefined) parsed.continuousDays = 0;
+        if (!parsed.dreamLogs) parsed.dreamLogs = [];
+        if (!parsed.myWhispers) parsed.myWhispers = [];
+        parsed.id = 'TR755';
+        if (!parsed.displayName) parsed.displayName = '星星旅人';
+        if (!parsed.avatarEmoji) parsed.avatarEmoji = '🪐';
+        if (typeof parsed.fontScale !== 'number') parsed.fontScale = 0.85;
+        if (!Array.isArray(parsed.huggedWhispers)) parsed.huggedWhispers = [];
+        if (typeof parsed.tomorrowDoneTotal !== 'number') parsed.tomorrowDoneTotal = 0;
+        if (!parsed.tomorrowDoneToday || typeof parsed.tomorrowDoneToday !== 'object') {
+          parsed.tomorrowDoneToday = { date: '', ids: [] };
+        }
+        // v4.23.0 新增字段迁移
+        if (!Array.isArray(parsed.interactionHistory)) parsed.interactionHistory = [];
+        if (!parsed.lastInteractionDate) parsed.lastInteractionDate = '';
+        setUserData(parsed);
       }
-      // v5.0.0 新增字段迁移
-      if (!Array.isArray(parsed.interactionHistory)) parsed.interactionHistory = [];
-      if (!parsed.lastInteractionDate) parsed.lastInteractionDate = '';
-      setUserData(parsed);
+    } catch {
+      // localStorage 中的 JSON 损坏，清除并使用初始 state，避免白屏
+      localStorage.removeItem('xixi_cosmos_data');
     }
     const savedTheme = localStorage.getItem('xixi_cosmos_theme') || 'light';
     setTheme(savedTheme);
@@ -195,7 +200,12 @@ export default function App() {
   };
 
   // === 新打卡逻辑：用户点击「送出温暖」或「跟随」时触发打卡 ===
-  const handleInteractionCheckIn = (type, targetId) => {
+  //
+  // ⚠️ 第三个参数 extraPatch 是 caller 的"附带更新"（送温暖时是 huggedWhispers+totalHugs，
+  //    跟随时是 followedSuggestions+totalFollows+myTomorrowTasks）。
+  //    必须由本函数统一合并到 nextUserData 后做一次 saveUserData，
+  //    否则 caller 自己 saveUserData + 本函数 saveUserData 会用各自的旧闭包覆盖对方。
+  const handleInteractionCheckIn = (type, targetId, extraPatch = {}) => {
     // type: 'hug' | 'follow'
     // targetId: 被互动对象的标识
     const today = new Date();
@@ -215,7 +225,8 @@ export default function App() {
 
     let nextUserData = {
       ...userData,
-      interactionHistory: [newInteraction, ...userData.interactionHistory],
+      ...extraPatch,  // caller 的附带更新先 merge，避免被 interactionHistory 覆盖
+      interactionHistory: [newInteraction, ...(userData.interactionHistory || [])],
       lastInteractionDate: currentDateStr,
     };
 
@@ -302,8 +313,8 @@ export default function App() {
             userData={userData}
             saveUserData={saveUserData}
             currentDateStr={currentDateStr}
-            onGiveHug={(whisperId) => handleInteractionCheckIn('hug', whisperId)}
-            onFollow={(suggestionId) => handleInteractionCheckIn('follow', suggestionId)}
+            onGiveHug={(whisperId, patch) => handleInteractionCheckIn('hug', whisperId, patch)}
+            onFollow={(suggestionId, patch) => handleInteractionCheckIn('follow', suggestionId, patch)}
           />
         )}
 

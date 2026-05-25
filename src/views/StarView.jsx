@@ -50,7 +50,15 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
   const [showRitual, setShowRitual] = useState(false);
   const [ritualPhase, setRitualPhase] = useState('select'); // select | breathing | complete
   const [breathPhase, setBreathPhase] = useState('inhale'); // inhale | hold | exhale
-  const breathTimerRef = useRef(null);
+  // 所有调息 setTimeout 的 ID 都丢这里；closeRitual 时统一 clear
+  const ritualTimersRef = useRef([]);
+  // 标记仪式是否仍在进行；定时器链回调里短路用，避免关闭后还触发 completeRitual
+  const ritualActiveRef = useRef(false);
+
+  const clearRitualTimers = () => {
+    ritualTimersRef.current.forEach(id => clearTimeout(id));
+    ritualTimersRef.current = [];
+  };
 
   // 连续夜晚显示
   const lastCheckInDate = userData.checkInHistory[0]?.date;
@@ -70,17 +78,23 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
 
   // 调息动画
   const startBreathing = () => {
+    clearRitualTimers();
+    ritualActiveRef.current = true;
     setRitualPhase('breathing');
     setBreathPhase('inhale');
 
     let cycle = 0;
     const runCycle = () => {
+      if (!ritualActiveRef.current) return;
       setBreathPhase('inhale');
-      setTimeout(() => {
+      const t1 = setTimeout(() => {
+        if (!ritualActiveRef.current) return;
         setBreathPhase('hold');
-        setTimeout(() => {
+        const t2 = setTimeout(() => {
+          if (!ritualActiveRef.current) return;
           setBreathPhase('exhale');
-          setTimeout(() => {
+          const t3 = setTimeout(() => {
+            if (!ritualActiveRef.current) return;
             cycle++;
             if (cycle < 3) {
               runCycle();
@@ -88,17 +102,30 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
               completeRitual();
             }
           }, 3000);
+          ritualTimersRef.current.push(t3);
         }, 2000);
+        ritualTimersRef.current.push(t2);
       }, 3000);
+      ritualTimersRef.current.push(t1);
     };
     runCycle();
   };
 
   const completeRitual = () => {
+    // 防御 1：仪式已被关闭 → 短路（定时器链余波）
+    if (!ritualActiveRef.current) return;
+    // 防御 2：今日已打卡 → 不再发放奖励（避免重复打卡）
+    if (hasCheckedInToday) {
+      ritualActiveRef.current = false;
+      clearRitualTimers();
+      setRitualPhase('complete');
+      return;
+    }
+    ritualActiveRef.current = false;
+    clearRitualTimers();
     setRitualPhase('complete');
 
     // 给予奖励
-    const isFirstToday = !hasCheckedInToday;
     const isConsecutive = lastCheckInDate === yesterday.toDateString();
     const newContinuousDays = isConsecutive ? userData.continuousDays + 1 : 1;
     const streakBonus = isConsecutive ? Math.min((newContinuousDays - 1) * 2, 10) : 0;
@@ -132,12 +159,22 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
   };
 
   const closeRitual = () => {
+    // 关闭即"打断"：先翻 active 标记，再清所有挂起的 setTimeout
+    ritualActiveRef.current = false;
+    clearRitualTimers();
     setShowRitual(false);
     setRitualPhase('select');
     setSelectedPose(null);
     setBreathPhase('inhale');
-    if (breathTimerRef.current) clearTimeout(breathTimerRef.current);
   };
+
+  // 组件卸载时也清干净，避免内存泄漏
+  useEffect(() => {
+    return () => {
+      ritualActiveRef.current = false;
+      clearRitualTimers();
+    };
+  }, []);
 
   if (showSettings) {
     return (

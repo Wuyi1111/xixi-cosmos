@@ -136,13 +136,19 @@ export default function TreeholeView({
     const huggedList = userData.huggedWhispers || [];
     if (huggedList.includes(whisperId)) return;
 
-    saveUserData({
-      ...userData,
+    // ⚠️ 不要自己 saveUserData —— onGiveHug 会调 App.handleInteractionCheckIn，
+    //    那边会把 hugPatch 与互动记录一次合并保存，避免双重保存覆盖闭包。
+    //    如果 onGiveHug 没接（独立使用 TreeholeView 时）才走本地保存兜底。
+    const hugPatch = {
       totalHugs: (userData.totalHugs || 0) + 1,
       huggedWhispers: [...huggedList, whisperId],
-    });
+    };
 
-    if (onGiveHug) onGiveHug(whisperId);
+    if (onGiveHug) {
+      onGiveHug(whisperId, hugPatch);
+    } else {
+      saveUserData({ ...userData, ...hugPatch });
+    }
 
     const rect = e.currentTarget.getBoundingClientRect();
     const newParticles = Array.from({ length: 8 }).map((_, i) => ({
@@ -295,14 +301,19 @@ export default function TreeholeView({
       source: 'system',
     };
 
-    saveUserData({
-      ...userData,
+    // 同 handleGiveHug：把所有 follow 相关更新作为 patch 传给 onFollow，
+    // 让 App.handleInteractionCheckIn 一次合并保存，避免双写覆盖。
+    const followPatch = {
       totalFollows: (userData.totalFollows || 0) + 1,
       followedSuggestions: [...followedList, taskId],
       myTomorrowTasks: [...myTasks, newTask],
-    });
+    };
 
-    if (onFollow) onFollow(taskId);
+    if (onFollow) {
+      onFollow(taskId, followPatch);
+    } else {
+      saveUserData({ ...userData, ...followPatch });
+    }
   };
 
   const handleToggleComplete = (taskId) => {
@@ -1085,26 +1096,25 @@ export default function TreeholeView({
         </div>
       </div>
 
-      {/* 粒子效果 */}
+      {/* 粒子效果 —— animate-particle-float 由 index.css 提供；
+          --tx/--ty 必须设在动画元素本身上，CSS 变量不能从子元素往上读 */}
       {particles.map(p => (
         <div
           key={p.id}
-          className="fixed pointer-events-none z-50"
+          className="fixed pointer-events-none z-50 animate-particle-float"
           style={{
             left: p.x,
             top: p.y,
-            animation: `particle-float 1s ease-out ${p.delay}s forwards`,
+            animationDelay: `${p.delay}s`,
+            '--tx': p.tx,
+            '--ty': p.ty,
           }}
         >
           <Heart
             size={20}
             fill="currentColor"
             className="text-pink-500"
-            style={{
-              transform: `scale(${p.scale})`,
-              '--tx': p.tx,
-              '--ty': p.ty,
-            }}
+            style={{ transform: `scale(${p.scale})` }}
           />
         </div>
       ))}
