@@ -267,7 +267,7 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
     );
   };
 
-  // 3. 星系呈现 — 横向滑动（参考星际回音实现）
+  // 3. 星系呈现 — 垂直滑动卡片堆叠
   const GalaxySection = () => {
     const entries = Object.entries(COSMIC_PERSONALITIES);
     const total = entries.length;
@@ -278,60 +278,25 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
 
     const defaultIndex = entries.findIndex(([type]) => type === effectiveType);
     const scrollRef = useRef(null);
-    const isScrollingRef = useRef(false);
-    const scrollTimeoutRef = useRef(null);
-    const CARD_WIDTH = 276; // 260px + 16px gap
-
-    const scrollToIndex = useCallback((index, smooth = true) => {
-      if (!scrollRef.current) return;
-      const containerWidth = scrollRef.current.offsetWidth;
-      const offset = index * CARD_WIDTH - (containerWidth - 260) / 2;
-      scrollRef.current.scrollTo({ left: offset, behavior: smooth ? 'smooth' : 'auto' });
-    }, []);
 
     const scrollToMine = useCallback(() => {
-      if (defaultIndex >= 0) {
+      if (defaultIndex >= 0 && scrollRef.current) {
+        const cardHeight = 140 + 16;
+        scrollRef.current.scrollTo({ top: defaultIndex * cardHeight, behavior: 'smooth' });
         setGalaxyActiveIndex(defaultIndex);
-        scrollToIndex(defaultIndex, true);
       }
-    }, [defaultIndex, scrollToIndex]);
-
-    useEffect(() => {
-      const el = scrollRef.current;
-      if (!el) return;
-
-      const handleScroll = () => {
-        if (!el) return;
-        const containerWidth = el.offsetWidth;
-        const scrollLeft = el.scrollLeft;
-        const center = scrollLeft + containerWidth / 2;
-        const index = Math.round((center - containerWidth / 2 + 260 / 2) / CARD_WIDTH);
-        const clamped = Math.max(0, Math.min(total - 1, index));
-        setGalaxyActiveIndex(clamped);
-
-        isScrollingRef.current = true;
-        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-        scrollTimeoutRef.current = setTimeout(() => {
-          isScrollingRef.current = false;
-        }, 150);
-      };
-
-      el.addEventListener('scroll', handleScroll, { passive: true });
-      return () => {
-        el.removeEventListener('scroll', handleScroll);
-        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-      };
-    }, [total]);
+    }, [defaultIndex]);
 
     // 初始定位
     useEffect(() => {
       const el = scrollRef.current;
       if (!el) return;
       const raf = requestAnimationFrame(() => {
-        scrollToIndex(Math.max(0, defaultIndex), false);
+        const cardHeight = 140 + 16;
+        el.scrollTo({ top: Math.max(0, defaultIndex) * cardHeight, behavior: 'auto' });
       });
       return () => cancelAnimationFrame(raf);
-    }, [defaultIndex, scrollToIndex]);
+    }, [defaultIndex]);
 
     return (
       <section className="space-y-2">
@@ -348,70 +313,73 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
           </button>
         </div>
 
-        {/* 轮播容器 — 参考星际回音实现 */}
+        {/* 垂直滑动容器 */}
         <div
           ref={scrollRef}
-          className="flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-4 px-4 pb-1"
-          style={{ scrollBehavior: 'auto' }}
+          className="relative h-[220px] overflow-hidden -mx-4 px-4"
+          onScroll={(e) => {
+            const container = e.currentTarget;
+            const scrollTop = container.scrollTop;
+            const cardHeight = 140 + 16;
+            const newIndex = Math.round(scrollTop / cardHeight);
+            if (newIndex !== galaxyActiveIndex && newIndex >= 0 && newIndex < total) {
+              setGalaxyActiveIndex(newIndex);
+            }
+          }}
+          style={{ scrollSnapType: 'y mandatory', overflowY: 'scroll' }}
         >
-          {entries.map(([type, data], index) => {
-            const isMine = type === effectiveType;
-            const count = GALAXY_COUNTS[type] || 0;
-            const isActive = index === galaxyActiveIndex;
+          <div className="py-[40px]">
+            {entries.map(([type, data], index) => {
+              const isMine = type === effectiveType;
+              const count = GALAXY_COUNTS[type] || 0;
+              const isActive = index === galaxyActiveIndex;
 
-            return (
-              <div
-                key={type}
-                onClick={() => {
-                  if (!isScrollingRef.current) {
-                    setGalaxyActiveIndex(index);
-                    scrollToIndex(index, true);
-                  }
-                }}
-                className={`shrink-0 snap-center transition-all duration-300 cursor-pointer ${
-                  isActive ? 'scale-100 opacity-100' : 'scale-[0.88] opacity-50'
-                }`}
-                style={{ width: '260px' }}
-              >
+              return (
                 <div
-                  className={`h-full p-5 rounded-[24px] border transition-all ${
-                    isMine
-                      ? (isDark ? 'bg-indigo-900/20 border-indigo-500/40 shadow-[0_0_20px_rgba(99,102,241,0.12)]' : 'bg-indigo-50 border-indigo-300 shadow-md')
-                      : (isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm')
-                  }`}
+                  key={type}
+                  className="mb-4"
+                  style={{ scrollSnapAlign: 'center' }}
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <span className={`text-[10px] font-mono px-2 py-1 rounded-md ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-                      {type}
-                    </span>
-                    {isMine && (
-                      <span className={`text-[9px] px-2 py-0.5 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-600'}`}>
-                        你的归属
+                  <div
+                    className={`relative h-[140px] p-5 rounded-[24px] border transition-all duration-500 ${
+                      isMine
+                        ? (isDark ? 'bg-indigo-900/20 border-indigo-500/40 shadow-[0_0_20px_rgba(99,102,241,0.12)]' : 'bg-indigo-50 border-indigo-300 shadow-md')
+                        : (isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm')
+                    } ${isActive ? 'scale-100 opacity-100' : 'scale-90 opacity-40 blur-[2px]'}`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className={`text-[10px] font-mono px-2 py-1 rounded-md ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+                        {type}
                       </span>
-                    )}
-                  </div>
-
-                  <h4 className={`text-lg font-medium mb-2 ${isMine ? (isDark ? 'text-indigo-300' : 'text-indigo-700') : (isDark ? 'text-gray-200' : 'text-gray-800')}`}>
-                    {data.name}
-                  </h4>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-wrap gap-1.5">
-                      {data.tags.slice(0, 2).map((tag, i) => (
-                        <span key={i} className={`text-[9px] px-2 py-1 rounded-full whitespace-nowrap ${isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>
-                          {tag}
+                      {isMine && (
+                        <span className={`text-[9px] px-2 py-0.5 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-600'}`}>
+                          你的归属
                         </span>
-                      ))}
+                      )}
                     </div>
-                    <div className={`flex items-center gap-1 text-[10px] shrink-0 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                      <Users size={10} />
-                      <span>{count.toLocaleString()}</span>
+
+                    <h4 className={`text-lg font-medium mb-2 ${isMine ? (isDark ? 'text-indigo-300' : 'text-indigo-700') : (isDark ? 'text-gray-200' : 'text-gray-800')}`}>
+                      {data.name}
+                    </h4>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-wrap gap-1.5">
+                        {data.tags.slice(0, 2).map((tag, i) => (
+                          <span key={i} className={`text-[9px] px-2 py-1 rounded-full whitespace-nowrap ${isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                      <div className={`flex items-center gap-1 text-[10px] shrink-0 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        <Users size={10} />
+                        <span>{count.toLocaleString()}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
         {/* 底部指示器 */}
@@ -421,7 +389,10 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
               key={type}
               onClick={() => {
                 setGalaxyActiveIndex(index);
-                scrollToIndex(index, true);
+                if (scrollRef.current) {
+                  const cardHeight = 140 + 16;
+                  scrollRef.current.scrollTo({ top: index * cardHeight, behavior: 'smooth' });
+                }
               }}
               className={`rounded-full transition-all duration-300 ${
                 index === galaxyActiveIndex
@@ -435,53 +406,12 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
     );
   };
 
-  // 4. 星际回音 — 折叠 + 横向滑动轮播（无循环）
+  // 4. 星际回音 — 折叠 + 垂直滑动卡片堆叠
   const SupernovaSection = () => {
     const entries = MOCK_WHISPERS;
     const total = entries.length;
     const [activeIndex, setActiveIndex] = useState(0);
     const scrollRef = useRef(null);
-    const isScrollingRef = useRef(false);
-    const scrollTimeoutRef = useRef(null);
-    const CARD_WIDTH = 292; // 276px + 16px gap
-
-    const scrollToIndex = useCallback((index, smooth = true) => {
-      if (!scrollRef.current) return;
-      const containerWidth = scrollRef.current.offsetWidth;
-      const offset = index * CARD_WIDTH - (containerWidth - 276) / 2;
-      scrollRef.current.scrollTo({ left: offset, behavior: smooth ? 'smooth' : 'auto' });
-    }, []);
-
-    useEffect(() => {
-      if (!supernovaExpanded) return;
-      const el = scrollRef.current;
-      if (!el) return;
-
-      const handleScroll = () => {
-        if (!el) return;
-        const containerWidth = el.offsetWidth;
-        const scrollLeft = el.scrollLeft;
-        const center = scrollLeft + containerWidth / 2;
-        const index = Math.round((center - containerWidth / 2 + 276 / 2) / CARD_WIDTH);
-        const clamped = Math.max(0, Math.min(total - 1, index));
-        setActiveIndex(clamped);
-
-        isScrollingRef.current = true;
-        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-        scrollTimeoutRef.current = setTimeout(() => {
-          isScrollingRef.current = false;
-        }, 150);
-      };
-
-      // 初始居中定位
-      scrollToIndex(0, false);
-
-      el.addEventListener('scroll', handleScroll, { passive: true });
-      return () => {
-        el.removeEventListener('scroll', handleScroll);
-        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-      };
-    }, [supernovaExpanded, total, scrollToIndex]);
 
     return (
       <section className="space-y-2">
@@ -490,7 +420,7 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
           className="w-full flex items-center justify-between px-2 py-2 transition-colors rounded-xl"
         >
           <h3 className="text-sm font-medium flex items-center gap-2">
-            <Sparkles size={16} className="text-amber-400" />
+            <Sparkles size={16} className="text-pink-400" />
             星际回音
           </h3>
           <div className="flex items-center gap-2">
@@ -504,49 +434,52 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
 
         <div className={`grid transition-all duration-500 ease-in-out ${supernovaExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
           <div className="overflow-hidden space-y-2">
-            {/* 轮播容器 */}
+            {/* 垂直滑动容器 */}
             <div
               ref={scrollRef}
-              className="flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-4 px-4 pb-1"
-              style={{ scrollBehavior: 'auto' }}
+              className="relative h-[240px] overflow-hidden -mx-4 px-4"
+              onScroll={(e) => {
+                const container = e.currentTarget;
+                const scrollTop = container.scrollTop;
+                const cardHeight = 160 + 16;
+                const newIndex = Math.round(scrollTop / cardHeight);
+                if (newIndex !== activeIndex && newIndex >= 0 && newIndex < total) {
+                  setActiveIndex(newIndex);
+                }
+              }}
+              style={{ scrollSnapType: 'y mandatory', overflowY: 'scroll' }}
             >
-              {entries.map((whisper, index) => {
-                const isActive = index === activeIndex;
-                return (
-                  <div
-                    key={whisper.id}
-                    onClick={() => {
-                      if (!isScrollingRef.current) {
-                        setActiveIndex(index);
-                        scrollToIndex(index, true);
-                      }
-                    }}
-                    className={`shrink-0 snap-center transition-all duration-300 cursor-pointer ${
-                      isActive ? 'scale-100 opacity-100' : 'scale-[0.88] opacity-50'
-                    }`}
-                    style={{ width: '276px' }}
-                  >
+              <div className="py-[40px]">
+                {entries.map((whisper, index) => {
+                  const isActive = index === activeIndex;
+                  return (
                     <div
-                      className={`p-5 rounded-[24px] border relative overflow-hidden h-full min-h-[140px] flex flex-col ${
-                        isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm'
-                      }`}
+                      key={whisper.id}
+                      className="mb-4"
+                      style={{ scrollSnapAlign: 'center' }}
                     >
-                      <div className="flex items-center gap-2 mb-3 relative z-10">
-                        <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
-                          {whisper.emotion}
-                        </span>
-                        <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                          <Radio size={10} /> 未知坐标
-                        </span>
-                      </div>
+                      <div
+                        className={`relative h-[160px] p-5 rounded-[24px] border overflow-hidden transition-all duration-500 ${
+                          isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm'
+                        } ${isActive ? 'shadow-lg scale-100 opacity-100' : 'shadow-sm scale-90 opacity-40 blur-[2px]'}`}
+                      >
+                        <div className="flex items-center gap-2 mb-3 relative z-10">
+                          <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
+                            {whisper.emotion}
+                          </span>
+                          <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                            <Radio size={10} /> 未知坐标
+                          </span>
+                        </div>
 
-                      <p className={`text-sm leading-relaxed font-light relative z-10 flex-1 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
-                        "{whisper.text}"
-                      </p>
+                        <p className={`text-sm leading-relaxed font-light relative z-10 line-clamp-3 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+                          "{whisper.text}"
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
 
             {/* 底部指示器 */}
@@ -556,11 +489,14 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
                   key={whisper.id}
                   onClick={() => {
                     setActiveIndex(index);
-                    scrollToIndex(index, true);
+                    if (scrollRef.current) {
+                      const cardHeight = 160 + 16;
+                      scrollRef.current.scrollTo({ top: index * cardHeight, behavior: 'smooth' });
+                    }
                   }}
                   className={`rounded-full transition-all duration-300 ${
                     index === activeIndex
-                      ? 'w-5 h-1.5 bg-amber-400'
+                      ? 'w-5 h-1.5 bg-pink-400'
                       : 'w-1.5 h-1.5 bg-gray-300'
                   }`}
                 />

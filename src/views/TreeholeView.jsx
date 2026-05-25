@@ -509,11 +509,11 @@ export default function TreeholeView({
 
         <div
           ref={echoContainerRef}
-          className="relative h-[320px] overflow-hidden -mx-4 px-4"
+          className="relative h-[380px] overflow-hidden -mx-4 px-4"
           onScroll={(e) => {
             const container = e.currentTarget;
             const scrollTop = container.scrollTop;
-            const cardHeight = 280 + 12; // card height + gap
+            const cardHeight = 280 + 16; // card height + gap
             const newIndex = Math.round(scrollTop / cardHeight);
             if (newIndex !== echoIndex && newIndex >= 0 && newIndex < MOCK_WHISPERS.length) {
               setEchoIndex(newIndex);
@@ -521,7 +521,7 @@ export default function TreeholeView({
           }}
           style={{ scrollSnapType: 'y mandatory', overflowY: 'scroll' }}
         >
-          <div className="py-[20px]">
+          <div className="py-[50px]">
             {MOCK_WHISPERS.map((whisper, idx) => {
               const isHugged = (userData.huggedWhispers || []).includes(whisper.id);
               const distance = Math.abs(idx - echoIndex);
@@ -530,13 +530,13 @@ export default function TreeholeView({
               return (
                 <div
                   key={whisper.id}
-                  className="mb-3"
+                  className="mb-4"
                   style={{ scrollSnapAlign: 'center' }}
                 >
                   <div
                     className={`relative h-[280px] p-5 rounded-[24px] border overflow-hidden transition-all duration-500 ${
                       isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border-white/5' : 'bg-gradient-to-br from-pink-50/50 to-white border-pink-50'
-                    } ${isActive ? 'shadow-lg scale-100 opacity-100' : 'shadow-sm scale-95 opacity-50 blur-[1px]'}`}
+                    } ${isActive ? 'shadow-lg scale-100 opacity-100' : 'shadow-sm scale-90 opacity-40 blur-[2px]'}`}
                   >
                     <div className={`absolute -right-4 -top-4 w-20 h-20 rounded-full blur-3xl opacity-50 ${whisper.isPositive ? 'bg-pink-500/20' : 'bg-blue-500/20'}`}></div>
                     <div className={`absolute -bottom-10 -left-4 w-16 h-16 rounded-full blur-2xl opacity-30 ${whisper.isPositive ? 'bg-pink-500/10' : 'bg-pink-500/10'}`}></div>
@@ -672,11 +672,11 @@ export default function TreeholeView({
           </div>
           <div
             ref={hotTaskContainerRef}
-            className="relative h-[200px] overflow-hidden -mx-4 px-4"
+            className="relative h-[240px] overflow-hidden -mx-4 px-4"
             onScroll={(e) => {
               const container = e.currentTarget;
               const scrollTop = container.scrollTop;
-              const cardHeight = 160 + 12;
+              const cardHeight = 160 + 16;
               const newIndex = Math.round(scrollTop / cardHeight);
               if (newIndex !== hotTaskIndex && newIndex >= 0 && newIndex < hotTasks.length) {
                 setHotTaskIndex(newIndex);
@@ -684,7 +684,7 @@ export default function TreeholeView({
             }}
             style={{ scrollSnapType: 'y mandatory', overflowY: 'scroll' }}
           >
-            <div className="py-[20px]">
+            <div className="py-[40px]">
               {hotTasks.map((challenge, idx) => {
                 const followed = isFollowed(challenge.id);
                 const isActive = idx === hotTaskIndex;
@@ -692,7 +692,7 @@ export default function TreeholeView({
                 return (
                   <div
                     key={challenge._instanceId}
-                    className="mb-3"
+                    className="mb-4"
                     style={{ scrollSnapAlign: 'center' }}
                   >
                     <div
@@ -700,7 +700,7 @@ export default function TreeholeView({
                         followed
                           ? (isDark ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50/50 border-emerald-200/50')
                           : (isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm')
-                      } ${isActive ? 'shadow-lg scale-100 opacity-100' : 'shadow-sm scale-95 opacity-50 blur-[1px]'}`}
+                      } ${isActive ? 'shadow-lg scale-100 opacity-100' : 'shadow-sm scale-90 opacity-40 blur-[2px]'}`}
                     >
                       <div className="flex items-start gap-3">
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'} shadow-sm shrink-0`}>
