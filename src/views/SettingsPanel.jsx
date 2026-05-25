@@ -32,6 +32,7 @@ import { X, Compass, User, Moon, Info, ChevronDown, ChevronUp, ChevronRight, Tra
 import Portal from '../components/Portal.jsx';
 import { APP_VERSION, BUILD_TIME } from '../version.js';
 import { formatBytes, getLanguageLabel } from '../utils.js';
+import { INITIAL_USER_DATA } from '../constants.js';
 
 // 开发者测试控制台访问密码
 const DEV_CONSOLE_PASSWORD = '186638';
@@ -324,24 +325,24 @@ export default function SettingsPanel({ isDark, theme, setTheme, userData, saveU
             min="0.85"
             max="1.3"
             step="0.05"
-            value={userData.fontScale ?? 1.0}
+            value={userData.fontScale ?? INITIAL_USER_DATA.fontScale}
             onChange={(e) => saveUserData({ ...userData, fontScale: parseFloat(e.target.value) })}
             className="font-scale-slider w-full"
           />
           <div className="flex justify-between mt-2 text-[10px] text-gray-500">
             <span>85%</span>
-            <span>当前 {Math.round(((userData.fontScale ?? 1.0)) * 100)}%</span>
+            <span>当前 {Math.round(((userData.fontScale ?? INITIAL_USER_DATA.fontScale)) * 100)}%</span>
             <span>130%</span>
           </div>
           <button
-            onClick={() => saveUserData({ ...userData, fontScale: 1.0 })}
+            onClick={() => saveUserData({ ...userData, fontScale: INITIAL_USER_DATA.fontScale })}
             className={`mt-3 w-full py-2 rounded-xl text-xs font-medium transition-colors ${
               isDark
                 ? 'bg-[#0f0f1a] text-gray-400 hover:text-gray-200'
                 : 'bg-gray-50 text-gray-500 hover:text-gray-700'
             }`}
           >
-            恢复默认 (100%)
+            恢复默认 ({Math.round(INITIAL_USER_DATA.fontScale * 100)}%)
           </button>
         </div>
       </Section>

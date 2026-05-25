@@ -15,6 +15,7 @@ import { Settings, Sparkles, Moon, Heart, Users, Play, Pause, RefreshCw, Wind, C
 import Portal from '../components/Portal.jsx';
 import SettingsPanel from './SettingsPanel.jsx';
 import WishPoolView from './WishPoolView.jsx';
+import { INITIAL_USER_DATA } from '../constants.js';
 
 const NIGHT_SOUNDS = [
   { id: 'rain', name: '星河雨声', desc: '柔和雨声，适合放松入眠' },
@@ -186,13 +187,8 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
         saveUserData={saveUserData}
         onClose={() => setShowSettings(false)}
         onReset={() => {
-          setUserData({
-            id: 'TR755',
-            displayName: '星星旅人',
-            avatarEmoji: '🪐',
-            fontScale: 1.0,
-            totalDays: 0, continuousDays: 0, stardust: 0, totalHugs: 0, huggedWhispers: [], tomorrowDoneTotal: 0, tomorrowDoneToday: { date: '', ids: [] }, checkInHistory: [], dreamLogs: [], myWhispers: [], personality: null, dailyPosts: 0, lastPostDate: '', reminderEnabled: false, reminderTime: '22:30'
-          });
+          // 直接复用 constants.js 的单一来源，避免后续加字段时这里漏改
+          setUserData({ ...INITIAL_USER_DATA });
           setShowSettings(false);
         }}
       />

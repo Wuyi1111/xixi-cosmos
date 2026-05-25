@@ -18,6 +18,38 @@
 
 // --- 全局常量及模拟数据 ---
 
+// 用户数据的初始形态（单一来源）。
+// App.jsx 用作 useState 初值 + 迁移 fallback；StarView 重置时也复用。
+// 加新字段时只改这里 + App.jsx 的迁移 useEffect 里加一行类型/存在性兜底。
+export const INITIAL_USER_DATA = {
+  id: 'TR755',                          // 固定编号，不可改
+  displayName: '星星旅人',
+  avatarEmoji: '🪐',
+  fontScale: 0.85,
+  totalDays: 0,
+  continuousDays: 0,
+  stardust: 0,
+  totalHugs: 0,
+  totalFollows: 0,
+  huggedWhispers: [],
+  tomorrowDoneTotal: 0,
+  tomorrowDoneToday: { date: '', ids: [] },
+  checkInHistory: [],
+  dreamLogs: [],
+  myWhispers: [],
+  personality: null,
+  dailyPosts: 0,
+  lastPostDate: '',
+  reminderEnabled: false,
+  reminderTime: '22:30',
+  interactionHistory: [],
+  lastInteractionDate: '',
+  followedSuggestions: [],
+  userChallenges: [],
+  myTomorrowTasks: [],
+  taskFootprints: [],
+};
+
 export const EMOTIONS = [
   { id: 'warm', name: '温暖', symbol: '☀️', color: '#FFB347', texts: ['今天感受到了温暖的力量，请好好珍藏。', '带着这份温暖入睡，明天也会充满光。', '世界偶尔温柔，今天你也是被爱着的。'] },
   { id: 'calm', name: '平静', symbol: '🌊', color: '#87CEEB', texts: ['内心像平静的湖面，没有波澜。', '让一切归于宁静，今夜适合放松。', '这一刻，世界很安静，你也是。'] },

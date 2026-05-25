@@ -143,6 +143,14 @@ push 前手动跑一遍：
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
 
+### v4.23.3 · 2026-05-25 — 提取 INITIAL_USER_DATA 常量（M-2）
+
+- `src/constants.js` 新增 `INITIAL_USER_DATA` 常量作为 userData 形态的单一来源
+- App.jsx 的 useState 初值 + 迁移 useEffect 都引用 INITIAL_USER_DATA
+- StarView 的 dev console reset 不再硬编码，直接 `setUserData({ ...INITIAL_USER_DATA })`
+- SettingsPanel 的"恢复默认"按钮也用 INITIAL_USER_DATA.fontScale，按钮文案随之自动更新（85% 而非旧的 100%）
+- 迁移逻辑简化为浅合并 + 类型敏感字段防御，新加 userData 字段时只改 INITIAL_USER_DATA + 必要时加一行类型兜底
+
 ### v4.23.2 · 2026-05-25 — P1 级 bug 修复（稳定性 + 安全）
 
 - **修复白屏崩溃**：App.jsx 初始化 useEffect 给 JSON.parse 加 try-catch，

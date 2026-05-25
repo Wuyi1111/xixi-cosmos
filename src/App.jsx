@@ -29,36 +29,15 @@ import GalaxyView from './views/GalaxyView.jsx';
 import StarView from './views/StarView.jsx';
 import SplashScreen from './components/SplashScreen.jsx';
 import StarField from './components/StarField.jsx';
-import { EMOTIONS } from './constants.js';
+import { EMOTIONS, INITIAL_USER_DATA } from './constants.js';
 
 // --- 主应用组件：全局 state + pull-to-refresh + 路由壳 ---
 export default function App() {
   const [activeTab, setActiveTab] = useState('tonight');
   const [theme, setTheme] = useState('light');
 
-  const [userData, setUserData] = useState({
-    id: 'TR755',                  // 固定编号，不可改
-    displayName: '星星旅人',
-    avatarEmoji: '🪐',
-    fontScale: 0.85,
-    totalDays: 0,
-    continuousDays: 0,
-    stardust: 0,
-    totalHugs: 0,
-    huggedWhispers: [],
-    tomorrowDoneTotal: 0,                 // "明日"建议累计完成次数（永远 +）
-    tomorrowDoneToday: { date: '', ids: [] }, // 今日已完成的建议 id 列表（次日自动重置）
-    checkInHistory: [],
-    dreamLogs: [],
-    myWhispers: [],
-    personality: null,
-    dailyPosts: 0,
-    lastPostDate: '',
-    reminderEnabled: false,
-    reminderTime: '22:30',
-    interactionHistory: [], // 记录温暖/跟随行为
-    lastInteractionDate: '', // 最后互动日期
-  });
+  // userData 形态来自 constants.js 的 INITIAL_USER_DATA（单一来源）
+  const [userData, setUserData] = useState(INITIAL_USER_DATA);
 
   const [currentDateStr, setCurrentDateStr] = useState(new Date().toDateString());
 
@@ -78,27 +57,25 @@ export default function App() {
   }, [currentDateStr]);
 
   // 初始化加载数据 + 字段迁移
+  // 策略：先把 parsed 与 INITIAL_USER_DATA 浅合并补齐缺失字段，再针对类型敏感字段做防御
   useEffect(() => {
     try {
       const saved = localStorage.getItem('xixi_cosmos_data');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed.continuousDays === undefined) parsed.continuousDays = 0;
-        if (!parsed.dreamLogs) parsed.dreamLogs = [];
-        if (!parsed.myWhispers) parsed.myWhispers = [];
-        parsed.id = 'TR755';
-        if (!parsed.displayName) parsed.displayName = '星星旅人';
-        if (!parsed.avatarEmoji) parsed.avatarEmoji = '🪐';
-        if (typeof parsed.fontScale !== 'number') parsed.fontScale = 0.85;
-        if (!Array.isArray(parsed.huggedWhispers)) parsed.huggedWhispers = [];
-        if (typeof parsed.tomorrowDoneTotal !== 'number') parsed.tomorrowDoneTotal = 0;
-        if (!parsed.tomorrowDoneToday || typeof parsed.tomorrowDoneToday !== 'object') {
-          parsed.tomorrowDoneToday = { date: '', ids: [] };
+        const merged = { ...INITIAL_USER_DATA, ...parsed, id: 'TR755' };
+        // 类型/形态敏感字段防御（防止旧版数据里残留 null / 错误类型）
+        if (typeof merged.fontScale !== 'number') merged.fontScale = INITIAL_USER_DATA.fontScale;
+        if (typeof merged.tomorrowDoneTotal !== 'number') merged.tomorrowDoneTotal = 0;
+        if (!merged.tomorrowDoneToday || typeof merged.tomorrowDoneToday !== 'object') {
+          merged.tomorrowDoneToday = { date: '', ids: [] };
         }
-        // v4.23.0 新增字段迁移
-        if (!Array.isArray(parsed.interactionHistory)) parsed.interactionHistory = [];
-        if (!parsed.lastInteractionDate) parsed.lastInteractionDate = '';
-        setUserData(parsed);
+        for (const key of ['huggedWhispers', 'checkInHistory', 'dreamLogs', 'myWhispers',
+                            'interactionHistory', 'followedSuggestions', 'userChallenges',
+                            'myTomorrowTasks', 'taskFootprints']) {
+          if (!Array.isArray(merged[key])) merged[key] = [];
+        }
+        setUserData(merged);
       }
     } catch {
       // localStorage 中的 JSON 损坏，清除并使用初始 state，避免白屏
