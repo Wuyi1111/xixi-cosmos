@@ -143,6 +143,12 @@ push 前手动跑一遍：
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
 
+### v4.23.5 · 2026-05-25 — 睡前提醒标注暂不支持推送（M-4）
+
+- SettingsPanel 睡前提醒标题旁加 amber 色 "暂不支持推送" 芯片
+- 下方加说明文字告知用户：开启后不会真的发系统通知，目前请用手机闹钟
+- 标记 v4.x 暂未接入 Service Worker 推送，未来补齐
+
 ### v4.23.4 · 2026-05-25 — 数值字段类型防御 + totalFollows 注册（M-3）
 
 - App.jsx 迁移加循环：totalDays / continuousDays / stardust / totalHugs /

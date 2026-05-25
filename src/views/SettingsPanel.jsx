@@ -409,7 +409,14 @@ export default function SettingsPanel({ isDark, theme, setTheme, userData, saveU
       <Section id="reminder" title="睡眠守护" icon={Moon} isDark={isDark} isOpen={openSections.has('reminder')} onToggle={toggleSection}>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm">睡前提醒</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm">睡前提醒</span>
+              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                isDark ? 'bg-amber-500/15 text-amber-300' : 'bg-amber-50 text-amber-600'
+              }`}>
+                暂不支持推送
+              </span>
+            </div>
             <button
               onClick={() => saveUserData({...userData, reminderEnabled: !userData.reminderEnabled})}
               className={`w-12 h-6 rounded-full transition-colors relative ${userData.reminderEnabled ? 'bg-indigo-500' : (isDark ? 'bg-gray-700' : 'bg-gray-300')}`}
@@ -417,6 +424,11 @@ export default function SettingsPanel({ isDark, theme, setTheme, userData, saveU
               <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all`} style={{ left: userData.reminderEnabled ? 'calc(100% - 22px)' : '2px' }}></div>
             </button>
           </div>
+
+          <p className={`text-[11px] leading-relaxed ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+            此功能尚未接入 Web 推送，开启后<b>不会</b>真的发出系统通知。
+            目前请用手机自带的闹钟陪你睡前 wind down，未来版本会补上 Service Worker 推送实现。
+          </p>
 
           {userData.reminderEnabled && (
             <div className="flex justify-between items-center pt-4 border-t border-gray-500/20 animate-fade-in">
