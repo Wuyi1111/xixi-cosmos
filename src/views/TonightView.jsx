@@ -382,26 +382,6 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
           </div>
         </div>
 
-        {/* 底部指示器 */}
-        <div className="flex justify-center gap-1.5">
-          {entries.map(([type], index) => (
-            <button
-              key={type}
-              onClick={() => {
-                setGalaxyActiveIndex(index);
-                if (scrollRef.current) {
-                  const cardHeight = 140 + 16;
-                  scrollRef.current.scrollTo({ top: index * cardHeight, behavior: 'smooth' });
-                }
-              }}
-              className={`rounded-full transition-all duration-300 ${
-                index === galaxyActiveIndex
-                  ? 'w-5 h-1.5 bg-indigo-500'
-                  : 'w-1.5 h-1.5 bg-gray-300'
-              }`}
-            />
-          ))}
-        </div>
       </section>
     );
   };
