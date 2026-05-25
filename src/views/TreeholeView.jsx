@@ -216,7 +216,9 @@ export default function TreeholeView({
   // 星际足迹：所有已完成的任务历史
   const taskFootprints = userData.taskFootprints || [];
 
-  // 热门任务：只显示系统推荐，使用稳定的跟随人数（基于id生成伪随机）
+  // 热门任务：合并「我发布的公开约定」(userChallenges) + 系统推荐 (displayedSuggestions)
+  // 用户自己发的排前面，让自己看到 publishing 是 live 的
+  // 跟随人数：用户挑战取真实 followers.length；系统推荐用 id 的伪随机
   const getStableFollowCount = (id) => {
     let hash = 0;
     for (let i = 0; i < id.length; i++) {
@@ -226,9 +228,26 @@ export default function TreeholeView({
     return (Math.abs(hash) % 80) + 20;
   };
 
-  const hotTasks = [...displayedSuggestions]
-    .map(s => ({ ...s, source: 'system', followCount: getStableFollowCount(s.id) }))
-    .sort((a, b) => b.followCount - a.followCount);
+  const myChallengeTasks = userChallenges.map(c => ({
+    _instanceId: c.id,
+    id: c.id,
+    emoji: c.emoji,
+    main: c.main,
+    sub: c.sub,
+    source: 'user',
+    isMyChallenge: true,
+    followCount: (c.followers || []).length,
+    date: c.date,
+  }));
+
+  const systemTasks = displayedSuggestions.map(s => ({
+    ...s,
+    source: 'system',
+    isMyChallenge: false,
+    followCount: getStableFollowCount(s.id),
+  }));
+
+  const hotTasks = [...myChallengeTasks, ...systemTasks];
 
   const handleRefreshOne = (instanceId) => {
     const currentIds = displayedSuggestions
@@ -699,6 +718,7 @@ export default function TreeholeView({
               {hotTasks.map((challenge, idx) => {
                 const followed = isFollowed(challenge.id);
                 const isActive = idx === hotTaskIndex;
+                const isMine = challenge.isMyChallenge;
 
                 return (
                   <div
@@ -708,9 +728,11 @@ export default function TreeholeView({
                   >
                     <div
                       className={`relative h-[160px] p-4 rounded-[20px] border transition-all duration-500 ${
-                        followed
-                          ? (isDark ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50/50 border-emerald-200/50')
-                          : (isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm')
+                        isMine
+                          ? (isDark ? 'bg-emerald-500/[0.07] border-emerald-500/25' : 'bg-emerald-50/40 border-emerald-200/60')
+                          : followed
+                            ? (isDark ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50/50 border-emerald-200/50')
+                            : (isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm')
                       } ${isActive ? 'shadow-lg scale-100 opacity-100' : 'shadow-sm scale-90 opacity-40 blur-[2px]'}`}
                     >
                       <div className="flex items-start gap-3">
@@ -718,9 +740,18 @@ export default function TreeholeView({
                           {challenge.emoji}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
-                            {challenge.main}
-                          </p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
+                              {challenge.main}
+                            </p>
+                            {isMine && (
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                                isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-700'
+                              }`}>
+                                你发布的
+                              </span>
+                            )}
+                          </div>
                           <p className={`text-[11px] leading-relaxed mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                             {challenge.sub}
                           </p>
@@ -734,25 +765,38 @@ export default function TreeholeView({
                             <Flame size={10} /> {challenge.followCount} 人跟随
                           </span>
                           <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => handleRefreshOne(challenge._instanceId)}
-                              className={`p-1.5 rounded-full transition-all active:scale-90 ${isDark ? 'text-gray-600 hover:text-gray-400' : 'text-gray-400 hover:text-gray-600'}`}
-                              title="换一条"
-                            >
-                              <RotateCcw size={12} />
-                            </button>
-                            <button
-                              onClick={() => followed ? null : handleFollowTask(challenge)}
-                              disabled={followed}
-                              className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-medium transition-all active:scale-95 ${
-                                followed
-                                  ? (isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200')
-                                  : (isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100')
-                              }`}
-                            >
-                              <CheckCircle2 size={10} />
-                              {followed ? '已跟随' : '跟随'}
-                            </button>
+                            {/* 系统推荐才能"换一条"；自己发布的不能刷掉 */}
+                            {!isMine && (
+                              <button
+                                onClick={() => handleRefreshOne(challenge._instanceId)}
+                                className={`p-1.5 rounded-full transition-all active:scale-90 ${isDark ? 'text-gray-600 hover:text-gray-400' : 'text-gray-400 hover:text-gray-600'}`}
+                                title="换一条"
+                              >
+                                <RotateCcw size={12} />
+                              </button>
+                            )}
+                            {/* 自己发布的不显示跟随按钮，显示一个静态徽章 */}
+                            {isMine ? (
+                              <span className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-medium ${
+                                isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                              }`}>
+                                <CheckCircle2 size={10} />
+                                已发布
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => followed ? null : handleFollowTask(challenge)}
+                                disabled={followed}
+                                className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-medium transition-all active:scale-95 ${
+                                  followed
+                                    ? (isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200')
+                                    : (isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100')
+                                }`}
+                              >
+                                <CheckCircle2 size={10} />
+                                {followed ? '已跟随' : '跟随'}
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
