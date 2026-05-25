@@ -107,10 +107,17 @@ export default function SettingsPanel({ isDark, theme, setTheme, userData, saveU
   };
 
   // --- 检查更新 ---
+  // 5 秒超时：网络差时不会永远 loading。AbortController 触发的 abort 会让 fetch
+  // 抛 DOMException("AbortError")，被外层 catch 统一吞掉 → 显示"无法连接宇宙网络"。
   const handleCheckVersion = async () => {
     setVersionCheckState('checking');
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => ctrl.abort(), 5000);
     try {
-      const res = await fetch(`${import.meta.env.BASE_URL}version.json?t=${Date.now()}`, { cache: 'no-store' });
+      const res = await fetch(
+        `${import.meta.env.BASE_URL}version.json?t=${Date.now()}`,
+        { cache: 'no-store', signal: ctrl.signal }
+      );
       if (!res.ok) throw new Error('fetch failed');
       const data = await res.json();
       setLatestVersionInfo(data);
@@ -120,6 +127,8 @@ export default function SettingsPanel({ isDark, theme, setTheme, userData, saveU
       setVersionCheckState(isNewer ? 'update' : 'latest');
     } catch (e) {
       setVersionCheckState('error');
+    } finally {
+      clearTimeout(timeoutId);
     }
   };
   const handleApplyUpdate = () => { window.location.reload(); };

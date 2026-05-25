@@ -143,6 +143,13 @@ push 前手动跑一遍：
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
 
+### v4.23.6 · 2026-05-25 — 版本检查 5 秒超时（M-5）
+
+- SettingsPanel `handleCheckVersion` 用 AbortController 包裹 fetch
+- `setTimeout` 5 秒后 `ctrl.abort()`，触发 AbortError → 落到 error 分支
+- 网络差时不再永远停在"正在连接宇宙网络…"
+- `finally` 清理 timeoutId，避免成功时也留个挂起的 timer
+
 ### v4.23.5 · 2026-05-25 — 睡前提醒标注暂不支持推送（M-4）
 
 - SettingsPanel 睡前提醒标题旁加 amber 色 "暂不支持推送" 芯片
