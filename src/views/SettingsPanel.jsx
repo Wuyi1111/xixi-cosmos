@@ -329,13 +329,22 @@ export default function SettingsPanel({ isDark, theme, setTheme, userData, saveU
             <span className="text-base font-medium">示例文字 · Aa</span>
             <span className={`text-xl font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>偏大</span>
           </div>
+          {/*
+            字号滑动条：拖动时只更新内存（persist=false），松手时才一次性落盘。
+            - onChange  拖动每一步触发：高频，所以不写 localStorage
+            - onMouseUp / onTouchEnd  释放时触发：写一次 localStorage
+            - onBlur                  键盘用户调完上下键后切到下个控件时落盘
+          */}
           <input
             type="range"
             min="0.85"
             max="1.3"
             step="0.05"
             value={userData.fontScale ?? INITIAL_USER_DATA.fontScale}
-            onChange={(e) => saveUserData({ ...userData, fontScale: parseFloat(e.target.value) })}
+            onChange={(e) => saveUserData({ ...userData, fontScale: parseFloat(e.target.value) }, false)}
+            onMouseUp={(e) => saveUserData({ ...userData, fontScale: parseFloat(e.target.value) }, true)}
+            onTouchEnd={(e) => saveUserData({ ...userData, fontScale: parseFloat(e.target.value) }, true)}
+            onBlur={(e) => saveUserData({ ...userData, fontScale: parseFloat(e.target.value) }, true)}
             className="font-scale-slider w-full"
           />
           <div className="flex justify-between mt-2 text-[10px] text-gray-500">

@@ -161,13 +161,14 @@ export const WISH_PRODUCTS = [
 
 // 别人许下的愿望（mock 数据，模拟真实社区氛围）
 // productId 对应 WISH_PRODUCTS 的 id
+// 8 个不同的 userName，与 GalaxyView 的 MOCK_RANKINGS 取不同名字以保持区分感
 export const MOCK_WISHES = [
-  { id: 1, userName: '星海旅人', userId: 'TR0312', avatar: '🌌', productId: 'mask',    wish: '最近睡得太轻了，希望它能帮我屏蔽掉清晨的光。', daysAgo: 3, joined: 12 },
-  { id: 2, userName: '星海旅人', userId: 'TR1989', avatar: '🌠', productId: 'oil',     wish: '送给我妈，她最近失眠很严重。',               daysAgo: 0, joined: 5  },
-  { id: 3, userName: '星海旅人', userId: 'TR0007', avatar: '🪐', productId: 'pillow',  wish: '换了三个枕头都不行，希望这是最后一个。',     daysAgo: 2, joined: 8  },
-  { id: 4, userName: '星海旅人', userId: 'TR2024', avatar: '☄️', productId: 'phones',  wish: '室友打呼太大，每晚都崩溃。',                 daysAgo: 1, joined: 23 },
-  { id: 5, userName: '星海旅人', userId: 'TR0411', avatar: '🌙', productId: 'tea',     wish: '想试试不靠药物的方式入睡。',                 daysAgo: 4, joined: 7  },
-  { id: 6, userName: '星海旅人', userId: 'TR8888', avatar: '✨', productId: 'blanket', wish: '听说像被温柔抱住一样，今天好想被抱抱。',     daysAgo: 7, joined: 41 },
-  { id: 7, userName: '星海旅人', userId: 'TR0521', avatar: '💫', productId: 'lamp',    wish: '不喜欢闹钟突然响起，希望被晨光慢慢叫醒。',   daysAgo: 2, joined: 16 },
-  { id: 8, userName: '星海旅人', userId: 'TR1101', avatar: '🌟', productId: 'candle',  wish: '想找回小时候在森林里露营的味道。',           daysAgo: 5, joined: 9  },
+  { id: 1, userName: '漂浮星屑',     userId: 'TR0312', avatar: '🌌', productId: 'mask',    wish: '最近睡得太轻了，希望它能帮我屏蔽掉清晨的光。', daysAgo: 3, joined: 12 },
+  { id: 2, userName: '倒数月光',     userId: 'TR1989', avatar: '🌠', productId: 'oil',     wish: '送给我妈，她最近失眠很严重。',               daysAgo: 0, joined: 5  },
+  { id: 3, userName: '黎明前的灯',   userId: 'TR0007', avatar: '🪐', productId: 'pillow',  wish: '换了三个枕头都不行，希望这是最后一个。',     daysAgo: 2, joined: 8  },
+  { id: 4, userName: '失眠星座',     userId: 'TR2024', avatar: '☄️', productId: 'phones',  wish: '室友打呼太大，每晚都崩溃。',                 daysAgo: 1, joined: 23 },
+  { id: 5, userName: '慢摇行星',     userId: 'TR0411', avatar: '🌙', productId: 'tea',     wish: '想试试不靠药物的方式入睡。',                 daysAgo: 4, joined: 7  },
+  { id: 6, userName: '半盏银河',     userId: 'TR8888', avatar: '✨', productId: 'blanket', wish: '听说像被温柔抱住一样，今天好想被抱抱。',     daysAgo: 7, joined: 41 },
+  { id: 7, userName: '暗物质收藏家', userId: 'TR0521', avatar: '💫', productId: 'lamp',    wish: '不喜欢闹钟突然响起，希望被晨光慢慢叫醒。',   daysAgo: 2, joined: 16 },
+  { id: 8, userName: '时差旅人',     userId: 'TR1101', avatar: '🌟', productId: 'candle',  wish: '想找回小时候在森林里露营的味道。',           daysAgo: 5, joined: 9  },
 ];

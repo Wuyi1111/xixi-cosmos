@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.23.13** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.23.14** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 四个 tab：**此刻** / **雷达** / **星系** / **归星**（原"我的"已重构为"归星"板块）。
 
@@ -140,6 +140,19 @@ push 前手动跑一遍：
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.23.14 · 2026-05-25 — MOCK_WISHES 多样化 + 字号滑动条落盘时机（L-4 + L-8）
+
+- **L-4**：MOCK_WISHES 8 条 wish 换 8 个不同 userName（漂浮星屑 / 倒数月光 /
+  黎明前的灯 / 失眠星座 / 慢摇行星 / 半盏银河 / 暗物质收藏家 / 时差旅人），
+  与 GalaxyView 的 MOCK_RANKINGS 取不同名字以保持区分感。原先 8 条全是
+  "星海旅人"，社区氛围严重失真
+- **L-8**：字号滑动条改为内存即时更新 + 释放时一次性落盘：
+  - App.jsx `saveUserData(newData, persist = true)` 加可选第二参数，
+    persist=false 时只 setState、不写 localStorage
+  - SettingsPanel slider 的 onChange 走 `persist=false`（拖动只更新视觉），
+    onMouseUp / onTouchEnd / onBlur 走 `persist=true`（释放/失焦时落盘）
+  - 拖一次滑动条不再触发 ~10 次 JSON.stringify + localStorage.setItem
 
 ### v4.23.13 · 2026-05-25 — SplashScreen 体验优化（L-6 + L-7）
 

@@ -120,9 +120,16 @@ export default function App() {
     localStorage.setItem('xixi_cosmos_theme', theme);
   }, [theme]);
 
-  const saveUserData = (newData) => {
+  // saveUserData(newData, persist = true)
+  // persist=false 时只更新内存 state，不落盘 localStorage —— 用于高频拖动场景
+  // （如字号滑动条），避免每个 step 都触发 JSON.stringify + setItem。
+  // 调用方应该在交互结束时（onMouseUp / onTouchEnd / onBlur）再补一次
+  // saveUserData(newData) 显式落盘。
+  const saveUserData = (newData, persist = true) => {
     setUserData(newData);
-    localStorage.setItem('xixi_cosmos_data', JSON.stringify(newData));
+    if (persist) {
+      localStorage.setItem('xixi_cosmos_data', JSON.stringify(newData));
+    }
   };
 
   const lastCheckInDate = userData.checkInHistory[0]?.date;
