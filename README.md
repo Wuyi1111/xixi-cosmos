@@ -143,6 +143,15 @@ push 前手动跑一遍：
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
 
+### v4.23.9 · 2026-05-25 — index.html 字号默认值与 INITIAL_USER_DATA 对齐
+
+- inline script 的 fontScale fallback 从 1.0 改为 0.85，与 constants.js 的
+  INITIAL_USER_DATA.fontScale 一致
+- 新用户（localStorage 无数据）首次打开时不再有"字号从 18.4px 缩小到
+  15.64px"的瞬时跳动
+- 提取 DEFAULT_SCALE 局部常量并加注释提醒：inline script 不能 import ES
+  module，所以这里只能硬编码，需要与 constants.js 同步
+
 ### v4.23.8 · 2026-05-25 — userChallenges 接通热门任务（M-7）
 
 - TreeholeView `hotTasks` 现在合并两部分：

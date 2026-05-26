@@ -41,13 +41,16 @@
             root.style.backgroundColor = '#f8fafc';
           }
           // 同步字号缩放，避免基准 16→18.4 切换时整页字号"跳"一下
+          // ⚠️ DEFAULT_SCALE 必须与 src/constants.js 的 INITIAL_USER_DATA.fontScale 保持一致
+          //    （inline script 无法 import ES module，只能硬编码）
+          var DEFAULT_SCALE = 0.85;
           var data = localStorage.getItem('xixi_cosmos_data');
           if (data) {
             var parsed = JSON.parse(data);
-            var s = (parsed && typeof parsed.fontScale === 'number') ? parsed.fontScale : 1.0;
+            var s = (parsed && typeof parsed.fontScale === 'number') ? parsed.fontScale : DEFAULT_SCALE;
             root.style.fontSize = (18.4 * s) + 'px';
           } else {
-            root.style.fontSize = '18.4px';
+            root.style.fontSize = (18.4 * DEFAULT_SCALE) + 'px';
           }
         } catch (e) {}
       })();
