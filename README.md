@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.23.14** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.23.15** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 四个 tab：**此刻** / **雷达** / **星系** / **归星**（原"我的"已重构为"归星"板块）。
 
@@ -140,6 +140,17 @@ push 前手动跑一遍：
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.23.15 · 2026-05-25 — 修复仪式+hug 同日双重发奖（N-1）
+
+- **症状**：先做"归星仪式"打卡再去送温暖，会再领一次 +10 星尘 + checkInHistory
+  多一条今日记录，可被反复利用刷星尘
+- **根因**：StarView.completeRitual 写 checkInHistory[0].date 但不写
+  lastInteractionDate；handleInteractionCheckIn 用 lastInteractionDate 作"今日
+  首次"门控，因此识别不到 ritual 已经打过卡
+- **修复**：handleInteractionCheckIn 改用 `checkInHistory[0]?.date === currentDateStr`
+  作为唯一门控，与 StarView 的 hasCheckedInToday 同源。`lastInteractionDate`
+  字段保留作为"最后互动时间"，不再参与判定
 
 ### v4.23.14 · 2026-05-25 — MOCK_WISHES 多样化 + 字号滑动条落盘时机（L-4 + L-8）
 

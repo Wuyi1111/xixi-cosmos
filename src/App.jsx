@@ -204,6 +204,11 @@ export default function App() {
   //    跟随时是 followedSuggestions+totalFollows+myTomorrowTasks）。
   //    必须由本函数统一合并到 nextUserData 后做一次 saveUserData，
   //    否则 caller 自己 saveUserData + 本函数 saveUserData 会用各自的旧闭包覆盖对方。
+  //
+  // ⚠️ N-1 修复：以 checkInHistory[0].date 作为"今天是否打过卡"的唯一门控。
+  //    之前用 userData.lastInteractionDate 判定，导致 ritual 完成后（不写
+  //    lastInteractionDate）紧接着 hug，仍判定为"今日首次互动" → 重复发奖。
+  //    现在 ritual / hug / follow 三条打卡路径用同一个门控来源。
   const handleInteractionCheckIn = (type, targetId, extraPatch = {}) => {
     // type: 'hug' | 'follow'
     // targetId: 被互动对象的标识
@@ -211,7 +216,8 @@ export default function App() {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    const isFirstInteractionToday = userData.lastInteractionDate !== currentDateStr;
+    const lastCheckIn = userData.checkInHistory[0]?.date;
+    const hasCheckedInToday = lastCheckIn === currentDateStr;
 
     // 记录互动行为
     const newInteraction = {
@@ -225,13 +231,12 @@ export default function App() {
     let nextUserData = {
       ...userData,
       ...extraPatch,  // caller 的附带更新先 merge，避免被 interactionHistory 覆盖
-      interactionHistory: [newInteraction, ...(userData.interactionHistory || [])],
-      lastInteractionDate: currentDateStr,
+      interactionHistory: [newInteraction, ...userData.interactionHistory],
+      lastInteractionDate: currentDateStr,  // 保留作为"最后互动时间戳"，但不再用于门控
     };
 
-    // 24小时内首次点击记为当天打卡，给予星尘
-    if (isFirstInteractionToday) {
-      const lastCheckIn = userData.checkInHistory[0]?.date;
+    // 当天还没打过卡 → 这次互动触发当天打卡，给予星尘
+    if (!hasCheckedInToday) {
       const isConsecutive = lastCheckIn === yesterday.toDateString();
       const newContinuousDays = isConsecutive ? userData.continuousDays + 1 : 1;
       const streakBonus = isConsecutive ? Math.min((newContinuousDays - 1) * 2, 10) : 0;
