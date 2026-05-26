@@ -345,7 +345,12 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
           onClick={() => {
             if (!hasCheckedInToday) {
               setShowRitual(true);
-              setRitualPhase('select');
+              setRitualPhase('breathing');
+              // 2.5秒后自动完成
+              const timer = setTimeout(() => {
+                completeRitual();
+              }, 2500);
+              ritualTimersRef.current.push(timer);
             }
           }}
           disabled={hasCheckedInToday}
@@ -487,69 +492,108 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
       {/* === 归星仪式弹窗 === */}
       {showRitual && (
         <Portal>
-          <div className={`fixed inset-0 z-[60] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/90' : 'bg-[#f8fafc]/90'} backdrop-blur-md animate-fade-in`}>
-            {ritualPhase === 'select' && (
-              <div className="text-center">
-                <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl bg-indigo-500/10">
-                  {selectedPose?.emoji}
-                </div>
-                <h3 className="text-xl font-light mb-2">{selectedPose?.name}</h3>
-                <p className={`text-xs mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {selectedPose?.desc}
-                </p>
-                <button
-                  onClick={startBreathing}
-                  className="px-8 py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
-                >
-                  开始调息
-                </button>
-                <button
-                  onClick={closeRitual}
-                  className={`block mx-auto mt-4 text-xs ${isDark ? 'text-gray-500 hover:text-gray-400' : 'text-gray-400 hover:text-gray-600'}`}
-                >
-                  取消
-                </button>
-              </div>
-            )}
-
+          <div className={`fixed inset-0 z-[60] flex items-center justify-center ${isDark ? 'bg-[#0f0f1a]' : 'bg-[#f8fafc]'} animate-fade-in`}>
+            {/* 粒子汇聚阶段 */}
             {ritualPhase === 'breathing' && (
-              <div className="text-center">
-                <div className="relative w-40 h-40 mx-auto mb-6">
+              <div className="relative w-full h-full flex items-center justify-center">
+                {/* 周围粒子向中心汇聚 */}
+                {Array.from({ length: 20 }).map((_, i) => {
+                  const angle = (i * 18) * (Math.PI / 180);
+                  const distance = 120 + Math.random() * 80;
+                  const startX = Math.cos(angle) * distance;
+                  const startY = Math.sin(angle) * distance;
+                  const size = 2 + Math.random() * 3;
+                  const delay = Math.random() * 0.5;
+                  return (
+                    <div
+                      key={i}
+                      className="absolute rounded-full animate-particle-gather"
+                      style={{
+                        width: `${size}px`,
+                        height: `${size}px`,
+                        backgroundColor: isDark ? '#818cf8' : '#6366f1',
+                        '--start-x': `${startX}px`,
+                        '--start-y': `${startY}px`,
+                        animationDelay: `${delay}s`,
+                      }}
+                    />
+                  );
+                })}
+
+                {/* 中央呼吸圆 */}
+                <div className="relative">
                   <div
-                    className={`absolute inset-0 rounded-full ${isDark ? 'bg-indigo-500/10' : 'bg-indigo-100'} transition-all duration-[3000ms] ease-in-out`}
-                    style={{
-                      transform: breathPhase === 'inhale' ? 'scale(1.3)' : breathPhase === 'exhale' ? 'scale(0.8)' : 'scale(1.1)',
-                      opacity: breathPhase === 'inhale' ? 0.3 : breathPhase === 'exhale' ? 0.1 : 0.2,
-                    }}
-                  />
-                  <div
-                    className={`absolute inset-4 rounded-full ${isDark ? 'bg-indigo-400/15' : 'bg-indigo-50'} transition-all duration-[3000ms] ease-in-out`}
-                    style={{
-                      transform: breathPhase === 'inhale' ? 'scale(1.2)' : breathPhase === 'exhale' ? 'scale(0.85)' : 'scale(1.05)',
-                    }}
+                    className={`w-32 h-32 rounded-full ${isDark ? 'bg-indigo-500/20' : 'bg-indigo-100'} animate-ritual-breathe`}
                   />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-5xl">{selectedPose?.emoji}</span>
+                    <span className="text-4xl">{selectedPose?.emoji}</span>
                   </div>
                 </div>
 
-                <p className="text-lg font-light mb-2">
-                  {breathPhase === 'inhale' ? '吸气' : breathPhase === 'hold' ? '屏息' : '呼气'}
-                </p>
-                <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {breathPhase === 'inhale'
-                    ? '把自己收回来。'
-                    : breathPhase === 'hold'
-                    ? '让气息在体内停留片刻。'
-                    : '把疲惫交给星空。'}
-                </p>
+                {/* 文案 */}
+                <div className="absolute bottom-32 text-center">
+                  <p className={`text-lg font-light ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>
+                    正在归星...
+                  </p>
+                  <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    让星光带你回到自己
+                  </p>
+                </div>
+              </div>
+            )}
 
-                <button
-                  onClick={closeRitual}
-                  className={`mt-8 text-xs ${isDark ? 'text-gray-500 hover:text-gray-400' : 'text-gray-400 hover:text-gray-600'}`}
-                >
-                  跳过
-                </button>
+            {/* 完成后星星爆开 */}
+            {ritualPhase === 'complete' && (
+              <div className="relative w-full h-full flex items-center justify-center">
+                {/* 爆开的星星 */}
+                {Array.from({ length: 12 }).map((_, i) => {
+                  const angle = (i * 30) * (Math.PI / 180);
+                  const distance = 60 + Math.random() * 40;
+                  const dx = Math.cos(angle) * distance;
+                  const dy = Math.sin(angle) * distance;
+                  return (
+                    <div
+                      key={i}
+                      className="absolute w-2 h-2 rounded-full bg-amber-400 animate-star-burst"
+                      style={{
+                        '--dx': `${dx}px`,
+                        '--dy': `${dy}px`,
+                        animationDelay: `${i * 0.05}s`,
+                      }}
+                    />
+                  );
+                })}
+
+                <div className="text-center">
+                  <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl bg-emerald-500/10">
+                    <CheckCircle2 size={40} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
+                  </div>
+                  <h3 className="text-xl font-light mb-2">归星完成</h3>
+                  <p className={`text-xs mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    今晚的你，已经回到自己的星空。
+                  </p>
+
+                  <div className={`p-4 rounded-2xl mb-6 ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
+                    <div className="flex items-center justify-center gap-6">
+                      <div className="text-center">
+                        <p className={`text-lg font-medium ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>+1</p>
+                        <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>累积夜晚</p>
+                      </div>
+                      <div className={`w-[1px] h-8 ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`} />
+                      <div className="text-center">
+                        <p className={`text-lg font-medium ${isDark ? 'text-amber-300' : 'text-amber-500'}`}>+10</p>
+                        <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>星尘</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={closeRitual}
+                    className="px-8 py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
+                  >
+                    晚安
+                  </button>
+                </div>
               </div>
             )}
 
@@ -562,39 +606,6 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
                 <p className={`text-xs mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                   不用再来一次，可以真的去睡了。
                 </p>
-                <button
-                  onClick={closeRitual}
-                  className="px-8 py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
-                >
-                  晚安
-                </button>
-              </div>
-            )}
-
-            {ritualPhase === 'complete' && (
-              <div className="text-center">
-                <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl bg-emerald-500/10">
-                  <CheckCircle2 size={40} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
-                </div>
-                <h3 className="text-xl font-light mb-2">归星完成</h3>
-                <p className={`text-xs mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  今晚的你，已经回到自己的星空。
-                </p>
-
-                <div className={`p-4 rounded-2xl mb-6 ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
-                  <div className="flex items-center justify-center gap-6">
-                    <div className="text-center">
-                      <p className={`text-lg font-medium ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>+1</p>
-                      <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>累积夜晚</p>
-                    </div>
-                    <div className={`w-[1px] h-8 ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`} />
-                    <div className="text-center">
-                      <p className={`text-lg font-medium ${isDark ? 'text-amber-300' : 'text-amber-500'}`}>+10</p>
-                      <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>星尘</p>
-                    </div>
-                  </div>
-                </div>
-
                 <button
                   onClick={closeRitual}
                   className="px-8 py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"

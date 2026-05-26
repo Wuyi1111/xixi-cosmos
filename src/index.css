@@ -214,3 +214,52 @@ input[type="range"].font-scale-slider::-moz-range-thumb {
   100% { transform: translate(var(--tx, 0), var(--ty, -40px)) scale(0.2);  opacity: 0; }
 }
 .animate-particle-float { animation: particle-float 1s ease-out forwards; }
+
+/* === 归星仪式：粒子向中心汇聚 === */
+@keyframes particle-gather {
+  0% {
+    transform: translate(var(--start-x), var(--start-y)) scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(0, 0) scale(0.3);
+    opacity: 0;
+  }
+}
+.animate-particle-gather {
+  animation: particle-gather 2.5s ease-in forwards;
+}
+
+/* === 归星仪式：中央呼吸圆 === */
+@keyframes ritual-breathe {
+  0%, 100% {
+    transform: scale(0.9);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+.animate-ritual-breathe {
+  animation: ritual-breathe 2.5s ease-in-out forwards;
+}
+
+/* === 归星仪式：完成后星星爆开 === */
+@keyframes star-burst {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.2);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0);
+    opacity: 0;
+  }
+}
+.animate-star-burst {
+  animation: star-burst 1s ease-out forwards;
+}
