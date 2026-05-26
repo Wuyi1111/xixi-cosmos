@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.23.18** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.23.19** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 四个 tab：**此刻** / **雷达** / **星系** / **归星**（原"我的"已重构为"归星"板块）。
 
@@ -140,6 +140,17 @@ push 前手动跑一遍：
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.23.19 · 2026-05-25 — StarView 仪式跨午夜 + 已打卡 UI（N-6 + N-7）
+
+- **N-6**：StarView / GalaxyView 接 App 传入的 currentDateStr prop（每分钟轮询
+  更新），不再在组件 mount 时一次性快照"今天/昨天"，避免开着 app 跨过午夜
+  后日期字符串失效导致连签计算错位
+  - App.jsx 把 currentDateStr 传给 StarView 和 GalaxyView
+  - StarView completeRitual 内部用到的 yesterday 改为实时 `new Date()` 推算
+- **N-7**：归星仪式跑完发现今晚已打卡时，不再显示假的 "+1 累积夜晚 / +10 星尘"
+  界面，改为新的 `already-completed` 分支：图标 + 文字 "今晚已经归星过了 ·
+  不用再来一次，可以真的去睡了" + 晚安按钮
 
 ### v4.23.18 · 2026-05-25 — 清理冗余的 `|| 0` / `|| []` 兜底（N-5）
 

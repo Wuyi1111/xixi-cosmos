@@ -260,6 +260,7 @@ export default function App() {
           <GalaxyView
             isDark={isDark}
             userData={userData}
+            currentDateStr={currentDateStr}
           />
         )}
         {activeTab === 'star' && (
@@ -269,6 +270,7 @@ export default function App() {
             setTheme={setTheme}
             userData={userData}
             saveUserData={saveUserData}
+            currentDateStr={currentDateStr}
             setUserData={(d) => {
               setUserData(d);
               localStorage.removeItem('xixi_cosmos_data');

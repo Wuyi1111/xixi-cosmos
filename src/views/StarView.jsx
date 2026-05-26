@@ -38,7 +38,7 @@ const SLEEP_POSES = [
   { id: 'small', name: '小行星趴睡', emoji: '🪐', desc: '趴在一颗小行星上，听它缓慢自转' },
 ];
 
-export default function StarView({ isDark, theme, setTheme, userData, saveUserData, setUserData }) {
+export default function StarView({ isDark, theme, setTheme, userData, saveUserData, setUserData, currentDateStr }) {
   const [showSettings, setShowSettings] = useState(false);
   const [showWishPool, setShowWishPool] = useState(false);
 
@@ -50,7 +50,10 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
   // 归星仪式状态
   const [selectedPose, setSelectedPose] = useState(null);
   const [showRitual, setShowRitual] = useState(false);
-  const [ritualPhase, setRitualPhase] = useState('select'); // select | breathing | complete
+  // ritualPhase: select | breathing | complete | already-completed
+  // - complete           = 调息完成且实际发放了奖励
+  // - already-completed  = 今晚已打过卡，仪式跑完不再发奖励（N-7 防止假奖励 UI）
+  const [ritualPhase, setRitualPhase] = useState('select');
   const [breathPhase, setBreathPhase] = useState('inhale'); // inhale | hold | exhale
   // 所有调息 setTimeout 的 ID 都丢这里；closeRitual 时统一 clear
   const ritualTimersRef = useRef([]);
@@ -63,11 +66,9 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
   };
 
   // 连续夜晚显示（统一来源 utils.computeStreakInfo）
-  const todayStr = new Date().toDateString();
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
+  // currentDateStr 从 App.jsx 传入，每分钟轮询更新，避免跨午夜过期（N-6 修复）
   const { lastCheckInDate, hasCheckedInToday, displayContinuousDays } =
-    computeStreakInfo(userData, todayStr);
+    computeStreakInfo(userData, currentDateStr);
 
   // 夜声播放（模拟）
   const togglePlay = () => setIsPlaying(!isPlaying);
@@ -110,11 +111,11 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
   const completeRitual = () => {
     // 防御 1：仪式已被关闭 → 短路（定时器链余波）
     if (!ritualActiveRef.current) return;
-    // 防御 2：今日已打卡 → 不再发放奖励（避免重复打卡）
+    // 防御 2：今日已打卡 → 显示"已完成过仪式"占位，不再发放奖励、不显示假的 +1/+10
     if (hasCheckedInToday) {
       ritualActiveRef.current = false;
       clearRitualTimers();
-      setRitualPhase('complete');
+      setRitualPhase('already-completed');
       return;
     }
     ritualActiveRef.current = false;
@@ -122,6 +123,9 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
     setRitualPhase('complete');
 
     // 给予奖励
+    // yesterday 在用到的时刻实时算（N-6 修复：避免组件挂载后跨午夜过期）
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
     const isConsecutive = lastCheckInDate === yesterday.toDateString();
     const newContinuousDays = isConsecutive ? userData.continuousDays + 1 : 1;
     const streakBonus = isConsecutive ? Math.min((newContinuousDays - 1) * 2, 10) : 0;
@@ -133,7 +137,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
 
     const newEntry = {
       id: Date.now(),
-      date: todayStr,
+      date: currentDateStr,
       timeStr: `${hours}:${minutes}`,
       timestamp: Date.now(),
       moodId: 'ritual',
@@ -538,6 +542,24 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
                   className={`mt-8 text-xs ${isDark ? 'text-gray-500 hover:text-gray-400' : 'text-gray-400 hover:text-gray-600'}`}
                 >
                   跳过
+                </button>
+              </div>
+            )}
+
+            {ritualPhase === 'already-completed' && (
+              <div className="text-center">
+                <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl bg-indigo-500/10">
+                  <Moon size={40} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+                </div>
+                <h3 className="text-xl font-light mb-2">今晚已经归星过了</h3>
+                <p className={`text-xs mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  不用再来一次，可以真的去睡了。
+                </p>
+                <button
+                  onClick={closeRitual}
+                  className="px-8 py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
+                >
+                  晚安
                 </button>
               </div>
             )}

@@ -37,7 +37,7 @@ const MOCK_RANKINGS = [
   { id: 'TR1101', name: '银河拾荒', avatar: '🌠', stardust: 860 },
 ];
 
-export default function GalaxyView({ isDark, userData }) {
+export default function GalaxyView({ isDark, userData, currentDateStr }) {
   const [showSupernovaRules, setShowSupernovaRules] = useState(false);
   const [milestonesExpanded, setMilestonesExpanded] = useState(false);
   const [rankingExpanded, setRankingExpanded] = useState(false);
@@ -65,7 +65,8 @@ export default function GalaxyView({ isDark, userData }) {
   const myRank = myRankIndex + 1;
 
   // 连续夜晚显示（统一来源 utils.computeStreakInfo）
-  const { displayContinuousDays } = computeStreakInfo(userData, new Date().toDateString());
+  // currentDateStr 从 App.jsx 传入，每分钟轮询更新，避免组件挂载后跨午夜的字符串过期
+  const { displayContinuousDays } = computeStreakInfo(userData, currentDateStr);
 
   const stageColorMap = {
     gray: isDark ? 'text-gray-400' : 'text-gray-500',
