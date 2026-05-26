@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { X, Save, RotateCcw, Sparkles } from 'lucide-react';
+import { X, RotateCcw, Sparkles } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import { COSMIC_PERSONALITIES } from '../constants.js';
 
@@ -35,7 +35,6 @@ export default function QuizWidget({ isDark, onClose, onComplete }) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState([]);
   const [showResult, setShowResult] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   const computeResult = useCallback((finalAnswers) => {
     const count = (char) => finalAnswers.filter(a => a === char).length;
@@ -76,29 +75,19 @@ export default function QuizWidget({ isDark, onClose, onComplete }) {
 
   const result = showResult ? computeResult(answers) : null;
 
-  const handleSave = () => {
-    if (!result) return;
-    onComplete({ ...result }, null);
-    setSaved(true);
-  };
-
   const handleClose = () => {
     if (!result) {
       onClose();
       return;
     }
-    if (saved) {
-      onComplete(null, null);
-    } else {
-      onComplete(null, result);
-    }
+    // 测试完成自动保存
+    onComplete(result);
   };
 
   const handleRetake = () => {
     setStep(0);
     setAnswers([]);
     setShowResult(false);
-    setSaved(false);
   };
 
   const progress = ((step + 1) / QUESTIONS.length) * 100;
@@ -191,52 +180,23 @@ export default function QuizWidget({ isDark, onClose, onComplete }) {
 
             {/* 按钮组 */}
             <div className="flex gap-3 pt-2">
-              {!saved ? (
-                <>
-                  <button
-                    onClick={handleSave}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-indigo-500 text-white text-sm font-medium transition-all active:scale-95 hover:bg-indigo-600"
-                  >
-                    <Save size={16} />
-                    保存结果
-                  </button>
-                  <button
-                    onClick={handleClose}
-                    className={`flex-1 py-3 rounded-2xl text-sm font-medium transition-all active:scale-95 ${
-                      isDark ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    关闭
-                  </button>
-                </>
-              ) : (
-                <div className="w-full space-y-3">
-                  <div className={`text-center py-3 rounded-2xl text-sm font-medium ${
-                    isDark ? 'bg-green-500/15 text-green-400' : 'bg-green-50 text-green-600'
-                  }`}>
-                    已保存
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={handleRetake}
-                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium transition-all active:scale-95 ${
-                        isDark ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      <RotateCcw size={14} />
-                      重新测试
-                    </button>
-                    <button
-                      onClick={handleClose}
-                      className={`flex-1 py-3 rounded-2xl text-sm font-medium transition-all active:scale-95 ${
-                        isDark ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      关闭
-                    </button>
-                  </div>
-                </div>
-              )}
+              <button
+                onClick={handleRetake}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium transition-all active:scale-95 ${
+                  isDark ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <RotateCcw size={14} />
+                重新测试
+              </button>
+              <button
+                onClick={handleClose}
+                className={`flex-1 py-3 rounded-2xl text-sm font-medium transition-all active:scale-95 ${
+                  isDark ? 'bg-indigo-500 text-white hover:bg-indigo-600' : 'bg-indigo-500 text-white hover:bg-indigo-600'
+                }`}
+              >
+                完成
+              </button>
             </div>
           </div>
         )}
