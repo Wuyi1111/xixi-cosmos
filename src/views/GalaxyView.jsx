@@ -1,28 +1,30 @@
 /**
- * GalaxyView.jsx — "星系"板块（简化版，方案A）
+ * GalaxyView.jsx — "星系"板块（v4.24.0 重构版）
+ *
+ * 方案：A（成就驱动）+ C（动态星系概览）结合
  *
  * 页面结构：
- *   1) 顶部信息区：坐标 / 连续夜晚 / 星尘（一行简化）
- *   2) 星系概览：视觉 + 累计星尘 + 超新星（缩小）
- *   3) 超新星规则 — 默认折叠
- *   4) 星系里程碑 — 只显示当前阶段+进度条，列表折叠
- *   5) 同星系排名 — 只显示前3名+自己，其余折叠
+ *   1) 今日星系状态 — 阶段图标 + 进度 + 坐标/连续夜/星尘
+ *   2) 星系概览 — 中央大星球 + 环绕小星球（动态轨道）
+ *   3) 星系里程碑 — 横向时间轴，当前高亮，已完成✓，未解锁灰色
+ *   4) 同星系排名 — 前3名+自己，增加"距离上一名还差XX星尘"
+ *   5) 超新星 — 底部半屏抽屉
  */
 
 import { useState } from 'react';
-import { MapPin, Moon, Sparkles, Star, Trophy, ChevronRight, ChevronDown, Zap, Users } from 'lucide-react';
+import { MapPin, Moon, Sparkles, Star, Trophy, ChevronDown, Zap, Users, Target } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import { computeStreakInfo } from '../utils.js';
 
 // 星系发展阶段
 const GALAXY_STAGES = [
-  { id: 0, name: '虚空尘埃', desc: '微光在虚空中闪烁', minStardust: 0, color: 'gray' },
-  { id: 1, name: '星雾聚集', desc: '紫色光晕开始聚拢', minStardust: 500, color: 'purple' },
-  { id: 2, name: '初生星核', desc: '中央主星体诞生', minStardust: 2000, color: 'amber' },
-  { id: 3, name: '星环觉醒', desc: '星环缓缓展开', minStardust: 5000, color: 'blue' },
-  { id: 4, name: '伴星环绕', desc: '小星体开始公转', minStardust: 10000, color: 'amber' },
-  { id: 5, name: '双月引力', desc: '星系引力场增强', minStardust: 20000, color: 'amber' },
-  { id: 6, name: '宁静星系', desc: '星系进入稳定运转', minStardust: 50000, color: 'amber' },
+  { id: 0, name: '虚空尘埃', desc: '微光在虚空中闪烁', minStardust: 0, color: 'gray', icon: '💨' },
+  { id: 1, name: '星雾聚集', desc: '紫色光晕开始聚拢', minStardust: 500, color: 'purple', icon: '🌫️' },
+  { id: 2, name: '初生星核', desc: '中央主星体诞生', minStardust: 2000, color: 'amber', icon: '⭐' },
+  { id: 3, name: '星环觉醒', desc: '星环缓缓展开', minStardust: 5000, color: 'blue', icon: '💫' },
+  { id: 4, name: '伴星环绕', desc: '小星体开始公转', minStardust: 10000, color: 'amber', icon: '🪐' },
+  { id: 5, name: '双月引力', desc: '星系引力场增强', minStardust: 20000, color: 'amber', icon: '🌙' },
+  { id: 6, name: '宁静星系', desc: '星系进入稳定运转', minStardust: 50000, color: 'amber', icon: '🌌' },
 ];
 
 // 模拟同星系用户排名
@@ -39,13 +41,12 @@ const MOCK_RANKINGS = [
 
 export default function GalaxyView({ isDark, userData, currentDateStr }) {
   const [showSupernovaRules, setShowSupernovaRules] = useState(false);
-  const [milestonesExpanded, setMilestonesExpanded] = useState(false);
   const [rankingExpanded, setRankingExpanded] = useState(false);
 
   // 计算星系总星尘
   const galaxyTotalStardust = userData.stardust + MOCK_RANKINGS.reduce((sum, u) => sum + u.stardust, 0);
 
-  // 超新星数量（totalFollows 在 INITIAL_USER_DATA 已注册，迁移里类型也兜底，无需 || 0）
+  // 超新星数量
   const supernovaCount = Math.floor((userData.totalHugs + userData.totalFollows) / 10) + 3;
 
   // 当前星系阶段
@@ -63,9 +64,10 @@ export default function GalaxyView({ isDark, userData, currentDateStr }) {
 
   const myRankIndex = allRankings.findIndex(r => r.isMe);
   const myRank = myRankIndex + 1;
+  const prevUser = myRankIndex > 0 ? allRankings[myRankIndex - 1] : null;
+  const gapToPrev = prevUser ? prevUser.stardust - userData.stardust : 0;
 
-  // 连续夜晚显示（统一来源 utils.computeStreakInfo）
-  // currentDateStr 从 App.jsx 传入，每分钟轮询更新，避免组件挂载后跨午夜的字符串过期
+  // 连续夜晚
   const { displayContinuousDays } = computeStreakInfo(userData, currentDateStr);
 
   const stageColorMap = {
@@ -76,155 +78,205 @@ export default function GalaxyView({ isDark, userData, currentDateStr }) {
   };
 
   const stageBgMap = {
-    gray: isDark ? 'bg-gray-500/10 border-gray-500/20' : 'bg-gray-50 border-gray-200',
-    purple: isDark ? 'bg-purple-500/10 border-purple-500/20' : 'bg-purple-50 border-purple-200',
-    amber: isDark ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-200',
-    blue: isDark ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-200',
+    gray: isDark ? 'bg-gray-500/15 border-gray-500/25' : 'bg-gray-100 border-gray-200',
+    purple: isDark ? 'bg-purple-500/15 border-purple-500/25' : 'bg-purple-50 border-purple-200',
+    amber: isDark ? 'bg-amber-500/15 border-amber-500/25' : 'bg-amber-50 border-amber-200',
+    blue: isDark ? 'bg-blue-500/15 border-blue-500/25' : 'bg-blue-50 border-blue-200',
+  };
+
+  const stageDotMap = {
+    gray: isDark ? 'bg-gray-500' : 'bg-gray-400',
+    purple: isDark ? 'bg-purple-500' : 'bg-purple-400',
+    amber: isDark ? 'bg-amber-500' : 'bg-amber-400',
+    blue: isDark ? 'bg-blue-500' : 'bg-blue-400',
   };
 
   return (
     <div className="animate-fade-in pb-10 space-y-5">
-      {/* === 顶部信息区 — 简化为一行 === */}
-      <div className={`p-4 rounded-[20px] flex items-center justify-between ${isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100'} border shadow-sm`}>
-        <div className="flex items-center gap-1.5">
-          <MapPin size={12} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
-          <span className={`text-[10px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>#{userData.id}</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <Moon size={12} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
-          <span className={`text-[10px] ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{displayContinuousDays} 夜</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <Sparkles size={12} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
-          <span className={`text-[10px] font-medium ${isDark ? 'text-amber-300' : 'text-amber-600'}`}>{userData.stardust}</span>
-        </div>
-      </div>
-
-      {/* === 星系概览 — 缩小 === */}
-      <div className={`p-5 rounded-[24px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border border-amber-500/15' : 'bg-gradient-to-br from-amber-50/70 to-white border border-amber-100'}`}>
-        <div className="absolute -top-8 -right-6 w-32 h-32 rounded-full bg-amber-300/10 blur-3xl pointer-events-none"></div>
-        <div className="absolute -bottom-8 -left-6 w-24 h-24 rounded-full bg-orange-300/10 blur-3xl pointer-events-none"></div>
-
-        <div className="relative z-10 flex items-center gap-4">
-          {/* 星系视觉 — 缩小 */}
-          <div className="relative w-20 h-20 shrink-0">
-            <div className={`absolute inset-0 rounded-full ${isDark ? 'bg-amber-500/10' : 'bg-amber-100'} animate-pulse`}></div>
-            <div className={`absolute inset-2 rounded-full ${isDark ? 'bg-amber-400/15' : 'bg-amber-50'} animate-pulse`} style={{ animationDelay: '0.5s' }}></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-3xl">🌌</span>
-            </div>
-            <div className={`absolute inset-1 rounded-full border-2 border-dashed ${isDark ? 'border-amber-500/20' : 'border-amber-200'} animate-spin`} style={{ animationDuration: '20s' }}></div>
+      {/* === 1. 今日星系状态 === */}
+      <div className={`p-4 rounded-[20px] border ${isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100'} shadow-sm`}>
+        <div className="flex items-center gap-3 mb-3">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${stageBgMap[currentStage.color]}`}>
+            {currentStage.icon}
           </div>
-
           <div className="flex-1 min-w-0">
-            <h2 className="text-base font-light tracking-wide mb-1">宁静星系</h2>
-            <p className={`text-[10px] mb-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              {MOCK_RANKINGS.length + 1} 位星旅人
-            </p>
-            <div className="flex gap-3">
-              <div>
-                <p className={`text-lg font-medium ${isDark ? 'text-amber-300' : 'text-amber-600'}`}>{galaxyTotalStardust.toLocaleString()}</p>
-                <p className={`text-[9px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>累计星尘</p>
-              </div>
-              <div>
-                <p className={`text-lg font-medium ${isDark ? 'text-amber-300' : 'text-amber-500'}`}>{supernovaCount}</p>
-                <p className={`text-[9px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>超新星</p>
-              </div>
-            </div>
+            <h2 className={`text-sm font-medium ${stageColorMap[currentStage.color]}`}>{currentStage.name}</h2>
+            <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{currentStage.desc}</p>
           </div>
-        </div>
-      </div>
-
-      {/* === 超新星规则 — 默认折叠 === */}
-      <div className={`rounded-[20px] border overflow-hidden ${isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
-        <div
-          onClick={() => setShowSupernovaRules(true)}
-          className="p-4 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-transform"
-        >
-          <div className="flex items-center gap-2">
-            <Star size={14} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
-            <h3 className="text-sm font-medium">超新星</h3>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>了解规则</span>
-            <ChevronRight size={14} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
-          </div>
-        </div>
-      </div>
-
-      {/* === 星系里程碑 — 当前阶段+进度条，列表折叠 === */}
-      <div className={`rounded-[20px] border overflow-hidden ${isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
-        {/* 标题栏 */}
-        <div
-          onClick={() => setMilestonesExpanded(!milestonesExpanded)}
-          className="p-4 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-transform"
-        >
-          <div className="flex items-center gap-2">
-            <Zap size={14} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
-            <h3 className="text-sm font-medium">星系里程碑</h3>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className={`text-[10px] px-2 py-0.5 rounded-full ${stageBgMap[currentStage.color]}`}>
-              <span className={stageColorMap[currentStage.color]}>{currentStage.name}</span>
-            </span>
-            <div className={`transition-transform duration-300 ${milestonesExpanded ? 'rotate-180' : ''}`}>
-              <ChevronDown size={14} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
-            </div>
+          <div className="text-right">
+            <p className={`text-lg font-medium ${isDark ? 'text-amber-300' : 'text-amber-600'}`}>{progressToNext}%</p>
+            <p className={`text-[9px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>阶段进度</p>
           </div>
         </div>
 
-        {/* 进度条 — 始终显示 */}
+        {/* 进度条 */}
         {nextStage && (
-          <div className="px-4 pb-3">
-            <div className="flex justify-between text-[10px] mb-1.5">
-              <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>距离 {nextStage.name}</span>
-              <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>还需 {(nextStage.minStardust - galaxyTotalStardust).toLocaleString()} 星尘</span>
+          <div className="mb-3">
+            <div className={`h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-100'}`}>
+              <div className={`h-full rounded-full transition-all duration-1000 ${isDark ? 'bg-gradient-to-r from-amber-500 to-orange-400' : 'bg-gradient-to-r from-amber-400 to-orange-400'}`} style={{ width: `${progressToNext}%` }} />
             </div>
-            <div className={`h-2 rounded-full overflow-hidden ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-100'}`}>
-              <div className={`h-full rounded-full transition-all duration-1000 ${isDark ? 'bg-gradient-to-r from-amber-500 to-orange-400' : 'bg-gradient-to-r from-amber-400 to-orange-400'}`} style={{ width: `${progressToNext}%` }}></div>
+            <div className="flex justify-between mt-1">
+              <span className={`text-[9px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>距离 {nextStage.name}</span>
+              <span className={`text-[9px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>还需 {(nextStage.minStardust - galaxyTotalStardust).toLocaleString()} 星尘</span>
             </div>
           </div>
         )}
 
-        {/* 阶段列表 — 折叠 */}
-        <div className={`grid transition-all duration-300 ease-in-out ${milestonesExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-          <div className="overflow-hidden">
-            <div className="px-4 pb-4 space-y-2">
-              {GALAXY_STAGES.map((stage) => {
-                const isCurrent = stage.id === currentStage.id;
-                const isPast = stage.minStardust < currentStage.minStardust;
-                return (
-                  <div
-                    key={stage.id}
-                    className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
-                      isCurrent ? (isDark ? 'bg-[#1f1f2e] border border-amber-500/20' : 'bg-amber-50 border border-amber-100') : ''
-                    }`}
-                  >
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] ${
-                      isCurrent ? (isDark ? 'bg-amber-500/20 text-amber-300' : 'bg-amber-100 text-amber-600')
-                      : isPast ? (isDark ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-500')
-                      : (isDark ? 'bg-[#1f1f2e] text-gray-600' : 'bg-gray-100 text-gray-400')
-                    }`}>
-                      {isPast ? '✓' : stage.id + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-xs font-medium ${isCurrent ? (isDark ? 'text-amber-300' : 'text-amber-600') : (isDark ? 'text-gray-300' : 'text-gray-700')}`}>
-                        {stage.name}
-                      </p>
-                      <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                        {stage.desc} · {stage.minStardust.toLocaleString()} 星尘
-                      </p>
-                    </div>
+        {/* 三指标 */}
+        <div className="flex items-center justify-between pt-2 border-t ${isDark ? 'border-white/5' : 'border-gray-100'}">
+          <div className="flex items-center gap-1">
+            <MapPin size={10} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
+            <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>#{userData.id}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Moon size={10} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
+            <span className={`text-[10px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{displayContinuousDays} 夜</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Sparkles size={10} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
+            <span className={`text-[10px] font-medium ${isDark ? 'text-amber-300' : 'text-amber-600'}`}>{userData.stardust}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* === 2. 星系概览 — 动态星球环绕 === */}
+      <div className={`p-6 rounded-[24px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border border-amber-500/15' : 'bg-gradient-to-br from-amber-50/70 to-white border border-amber-100'}`}>
+        <div className="absolute -top-8 -right-6 w-32 h-32 rounded-full bg-amber-300/10 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-8 -left-6 w-24 h-24 rounded-full bg-orange-300/10 blur-3xl pointer-events-none" />
+
+        <div className="relative z-10">
+          {/* 标题 */}
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-base font-light tracking-wide">宁静星系</h2>
+            <button
+              onClick={() => setShowSupernovaRules(true)}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] transition-all active:scale-95 ${isDark ? 'bg-amber-500/15 text-amber-300 hover:bg-amber-500/25' : 'bg-amber-100 text-amber-600 hover:bg-amber-200'}`}
+            >
+              <Star size={10} />
+              {supernovaCount} 超新星
+            </button>
+          </div>
+
+          {/* 动态星系视觉 */}
+          <div className="relative w-full aspect-square max-w-[240px] mx-auto mb-5">
+            {/* 外轨道环 */}
+            <div className={`absolute inset-0 rounded-full border border-dashed ${isDark ? 'border-amber-500/15' : 'border-amber-200'} galaxy-spin`} style={{ animationDuration: '30s' }} />
+            <div className={`absolute inset-[15%] rounded-full border border-dashed ${isDark ? 'border-amber-500/10' : 'border-amber-100'} galaxy-spin`} style={{ animationDuration: '20s', animationDirection: 'reverse' }} />
+
+            {/* 环绕小星球 — 代表其他用户 */}
+            {MOCK_RANKINGS.slice(0, 5).map((user, i) => {
+              const angle = (i * 72 + 15) * (Math.PI / 180);
+              const radius = 42; // %
+              const x = 50 + radius * Math.cos(angle);
+              const y = 50 + radius * Math.sin(angle);
+              return (
+                <div
+                  key={user.id}
+                  className="absolute w-8 h-8 -ml-4 -mt-4 flex items-center justify-center text-sm animate-float"
+                  style={{
+                    left: `${x}%`,
+                    top: `${y}%`,
+                    animationDelay: `${i * 0.5}s`,
+                    animationDuration: `${3 + i * 0.3}s`,
+                  }}
+                >
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${isDark ? 'bg-[#1f1f2e] border border-white/10' : 'bg-white border border-gray-100'} shadow-sm`}>
+                    {user.avatar}
                   </div>
-                );
-              })}
+                </div>
+              );
+            })}
+
+            {/* 中央大星球 — 代表自己 */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="relative">
+                {/* 光晕 */}
+                <div className={`absolute -inset-4 rounded-full ${isDark ? 'bg-amber-500/10' : 'bg-amber-100'} animate-pulse`} />
+                <div className={`absolute -inset-2 rounded-full ${isDark ? 'bg-amber-400/15' : 'bg-amber-50'} animate-pulse`} style={{ animationDelay: '0.5s' }} />
+                {/* 本体 */}
+                <div className={`relative w-16 h-16 rounded-full flex items-center justify-center text-2xl ${isDark ? 'bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30' : 'bg-gradient-to-br from-amber-100 to-orange-50 border border-amber-200'}`}>
+                  {userData.avatarEmoji}
+                </div>
+                {/* 标签 */}
+                <div className={`absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] px-2 py-0.5 rounded-full ${isDark ? 'bg-amber-500/20 text-amber-300' : 'bg-amber-100 text-amber-600'}`}>
+                  你
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 数据 */}
+          <div className="flex justify-center gap-8">
+            <div className="text-center">
+              <p className={`text-xl font-medium ${isDark ? 'text-amber-300' : 'text-amber-600'}`}>{galaxyTotalStardust.toLocaleString()}</p>
+              <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>累计星尘</p>
+            </div>
+            <div className="text-center">
+              <p className={`text-xl font-medium ${isDark ? 'text-amber-300' : 'text-amber-500'}`}>{MOCK_RANKINGS.length + 1}</p>
+              <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>星旅人</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* === 同星系排名 — 前3名+自己，其余折叠 === */}
-      <div className={`rounded-[20px] border overflow-hidden ${isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm'}`}>
+      {/* === 3. 星系里程碑 — 横向时间轴 === */}
+      <div className={`rounded-[20px] border overflow-hidden ${isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100'} shadow-sm`}>
+        <div className="p-4 flex items-center gap-2">
+          <Zap size={14} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
+          <h3 className="text-sm font-medium">星系里程碑</h3>
+        </div>
+
+        {/* 横向时间轴 */}
+        <div className="px-4 pb-4 overflow-x-auto no-scrollbar">
+          <div className="flex items-start gap-0 min-w-max">
+            {GALAXY_STAGES.map((stage, index) => {
+              const isCurrent = stage.id === currentStage.id;
+              const isPast = stage.minStardust < currentStage.minStardust;
+              const isFuture = !isCurrent && !isPast;
+
+              return (
+                <div key={stage.id} className="flex items-start">
+                  {/* 节点 */}
+                  <div className="flex flex-col items-center" style={{ width: '64px' }}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs transition-all ${
+                      isCurrent
+                        ? (isDark ? 'bg-amber-500/20 text-amber-300 ring-2 ring-amber-500/50' : 'bg-amber-100 text-amber-600 ring-2 ring-amber-300')
+                        : isPast
+                          ? (isDark ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-500')
+                          : (isDark ? 'bg-[#1f1f2e] text-gray-600' : 'bg-gray-100 text-gray-400')
+                    }`}>
+                      {isPast ? '✓' : stage.icon}
+                    </div>
+                    <p className={`text-[9px] mt-1.5 text-center leading-tight ${
+                      isCurrent ? (isDark ? 'text-amber-300 font-medium' : 'text-amber-600 font-medium')
+                        : isPast ? (isDark ? 'text-gray-400' : 'text-gray-500')
+                        : (isDark ? 'text-gray-600' : 'text-gray-400')
+                    }`}>
+                      {stage.name}
+                    </p>
+                    <p className={`text-[8px] mt-0.5 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                      {stage.minStardust >= 1000 ? `${(stage.minStardust / 1000).toFixed(0)}k` : stage.minStardust}
+                    </p>
+                  </div>
+
+                  {/* 连接线 */}
+                  {index < GALAXY_STAGES.length - 1 && (
+                    <div className="flex-1 flex items-center justify-center" style={{ width: '24px', marginTop: '16px' }}>
+                      <div className={`h-0.5 w-full ${
+                        isPast ? (isDark ? 'bg-amber-500/40' : 'bg-amber-300')
+                          : (isDark ? 'bg-gray-800' : 'bg-gray-200')
+                      }`} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* === 4. 同星系排名 — 增加追赶提示 === */}
+      <div className={`rounded-[20px] border overflow-hidden ${isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100'} shadow-sm`}>
         {/* 标题栏 */}
         <div
           onClick={() => setRankingExpanded(!rankingExpanded)}
@@ -235,6 +287,12 @@ export default function GalaxyView({ isDark, userData, currentDateStr }) {
             <h3 className="text-sm font-medium">同星系排名</h3>
           </div>
           <div className="flex items-center gap-2">
+            {myRank > 1 && gapToPrev > 0 && (
+              <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+                <Target size={10} />
+                差 {gapToPrev} 星尘
+              </span>
+            )}
             <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>第 {myRank} 名</span>
             <div className={`transition-transform duration-300 ${rankingExpanded ? 'rotate-180' : ''}`}>
               <ChevronDown size={14} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
@@ -242,7 +300,7 @@ export default function GalaxyView({ isDark, userData, currentDateStr }) {
           </div>
         </div>
 
-        {/* 前3名 + 自己 — 始终显示 */}
+        {/* 前3名 + 自己 */}
         <div className="px-4 pb-3 space-y-2">
           {allRankings.slice(0, 3).map((user, index) => (
             <div
@@ -316,11 +374,22 @@ export default function GalaxyView({ isDark, userData, currentDateStr }) {
         </div>
       </div>
 
-      {/* === 超新星规则弹窗 === */}
+      {/* === 5. 超新星规则 — 底部半屏抽屉 === */}
       {showSupernovaRules && (
         <Portal>
-          <div className={`fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setShowSupernovaRules(false)}>
-            <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative max-h-[80vh] overflow-y-auto no-scrollbar`} onClick={e => e.stopPropagation()}>
+          <div
+            className={`fixed inset-0 z-[60] ${isDark ? 'bg-[#0f0f1a]/60' : 'bg-[#f8fafc]/60'} backdrop-blur-sm animate-fade-in`}
+            onClick={() => setShowSupernovaRules(false)}
+          >
+            <div
+              className={`absolute bottom-0 left-0 right-0 p-6 rounded-t-[28px] ${isDark ? 'bg-[#171724] border-t border-white/5' : 'bg-white border-t border-gray-100 shadow-xl'} max-h-[70vh] overflow-y-auto no-scrollbar`}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* 拖动指示条 */}
+              <div className="flex justify-center mb-4">
+                <div className={`w-10 h-1 rounded-full ${isDark ? 'bg-gray-700' : 'bg-gray-300'}`} />
+              </div>
+
               <h3 className="text-lg font-medium mb-4 text-center flex items-center justify-center gap-2">
                 <Star size={20} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
                 超新星规则
