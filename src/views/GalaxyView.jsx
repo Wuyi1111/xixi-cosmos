@@ -12,6 +12,7 @@
 import { useState } from 'react';
 import { MapPin, Moon, Sparkles, Star, Trophy, ChevronRight, ChevronDown, Zap, Users } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
+import { computeStreakInfo } from '../utils.js';
 
 // 星系发展阶段
 const GALAXY_STAGES = [
@@ -63,18 +64,8 @@ export default function GalaxyView({ isDark, userData }) {
   const myRankIndex = allRankings.findIndex(r => r.isMe);
   const myRank = myRankIndex + 1;
 
-  // 连续夜晚显示
-  const lastCheckInDate = userData.checkInHistory[0]?.date;
-  const todayStr = new Date().toDateString();
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const hasCheckedInToday = lastCheckInDate === todayStr;
-  let displayContinuousDays = userData.continuousDays;
-  if (!hasCheckedInToday && userData.checkInHistory.length > 0) {
-    if (lastCheckInDate !== yesterday.toDateString()) {
-      displayContinuousDays = 0;
-    }
-  }
+  // 连续夜晚显示（统一来源 utils.computeStreakInfo）
+  const { displayContinuousDays } = computeStreakInfo(userData, new Date().toDateString());
 
   const stageColorMap = {
     gray: isDark ? 'text-gray-400' : 'text-gray-500',

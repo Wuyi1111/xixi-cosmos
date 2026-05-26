@@ -16,6 +16,7 @@ import Portal from '../components/Portal.jsx';
 import SettingsPanel from './SettingsPanel.jsx';
 import WishPoolView from './WishPoolView.jsx';
 import { INITIAL_USER_DATA } from '../constants.js';
+import { computeStreakInfo } from '../utils.js';
 
 const NIGHT_SOUNDS = [
   { id: 'rain', name: '星河雨声', desc: '柔和雨声，适合放松入眠' },
@@ -61,18 +62,12 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
     ritualTimersRef.current = [];
   };
 
-  // 连续夜晚显示
-  const lastCheckInDate = userData.checkInHistory[0]?.date;
+  // 连续夜晚显示（统一来源 utils.computeStreakInfo）
   const todayStr = new Date().toDateString();
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  const hasCheckedInToday = lastCheckInDate === todayStr;
-  let displayContinuousDays = userData.continuousDays;
-  if (!hasCheckedInToday && userData.checkInHistory.length > 0) {
-    if (lastCheckInDate !== yesterday.toDateString()) {
-      displayContinuousDays = 0;
-    }
-  }
+  const { lastCheckInDate, hasCheckedInToday, displayContinuousDays } =
+    computeStreakInfo(userData, todayStr);
 
   // 夜声播放（模拟）
   const togglePlay = () => setIsPlaying(!isPlaying);

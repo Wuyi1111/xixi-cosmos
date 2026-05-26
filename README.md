@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.23.16** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.23.17** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 四个 tab：**此刻** / **雷达** / **星系** / **归星**（原"我的"已重构为"归星"板块）。
 
@@ -140,6 +140,13 @@ push 前手动跑一遍：
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.23.17 · 2026-05-25 — 提取 computeStreakInfo 工具函数（N-3）
+
+- `src/utils.js` 新增 `computeStreakInfo(userData, currentDateStr)`
+  返回 `{ lastCheckInDate, hasCheckedInToday, displayContinuousDays }`
+- StarView + GalaxyView 引用该函数，消除两边 ~10 行重复的"连签计算"逻辑
+- 后续如果调整断签规则（比如允许 1 天宽限期），改 utils.js 一处即可
 
 ### v4.23.16 · 2026-05-25 — App.jsx 死代码 + 注释清理（N-2 + N-4）
 
