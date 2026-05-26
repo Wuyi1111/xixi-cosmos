@@ -1,17 +1,17 @@
 /**
- * StarView.jsx — "归星"板块（原"我的"页面重构）。
+ * StarView.jsx — "归星"板块（v4.25.0 仪式驱动型重构）
  *
  * 页面结构：
- *   1) 顶部精简个人信息
- *   2) 品牌意义卡片："今晚，回到自己"
- *   3) 夜声白噪音板块
- *   4) 睡前归星仪式（睡姿选择 + 调息动画）
- *   5) 星辰板块（星尘 + 心愿池入口）
- *   6) 三个数据记录：累积夜晚 / 传递温暖 / 同行者
+ *   1) 顶部精简个人信息：头像 + 名字 + 设置
+ *   2) 今日状态卡片：今晚归星状态 / 连续天数 / 心情
+ *   3) 归星仪式入口：大按钮，点击进入全屏仪式
+ *   4) 夜声配置：仪式前的声音选择
+ *   5) 成就徽章墙：累积夜晚 / 传递温暖 / 同行者
+ *   6) 底部：心愿池独立入口
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { Settings, Sparkles, Moon, Heart, Users, Play, Pause, RefreshCw, Wind, ChevronRight, X, CheckCircle2 } from 'lucide-react';
+import { Settings, Sparkles, Moon, Heart, Users, Play, Pause, Wind, ChevronRight, X, CheckCircle2, Award, Flame, Music } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import SettingsPanel from './SettingsPanel.jsx';
 import WishPoolView from './WishPoolView.jsx';
@@ -38,6 +38,16 @@ const SLEEP_POSES = [
   { id: 'small', name: '小行星趴睡', emoji: '🪐', desc: '趴在一颗小行星上，听它缓慢自转' },
 ];
 
+// 成就徽章定义
+const BADGES = [
+  { id: 'nights_7', name: '7夜行者', desc: '连续归星7天', icon: Moon, minDays: 7, color: 'indigo' },
+  { id: 'nights_30', name: '月度星旅', desc: '连续归星30天', icon: Moon, minDays: 30, color: 'amber' },
+  { id: 'hugs_10', name: '温暖使者', desc: '传递温暖10次', icon: Heart, minHugs: 10, color: 'pink' },
+  { id: 'hugs_50', name: '光之传递', desc: '传递温暖50次', icon: Heart, minHugs: 50, color: 'rose' },
+  { id: 'follows_5', name: '同行者', desc: '跟随5个任务', icon: Users, minFollows: 5, color: 'cyan' },
+  { id: 'follows_20', name: '星际伙伴', desc: '跟随20个任务', icon: Users, minFollows: 20, color: 'blue' },
+];
+
 export default function StarView({ isDark, theme, setTheme, userData, saveUserData, setUserData, currentDateStr }) {
   const [showSettings, setShowSettings] = useState(false);
   const [showWishPool, setShowWishPool] = useState(false);
@@ -48,16 +58,11 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
   const [showSoundPicker, setShowSoundPicker] = useState(false);
 
   // 归星仪式状态
-  const [selectedPose, setSelectedPose] = useState(null);
+  const [selectedPose, setSelectedPose] = useState(SLEEP_POSES[0]);
   const [showRitual, setShowRitual] = useState(false);
-  // ritualPhase: select | breathing | complete | already-completed
-  // - complete           = 调息完成且实际发放了奖励
-  // - already-completed  = 今晚已打过卡，仪式跑完不再发奖励（N-7 防止假奖励 UI）
   const [ritualPhase, setRitualPhase] = useState('select');
-  const [breathPhase, setBreathPhase] = useState('inhale'); // inhale | hold | exhale
-  // 所有调息 setTimeout 的 ID 都丢这里；closeRitual 时统一 clear
+  const [breathPhase, setBreathPhase] = useState('inhale');
   const ritualTimersRef = useRef([]);
-  // 标记仪式是否仍在进行；定时器链回调里短路用，避免关闭后还触发 completeRitual
   const ritualActiveRef = useRef(false);
 
   const clearRitualTimers = () => {
@@ -65,8 +70,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
     ritualTimersRef.current = [];
   };
 
-  // 连续夜晚显示（统一来源 utils.computeStreakInfo）
-  // currentDateStr 从 App.jsx 传入，每分钟轮询更新，避免跨午夜过期（N-6 修复）
+  // 连续夜晚显示
   const { lastCheckInDate, hasCheckedInToday, displayContinuousDays } =
     computeStreakInfo(userData, currentDateStr);
 
@@ -109,9 +113,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
   };
 
   const completeRitual = () => {
-    // 防御 1：仪式已被关闭 → 短路（定时器链余波）
     if (!ritualActiveRef.current) return;
-    // 防御 2：今日已打卡 → 显示"已完成过仪式"占位，不再发放奖励、不显示假的 +1/+10
     if (hasCheckedInToday) {
       ritualActiveRef.current = false;
       clearRitualTimers();
@@ -122,8 +124,6 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
     clearRitualTimers();
     setRitualPhase('complete');
 
-    // 给予奖励
-    // yesterday 在用到的时刻实时算（N-6 修复：避免组件挂载后跨午夜过期）
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const isConsecutive = lastCheckInDate === yesterday.toDateString();
@@ -159,22 +159,29 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
   };
 
   const closeRitual = () => {
-    // 关闭即"打断"：先翻 active 标记，再清所有挂起的 setTimeout
     ritualActiveRef.current = false;
     clearRitualTimers();
     setShowRitual(false);
     setRitualPhase('select');
-    setSelectedPose(null);
     setBreathPhase('inhale');
   };
 
-  // 组件卸载时也清干净，避免内存泄漏
   useEffect(() => {
     return () => {
       ritualActiveRef.current = false;
       clearRitualTimers();
     };
   }, []);
+
+  // 计算已解锁的徽章
+  const unlockedBadges = BADGES.filter(badge => {
+    if (badge.minDays && displayContinuousDays >= badge.minDays) return true;
+    if (badge.minHugs && userData.totalHugs >= badge.minHugs) return true;
+    if (badge.minFollows && userData.totalFollows >= badge.minFollows) return true;
+    return false;
+  });
+
+  const totalBadges = BADGES.length;
 
   if (showSettings) {
     return (
@@ -186,7 +193,6 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
         saveUserData={saveUserData}
         onClose={() => setShowSettings(false)}
         onReset={() => {
-          // 直接复用 constants.js 的单一来源，避免后续加字段时这里漏改
           setUserData({ ...INITIAL_USER_DATA });
           setShowSettings(false);
         }}
@@ -212,229 +218,230 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
   }
 
   return (
-    <div className="animate-fade-in pb-10 space-y-6">
-      {/* === 顶部精简个人信息 === */}
-      <div className={`p-5 rounded-[28px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border border-indigo-500/15' : 'bg-gradient-to-br from-indigo-50/70 to-white border border-indigo-100'}`}>
-        <div className="absolute -top-8 -right-6 w-32 h-32 rounded-full bg-indigo-300/10 blur-3xl pointer-events-none"></div>
-        <div className="absolute -bottom-8 -left-6 w-24 h-24 rounded-full bg-purple-300/10 blur-3xl pointer-events-none"></div>
+    <div className="animate-fade-in pb-10 space-y-5">
+      {/* === 1. 顶部精简个人信息 === */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${isDark ? 'bg-[#171724] border border-indigo-500/20' : 'bg-white shadow-sm border border-indigo-100'}`}>
+            {userData.avatarEmoji || '🪐'}
+          </div>
+          <div>
+            <h2 className="text-base font-medium">{userData.displayName || '星星旅人'}</h2>
+            <div className="flex items-center gap-1">
+              <Moon size={10} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
+              <span className={`text-[10px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                连续 {displayContinuousDays} 夜
+              </span>
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowSettings(true)}
+          className={`p-2 rounded-full ${isDark ? 'bg-[#171724] text-gray-400' : 'bg-white text-gray-500 shadow-sm'}`}
+        >
+          <Settings size={18} />
+        </button>
+      </div>
+
+      {/* === 2. 今日状态卡片 === */}
+      <div className={`p-5 rounded-[24px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border border-indigo-500/15' : 'bg-gradient-to-br from-indigo-50/70 to-white border border-indigo-100'}`}>
+        <div className="absolute -top-8 -right-6 w-32 h-32 rounded-full bg-indigo-300/10 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-8 -left-6 w-24 h-24 rounded-full bg-purple-300/10 blur-3xl pointer-events-none" />
 
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className={`w-14 h-14 rounded-full flex items-center justify-center text-3xl ${isDark ? 'bg-[#171724] border border-indigo-500/20' : 'bg-white shadow-sm border border-indigo-100'} relative overflow-hidden`}>
-                <div className="absolute inset-0 bg-indigo-500/10 blur-md animate-pulse"></div>
-                <span className="relative z-10">{userData.avatarEmoji || '🪐'}</span>
-              </div>
-              <div>
-                <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>晚安，星旅人</p>
-                <h2 className="text-base font-medium">{userData.displayName || '星星旅人'}</h2>
-              </div>
+            <div>
+              <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>今晚状态</p>
+              <h3 className={`text-lg font-medium ${hasCheckedInToday ? (isDark ? 'text-emerald-400' : 'text-emerald-600') : (isDark ? 'text-indigo-300' : 'text-indigo-600')}`}>
+                {hasCheckedInToday ? '已归星' : '尚未归星'}
+              </h3>
             </div>
-            <button
-              onClick={() => setShowSettings(true)}
-              className={`p-2 rounded-full ${isDark ? 'bg-[#171724] text-gray-400' : 'bg-white text-gray-500 shadow-sm'}`}
-            >
-              <Settings size={18} />
-            </button>
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${hasCheckedInToday ? (isDark ? 'bg-emerald-500/15' : 'bg-emerald-50') : (isDark ? 'bg-indigo-500/15' : 'bg-indigo-50')}`}>
+              {hasCheckedInToday ? (
+                <CheckCircle2 size={24} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
+              ) : (
+                <Moon size={24} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5">
-              <Moon size={14} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
+              <Flame size={12} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
               <span className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                连续归星 {displayContinuousDays} 个夜晚
+                连续 {displayContinuousDays} 天
               </span>
             </div>
+            <div className={`w-px h-3 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
             <div className="flex items-center gap-1.5">
-              <Sparkles size={14} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
-              <span className={`text-xs font-medium ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>
-                星尘 {userData.stardust}
+              <Sparkles size={12} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
+              <span className={`text-xs font-medium ${isDark ? 'text-amber-300' : 'text-amber-600'}`}>
+                {userData.stardust} 星尘
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* === 品牌意义卡片 === */}
-      <div className={`p-6 rounded-[28px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a24] to-[#171724] border border-purple-500/15' : 'bg-gradient-to-br from-purple-50/70 to-white border border-purple-100'}`}>
-        <div className="absolute -top-8 -right-6 w-32 h-32 rounded-full bg-purple-300/15 blur-3xl pointer-events-none"></div>
-        <div className="absolute -bottom-8 -left-6 w-24 h-24 rounded-full bg-indigo-300/15 blur-3xl pointer-events-none"></div>
-
-        <div className="relative z-10">
-          <h2 className="text-lg font-light mb-3 tracking-wide">今晚，回到自己</h2>
-          <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-            生活会让人奔跑、消耗、偏航。<br/>
-            但在息息里，你可以慢下来，听见自己。<br/>
-            每一次表达，都是一颗星发光；<br/>
-            每一次共鸣，都是一束光抵达；<br/>
-            每一次归星，都是你重新回到自己的时刻。
-          </p>
-        </div>
-      </div>
-
-      {/* === 夜声白噪音 === */}
-      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm'}`}>
+      {/* === 3. 归星仪式入口 === */}
+      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
         <div className="flex items-center gap-2 mb-3">
-          <Wind size={16} className={isDark ? 'text-cyan-400' : 'text-cyan-500'} />
-          <h3 className="text-sm font-medium">夜声</h3>
-        </div>
-        <p className={`text-xs mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-          选择今晚陪你入眠的声音。
-        </p>
-
-        <div className={`p-4 rounded-2xl ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>当前选择</p>
-              <p className="text-sm font-medium mt-0.5">{selectedSound.name}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={togglePlay}
-                className={`p-2.5 rounded-full transition-all active:scale-95 ${
-                  isPlaying
-                    ? (isDark ? 'bg-cyan-500/20 text-cyan-300' : 'bg-cyan-100 text-cyan-600')
-                    : (isDark ? 'bg-white/5 text-gray-400' : 'bg-white text-gray-500 shadow-sm')
-                }`}
-              >
-                {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-              </button>
-              <button
-                onClick={() => setShowSoundPicker(true)}
-                className={`p-2.5 rounded-full transition-all active:scale-95 ${isDark ? 'bg-white/5 text-gray-400' : 'bg-white text-gray-500 shadow-sm'}`}
-              >
-                <RefreshCw size={16} />
-              </button>
-            </div>
-          </div>
-
-          {isPlaying && (
-            <div className="mt-3 flex items-center gap-1">
-              {[...Array(5)].map((_, i) => (
-                <div
-                  key={i}
-                  className={`flex-1 h-1 rounded-full ${isDark ? 'bg-cyan-500/30' : 'bg-cyan-200'}`}
-                  style={{
-                    animation: `sound-wave 1s ease-in-out ${i * 0.15}s infinite alternate`,
-                  }}
-                ></div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* === 睡前归星仪式 === */}
-      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm'}`}>
-        <div className="flex items-center gap-2 mb-2">
           <Moon size={16} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
           <h3 className="text-sm font-medium">睡前归星仪式</h3>
         </div>
-        <p className={`text-xs mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-          选择今晚的睡姿，让身体先替你安静下来。
-        </p>
 
-        {/* 睡姿选择 */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
+        {/* 睡姿快速选择 */}
+        <div className="grid grid-cols-6 gap-2 mb-4">
           {SLEEP_POSES.map((pose) => (
             <button
               key={pose.id}
               onClick={() => setSelectedPose(pose)}
-              className={`p-3 rounded-2xl text-center transition-all active:scale-95 ${
+              className={`p-2 rounded-xl text-center transition-all active:scale-95 ${
                 selectedPose?.id === pose.id
                   ? (isDark ? 'bg-indigo-500/15 border border-indigo-500/30' : 'bg-indigo-50 border border-indigo-200')
                   : (isDark ? 'bg-[#1f1f2e] border border-transparent' : 'bg-gray-50 border border-transparent')
               }`}
             >
-              <span className="text-2xl block mb-1">{pose.emoji}</span>
-              <span className={`text-[10px] ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{pose.name}</span>
+              <span className="text-xl block">{pose.emoji}</span>
             </button>
           ))}
         </div>
 
-        {selectedPose && (
-          <div className={`p-3 rounded-xl mb-4 text-center ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
-            <p className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-              今晚选择：<span className="font-medium">{selectedPose.name}</span>
-            </p>
-            <p className={`text-[10px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{selectedPose.desc}</p>
-          </div>
-        )}
+        {/* 选中睡姿描述 */}
+        <div className={`p-3 rounded-xl mb-4 text-center ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
+          <p className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+            <span className="font-medium">{selectedPose.name}</span>
+            <span className={`text-[10px] ml-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{selectedPose.desc}</span>
+          </p>
+        </div>
 
+        {/* 夜声配置 */}
+        <div className={`flex items-center gap-3 p-3 rounded-xl mb-4 ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
+          <Music size={14} className={isDark ? 'text-cyan-400' : 'text-cyan-500'} />
+          <div className="flex-1 min-w-0">
+            <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>伴眠夜声</p>
+            <p className="text-xs font-medium">{selectedSound.name}</p>
+          </div>
+          <button
+            onClick={togglePlay}
+            className={`p-1.5 rounded-full transition-all active:scale-95 ${
+              isPlaying
+                ? (isDark ? 'bg-cyan-500/20 text-cyan-300' : 'bg-cyan-100 text-cyan-600')
+                : (isDark ? 'bg-white/5 text-gray-400' : 'bg-white text-gray-500 shadow-sm')
+            }`}
+          >
+            {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+          </button>
+          <button
+            onClick={() => setShowSoundPicker(true)}
+            className={`p-1.5 rounded-full transition-all active:scale-95 ${isDark ? 'bg-white/5 text-gray-400' : 'bg-white text-gray-500 shadow-sm'}`}
+          >
+            <Wind size={14} />
+          </button>
+        </div>
+
+        {/* 大按钮入口 */}
         <button
           onClick={() => {
-            if (selectedPose) {
+            if (!hasCheckedInToday) {
               setShowRitual(true);
               setRitualPhase('select');
             }
           }}
-          disabled={!selectedPose || hasCheckedInToday}
-          className={`w-full py-3.5 rounded-2xl font-medium tracking-wider transition-all flex items-center justify-center gap-2 ${
-            selectedPose && !hasCheckedInToday
-              ? 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 active:scale-95'
-              : (isDark ? 'bg-[#1f1f2e] text-gray-600 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed')
+          disabled={hasCheckedInToday}
+          className={`w-full py-4 rounded-2xl font-medium tracking-wider transition-all flex items-center justify-center gap-2 ${
+            hasCheckedInToday
+              ? (isDark ? 'bg-[#1f1f2e] text-gray-600 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed')
+              : 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 active:scale-95'
           }`}
         >
-          <Moon size={18} />
+          <Moon size={20} />
           {hasCheckedInToday ? '今晚已归星' : '开始归星'}
         </button>
       </div>
 
-      {/* === 星辰板块 === */}
-      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm'}`}>
-        <div className="flex items-center gap-2 mb-3">
-          <Sparkles size={16} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
-          <h3 className="text-sm font-medium">星辰</h3>
+      {/* === 4. 成就徽章墙 === */}
+      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Award size={16} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
+            <h3 className="text-sm font-medium">成就徽章</h3>
+          </div>
+          <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+            {unlockedBadges.length}/{totalBadges}
+          </span>
         </div>
 
-        <div className={`p-4 rounded-2xl mb-4 ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
-          <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>当前星尘</p>
-          <p className={`text-2xl font-medium mt-1 ${isDark ? 'text-amber-300' : 'text-amber-500'}`}>
-            {userData.stardust}
-          </p>
+        <div className="grid grid-cols-3 gap-3">
+          {BADGES.map((badge) => {
+            const isUnlocked = unlockedBadges.some(b => b.id === badge.id);
+            const Icon = badge.icon;
+            return (
+              <div
+                key={badge.id}
+                className={`p-3 rounded-xl text-center transition-all ${
+                  isUnlocked
+                    ? (isDark ? 'bg-amber-500/10 border border-amber-500/20' : 'bg-amber-50 border border-amber-100')
+                    : (isDark ? 'bg-[#1f1f2e] border border-transparent opacity-50' : 'bg-gray-50 border border-transparent opacity-50')
+                }`}
+              >
+                <Icon
+                  size={20}
+                  className={`mx-auto mb-1.5 ${
+                    isUnlocked
+                      ? (isDark ? 'text-amber-400' : 'text-amber-500')
+                      : (isDark ? 'text-gray-600' : 'text-gray-400')
+                  }`}
+                />
+                <p className={`text-[10px] font-medium ${isUnlocked ? (isDark ? 'text-amber-300' : 'text-amber-600') : (isDark ? 'text-gray-600' : 'text-gray-400')}`}>
+                  {badge.name}
+                </p>
+                <p className={`text-[8px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                  {badge.desc}
+                </p>
+              </div>
+            );
+          })}
         </div>
-
-        <p className={`text-xs leading-relaxed mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-          星尘不是用来消费的，而是用来兑换认真生活后的奖励。<br/>
-          息息不做产品销售，这里只准备心愿兑换。
-        </p>
-
-        <button
-          onClick={() => setShowWishPool(true)}
-          className={`w-full py-3 rounded-2xl text-sm font-medium transition-all active:scale-95 flex items-center justify-center gap-2 ${
-            isDark
-              ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10'
-              : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
-          }`}
-        >
-          <Heart size={16} />
-          进入心愿池
-        </button>
       </div>
 
-      {/* === 三个数据记录 === */}
-      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100 shadow-sm'}`}>
+      {/* === 5. 数据概览 === */}
+      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
-            <p className={`text-xl font-medium mb-1 ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>
+            <p className={`text-2xl font-medium mb-1 ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>
               {userData.totalDays}
             </p>
             <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>累积夜晚</p>
           </div>
           <div>
-            <p className={`text-xl font-medium mb-1 ${isDark ? 'text-pink-300' : 'text-pink-500'}`}>
+            <p className={`text-2xl font-medium mb-1 ${isDark ? 'text-pink-300' : 'text-pink-500'}`}>
               {userData.totalHugs}
             </p>
             <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>传递温暖</p>
           </div>
           <div>
-            <p className={`text-xl font-medium mb-1 ${isDark ? 'text-cyan-300' : 'text-cyan-500'}`}>
+            <p className={`text-2xl font-medium mb-1 ${isDark ? 'text-cyan-300' : 'text-cyan-500'}`}>
               {userData.totalFollows}
             </p>
             <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>同行者</p>
           </div>
         </div>
       </div>
+
+      {/* === 6. 底部心愿池入口 === */}
+      <button
+        onClick={() => setShowWishPool(true)}
+        className={`w-full py-4 rounded-2xl text-sm font-medium transition-all active:scale-95 flex items-center justify-center gap-2 ${
+          isDark
+            ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10'
+            : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+        }`}
+      >
+        <Heart size={16} />
+        进入心愿池
+        <ChevronRight size={14} />
+      </button>
 
       {/* === 夜声选择器弹窗 === */}
       {showSoundPicker && (
@@ -514,13 +521,13 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
                       transform: breathPhase === 'inhale' ? 'scale(1.3)' : breathPhase === 'exhale' ? 'scale(0.8)' : 'scale(1.1)',
                       opacity: breathPhase === 'inhale' ? 0.3 : breathPhase === 'exhale' ? 0.1 : 0.2,
                     }}
-                  ></div>
+                  />
                   <div
                     className={`absolute inset-4 rounded-full ${isDark ? 'bg-indigo-400/15' : 'bg-indigo-50'} transition-all duration-[3000ms] ease-in-out`}
                     style={{
                       transform: breathPhase === 'inhale' ? 'scale(1.2)' : breathPhase === 'exhale' ? 'scale(0.85)' : 'scale(1.05)',
                     }}
-                  ></div>
+                  />
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-5xl">{selectedPose?.emoji}</span>
                   </div>
@@ -580,7 +587,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
                       <p className={`text-lg font-medium ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>+1</p>
                       <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>累积夜晚</p>
                     </div>
-                    <div className={`w-[1px] h-8 ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}></div>
+                    <div className={`w-[1px] h-8 ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`} />
                     <div className="text-center">
                       <p className={`text-lg font-medium ${isDark ? 'text-amber-300' : 'text-amber-500'}`}>+10</p>
                       <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>星尘</p>
