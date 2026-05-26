@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.23.19** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.23.20** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 四个 tab：**此刻** / **雷达** / **星系** / **归星**（原"我的"已重构为"归星"板块）。
 
@@ -140,6 +140,15 @@ push 前手动跑一遍：
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.23.20 · 2026-05-25 — 粒子数组上限 + SettingsPanel docstring 同步（N-8 + N-9）
+
+- **N-8**：TreeholeView "送出温暖"的心形粒子加 `MAX_PARTICLES = 50` 上限，
+  用户快速连点多个不同 ❤️ 时溢出的粒子直接丢老的，防止 React state 数组
+  无限增长
+- **N-9**：SettingsPanel 文件头 docstring "睡眠守护"那行说明从"UI 占位"改为
+  "未接入 Web 推送，开关旁有暂不支持推送 amber 标签提示用户"，与 v4.23.5
+  (M-4) 的 UI 改动同步
 
 ### v4.23.19 · 2026-05-25 — StarView 仪式跨午夜 + 已打卡 UI（N-6 + N-7）
 

@@ -160,7 +160,13 @@ export default function TreeholeView({
       scale: 0.5 + Math.random() * 0.8,
       delay: Math.random() * 0.15,
     }));
-    setParticles(prev => [...prev, ...newParticles]);
+    // N-8: 粒子总数上限，防止用户快速连点不同 ❤️ 把数组堆到几百
+    //      正常单次喷 8 颗，1.2s 后清除，所以 50 上限够 6 次重叠并存
+    const MAX_PARTICLES = 50;
+    setParticles(prev => {
+      const merged = [...prev, ...newParticles];
+      return merged.length > MAX_PARTICLES ? merged.slice(-MAX_PARTICLES) : merged;
+    });
     setTimeout(() => {
       setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
     }, 1200);
