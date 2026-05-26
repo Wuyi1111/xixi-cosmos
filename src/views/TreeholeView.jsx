@@ -103,10 +103,10 @@ export default function TreeholeView({
   const textareaRef = useRef(null);
 
   const isNewDay = userData.lastPostDate !== currentDateStr;
-  const postsToday = isNewDay ? 0 : (userData.dailyPosts || 0);
+  const postsToday = isNewDay ? 0 : userData.dailyPosts;
   const postsLeft = Math.max(0, 5 - postsToday);
 
-  const myWhispers = userData.myWhispers || [];
+  const myWhispers = userData.myWhispers;
 
   // 输入框自适应高度
   useEffect(() => {
@@ -133,14 +133,14 @@ export default function TreeholeView({
 
   // === 星海业务逻辑 ===
   const handleGiveHug = (whisperId, e) => {
-    const huggedList = userData.huggedWhispers || [];
+    const huggedList = userData.huggedWhispers;
     if (huggedList.includes(whisperId)) return;
 
     // ⚠️ 不要自己 saveUserData —— onGiveHug 会调 App.handleInteractionCheckIn，
     //    那边会把 hugPatch 与互动记录一次合并保存，避免双重保存覆盖闭包。
     //    如果 onGiveHug 没接（独立使用 TreeholeView 时）才走本地保存兜底。
     const hugPatch = {
-      totalHugs: (userData.totalHugs || 0) + 1,
+      totalHugs: userData.totalHugs + 1,
       huggedWhispers: [...huggedList, whisperId],
     };
 
@@ -208,13 +208,14 @@ export default function TreeholeView({
   const displayedWhispers = showAllMyWhispers ? filteredWhispers : filteredWhispers.slice(0, 3);
 
   // === 明日业务逻辑 ===
-  const followedList = userData.followedSuggestions || [];
-  const userChallenges = userData.userChallenges || [];
-  const myTasks = userData.myTomorrowTasks || [];
+  // 这些字段都在 INITIAL_USER_DATA 中初始化 + App 迁移做了类型兜底，可放心直读
+  const followedList = userData.followedSuggestions;
+  const userChallenges = userData.userChallenges;
+  const myTasks = userData.myTomorrowTasks;
   const todayTasks = myTasks.filter(t => t.date === currentDateStr);
 
   // 星际足迹：所有已完成的任务历史
-  const taskFootprints = userData.taskFootprints || [];
+  const taskFootprints = userData.taskFootprints;
 
   // 热门任务：合并「我发布的公开约定」(userChallenges) + 系统推荐 (displayedSuggestions)
   // 用户自己发的排前面，让自己看到 publishing 是 live 的
@@ -323,7 +324,7 @@ export default function TreeholeView({
     // 同 handleGiveHug：把所有 follow 相关更新作为 patch 传给 onFollow，
     // 让 App.handleInteractionCheckIn 一次合并保存，避免双写覆盖。
     const followPatch = {
-      totalFollows: (userData.totalFollows || 0) + 1,
+      totalFollows: userData.totalFollows + 1,
       followedSuggestions: [...followedList, taskId],
       myTomorrowTasks: [...myTasks, newTask],
     };
@@ -377,7 +378,7 @@ export default function TreeholeView({
     const newTasks = myTasks.filter(t => !(t.taskId === taskId && t.date === currentDateStr));
     saveUserData({
       ...userData,
-      totalFollows: Math.max(0, (userData.totalFollows || 0) - 1),
+      totalFollows: Math.max(0, userData.totalFollows - 1),
       followedSuggestions: followedList.filter(id => id !== taskId),
       myTomorrowTasks: newTasks,
     });
@@ -553,7 +554,7 @@ export default function TreeholeView({
         >
           <div className="py-[50px]">
             {MOCK_WHISPERS.map((whisper, idx) => {
-              const isHugged = (userData.huggedWhispers || []).includes(whisper.id);
+              const isHugged = userData.huggedWhispers.includes(whisper.id);
               const distance = Math.abs(idx - echoIndex);
               const isActive = idx === echoIndex;
 

@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.23.17** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.23.18** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 四个 tab：**此刻** / **雷达** / **星系** / **归星**（原"我的"已重构为"归星"板块）。
 
@@ -140,6 +140,16 @@ push 前手动跑一遍：
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.23.18 · 2026-05-25 — 清理冗余的 `|| 0` / `|| []` 兜底（N-5）
+
+- TreeholeView 删除 10 处对 userData 字段的冗余 fallback：
+  `userData.dailyPosts`、`userData.myWhispers`、`userData.huggedWhispers`、
+  `userData.totalHugs`、`userData.followedSuggestions`、`userData.userChallenges`、
+  `userData.myTomorrowTasks`、`userData.taskFootprints`、`userData.totalFollows`
+- 这些字段都在 INITIAL_USER_DATA 中注册 + 迁移里有类型兜底，消费端无需重复
+- 保留两处合理 fallback：DOM 的 `offsetWidth || 0`（DOM 可能 null）和
+  `c.followers || []`（userChallenge 嵌套字段，理论可能未初始化）
 
 ### v4.23.17 · 2026-05-25 — 提取 computeStreakInfo 工具函数（N-3）
 
