@@ -346,6 +346,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
             if (!hasCheckedInToday) {
               setShowRitual(true);
               setRitualPhase('breathing');
+              ritualActiveRef.current = true;
               // 2.5秒后自动完成
               const timer = setTimeout(() => {
                 completeRitual();
