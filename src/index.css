@@ -199,6 +199,12 @@ input[type="range"].font-scale-slider::-moz-range-thumb {
 }
 .animate-tap-flash { animation: tap-flash 500ms ease-out forwards; }
 
+/* === 夜声波形（StarView 白噪音卡片下方 5 根条的纵向脉动） === */
+@keyframes sound-wave {
+  0%   { transform: scaleY(0.3); }
+  100% { transform: scaleY(1); }
+}
+
 /* === 心形粒子上浮 & 淡出（TreeholeView 的"送出温暖"喷溅效果） ===
  * 从原点 (0,0) 漂移到 (--tx, --ty)，同时缩小并淡出。
  * --tx / --ty 必须设在 .animate-particle-float 自身上（CSS 变量只向下级联）。

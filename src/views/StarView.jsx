@@ -582,14 +582,6 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
           </div>
         </Portal>
       )}
-
-      {/* CSS for sound wave animation */}
-      <style>{`
-        @keyframes sound-wave {
-          0% { transform: scaleY(0.3); }
-          100% { transform: scaleY(1); }
-        }
-      `}</style>
     </div>
   );
 }

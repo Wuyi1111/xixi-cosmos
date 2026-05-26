@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.23.11** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.23.12** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 四个 tab：**此刻** / **雷达** / **星系** / **归星**（原"我的"已重构为"归星"板块）。
 
@@ -140,6 +140,14 @@ push 前手动跑一遍：
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.23.12 · 2026-05-25 — App.jsx docstring 更新 + sound-wave keyframe 搬家（L-3 + L-9）
+
+- App.jsx 文件头注释更新：去掉已删除的"下拉刷新逻辑"，tab 列表改为
+  "此刻 / 雷达 / 星系 / 归星"，userData 修改指向 INITIAL_USER_DATA
+- StarView 内嵌 `<style>` 标签里的 `sound-wave` keyframe 搬到
+  src/index.css，与项目其他动画放在一起
+- 跨文件查 keyframe 不用再翻组件代码
 
 ### v4.23.11 · 2026-05-25 — 清理 ~915 行死代码（L-1）
 
