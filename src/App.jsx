@@ -9,7 +9,7 @@
  * 改什么：
  *   - 改 userData 形态 / 加新字段 → src/constants.js 的 INITIAL_USER_DATA
  *     （App.jsx 的 useState 初值和迁移 useEffect 都引用这一份）
- *   - 改打卡奖励规则（连签 bonus / 星尘换算）→ handleCheckIn() / handleInteractionCheckIn()
+ *   - 改打卡奖励规则（连签 bonus / 星尘换算）→ handleInteractionCheckIn()
  *   - 加 / 改 / 删 tab 本身 → 同步改 main 里的条件渲染 + nav 里的 TabButton
  *   - 加全局装饰光晕（深色背景的紫色 blur）→ "fixed inset-0 pointer-events-none" 那块
  *
@@ -29,9 +29,9 @@ import GalaxyView from './views/GalaxyView.jsx';
 import StarView from './views/StarView.jsx';
 import SplashScreen from './components/SplashScreen.jsx';
 import StarField from './components/StarField.jsx';
-import { EMOTIONS, INITIAL_USER_DATA } from './constants.js';
+import { INITIAL_USER_DATA } from './constants.js';
 
-// --- 主应用组件：全局 state + pull-to-refresh + 路由壳 ---
+// --- 主应用组件：全局 state + 启动闪屏 + 路由壳 ---
 export default function App() {
   const [activeTab, setActiveTab] = useState('tonight');
   const [theme, setTheme] = useState('light');
@@ -132,73 +132,7 @@ export default function App() {
     }
   };
 
-  const lastCheckInDate = userData.checkInHistory[0]?.date;
-  const hasCheckedInToday = lastCheckInDate === currentDateStr;
-
-  let displayContinuousDays = userData.continuousDays;
-  if (!hasCheckedInToday && userData.checkInHistory.length > 0) {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    if (lastCheckInDate !== yesterday.toDateString()) {
-      displayContinuousDays = 0;
-    }
-  }
-
-  const handleCheckIn = (moodId, whisper, isReset = false) => {
-    if (isReset) {
-      // 重置今天的打卡记录
-      const [todayRecord, ...restHistory] = userData.checkInHistory;
-      if (todayRecord && todayRecord.date === currentDateStr) {
-        // 撤销今天的星尘和连续天数（如果需要）
-        // 这里我们简单移除今天的记录，连续天数保持不变（因为用户还没真正度过新的一天）
-        saveUserData({
-          ...userData,
-          checkInHistory: restHistory
-        });
-      }
-      return;
-    }
-
-    if (hasCheckedInToday) return;
-
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    const isConsecutive = lastCheckInDate === yesterday.toDateString();
-    const newContinuousDays = isConsecutive ? userData.continuousDays + 1 : 1;
-
-    const streakBonus = isConsecutive ? Math.min((newContinuousDays - 1) * 2, 10) : 0;
-    const earned = 10 + streakBonus;
-
-    const emotion = EMOTIONS.find(e => e.id === moodId);
-
-    const hours = today.getHours().toString().padStart(2, '0');
-    const minutes = today.getMinutes().toString().padStart(2, '0');
-
-    const newEntry = {
-      id: Date.now(),
-      date: currentDateStr,
-      timeStr: `${hours}:${minutes}`,
-      timestamp: Date.now(),
-      moodId,
-      moodName: emotion.name,
-      whisper,
-      stardustEarned: earned,
-      isFirstCheckIn: userData.checkInHistory.length === 0
-    };
-
-    saveUserData({
-      ...userData,
-      totalDays: userData.totalDays + 1,
-      continuousDays: newContinuousDays,
-      stardust: userData.stardust + earned,
-      checkInHistory: [newEntry, ...userData.checkInHistory]
-    });
-    // 不再强制 setTheme('dark')，保留用户在设置里的主题偏好
-  };
-
-  // === 新打卡逻辑：用户点击「送出温暖」或「跟随」时触发打卡 ===
+  // === 用户点击「送出温暖」或「跟随」时触发打卡 ===
   //
   // ⚠️ 第三个参数 extraPatch 是 caller 的"附带更新"（送温暖时是 huggedWhispers+totalHugs，
   //    跟随时是 followedSuggestions+totalFollows+myTomorrowTasks）。

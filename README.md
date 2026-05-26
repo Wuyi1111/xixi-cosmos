@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.23.15** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.23.16** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 四个 tab：**此刻** / **雷达** / **星系** / **归星**（原"我的"已重构为"归星"板块）。
 
@@ -140,6 +140,15 @@ push 前手动跑一遍：
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.23.16 · 2026-05-25 — App.jsx 死代码 + 注释清理（N-2 + N-4）
+
+- 删除 App.jsx 中的 `handleCheckIn` 函数（53 行死代码，重构后无调用方）
+- 删除 App.jsx 顶层的 `displayContinuousDays` 计算（不传给任何 view）
+- 顺手移除 `EMOTIONS` import（handleCheckIn 删除后已无引用）
+- 文件头 docstring 去掉 handleCheckIn() 引用
+- line 34 "// --- 主应用组件 ... pull-to-refresh ---" 改为 "启动闪屏"
+  （pull-to-refresh 早在 v4.23.0 删了）
 
 ### v4.23.15 · 2026-05-25 — 修复仪式+hug 同日双重发奖（N-1）
 
