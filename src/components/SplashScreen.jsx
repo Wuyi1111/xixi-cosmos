@@ -19,9 +19,12 @@ export default function SplashScreen({ onComplete, isDark }) {
     isSkippedRef.current = true;
     clearAllTimers();
     setPhase('done');
-    setTimeout(() => {
+    // L-7: 这个 setTimeout 也丢到 timersRef，组件在 600ms 期间被卸载时能正确清理，
+    //      避免 unmount 后 onComplete 仍触发导致 React state-on-unmounted 警告
+    const tDone = setTimeout(() => {
       onComplete();
     }, 600);
+    timersRef.current.push(tDone);
   }, [onComplete, clearAllTimers]);
 
   // 呼吸循环：每个循环约 4-5 秒，3 个循环共 12-15 秒

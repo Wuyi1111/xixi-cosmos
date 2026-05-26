@@ -41,10 +41,21 @@ export default function App() {
 
   const [currentDateStr, setCurrentDateStr] = useState(new Date().toDateString());
 
-  // 启动页状态：每次打开都显示
-  const [showSplash, setShowSplash] = useState(true);
+  // 启动页状态：每个浏览器会话只显示一次。
+  // sessionStorage 在标签页关闭后会被清空，所以下次"真正打开 App"还会看到启动页；
+  // 但在同一会话内刷新页面（HMR / pull-to-refresh / 手动 reload）不再重复显示。
+  const [showSplash, setShowSplash] = useState(() => {
+    try {
+      return sessionStorage.getItem('xixi_splash_shown') !== 'true';
+    } catch {
+      return true;
+    }
+  });
 
   const handleSplashComplete = () => {
+    try {
+      sessionStorage.setItem('xixi_splash_shown', 'true');
+    } catch {}
     setShowSplash(false);
   };
 

@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.23.12** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.23.13** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 四个 tab：**此刻** / **雷达** / **星系** / **归星**（原"我的"已重构为"归星"板块）。
 
@@ -140,6 +140,14 @@ push 前手动跑一遍：
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.23.13 · 2026-05-25 — SplashScreen 体验优化（L-6 + L-7）
+
+- **L-6**：启动页改用 sessionStorage 标记，每个浏览器会话只显示一次。同一会话
+  内刷新页面（HMR / 手动 reload）不再每次都看 12-15 秒呼吸引导；关闭标签
+  页后下次打开仍能看到启动页（标签关闭 = sessionStorage 自动清空）
+- **L-7**：SplashScreen `finish()` 内层 600ms setTimeout 现在也存到
+  `timersRef`，组件在期间卸载能正确清理，避免 React state-on-unmounted 警告
 
 ### v4.23.12 · 2026-05-25 — App.jsx docstring 更新 + sound-wave keyframe 搬家（L-3 + L-9）
 
