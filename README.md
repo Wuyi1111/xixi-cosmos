@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.23.0** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.23.10** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 四个 tab：**此刻** / **雷达** / **星系** / **归星**（原"我的"已重构为"归星"板块）。
 
@@ -113,6 +113,7 @@ git pull origin main
 ### 2. 改动顺序
 - **改之前先看 git log**：每次升版都有对应 commit，能快速判断是不是已经有人在做类似改动
 - **改之后必升 patch 位**（4.23.0 → 4.23.1）：`package.json` 的 `version` 字段同步改，否则部署后用户那边 version 检查不出来
+- **每次升版同步改 README 头部"当前版本"行**（line 5），让访问 README 的人一眼能看到最新版
 - **commit 信息走 `release: vX.Y.Z — 一句话描述` 格式**（bug 修复用 `fix:`，文档用 `docs:`，纯重构用 `refactor:`）
 
 ### 3. 不要碰的文件
@@ -142,6 +143,12 @@ push 前手动跑一遍：
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.23.10 · 2026-05-25 — README 头部版本号同步
+
+- 头部"当前版本"从 v4.23.0 更新到 v4.23.10（v4.23.1 ~ v4.23.9 期间一直漏改）
+- 协作注意事项「改动顺序」补一条规则：每次升版同步改 README 头部行，
+  避免后续再出现 README 头与 package.json 不一致
 
 ### v4.23.9 · 2026-05-25 — index.html 字号默认值与 INITIAL_USER_DATA 对齐
 
