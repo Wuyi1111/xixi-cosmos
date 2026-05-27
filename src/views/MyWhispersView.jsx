@@ -29,7 +29,7 @@ export default function MyWhispersView({ isDark, userData, saveUserData, onClose
     <Portal>
       <div className={`fixed inset-0 z-[60] ${isDark ? 'bg-[#0f0f1a]' : 'bg-[#f8fafc]'} animate-fade-in flex flex-col`}>
         {/* 顶部导航 */}
-        <div className={`flex items-center gap-3 px-5 py-4 border-b ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+        <div className={`flex items-center gap-3 px-5 pt-12 pb-4 border-b ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
           <button
             onClick={onClose}
             className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-100'}`}
