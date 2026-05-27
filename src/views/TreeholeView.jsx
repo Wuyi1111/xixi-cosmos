@@ -457,49 +457,35 @@ export default function TreeholeView({
   // === 渲染：明日 Tab ===
   const renderTomorrow = () => (
     <div className="space-y-5">
-      {/* 添加明日约定 */}
-      <div
-        onClick={() => setShowTomorrowModal(true)}
-        className={`p-5 rounded-[24px] border cursor-pointer transition-all active:scale-[0.98] ${
-          isDark ? 'bg-[#171724] border-white/5 hover:bg-[#1a1a2e]' : 'bg-white border-gray-100 shadow-sm hover:shadow-md'
-        }`}
-      >
-        <div className="flex items-center gap-3">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-100'}`}>
-            <Plus size={24} className={isDark ? 'text-emerald-300' : 'text-emerald-500'} />
-          </div>
-          <div className="flex-1">
-            <p className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>添加明日约定</p>
-            <p className={`text-[11px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>给自己定一个小目标</p>
+      {/* 左右并排：添加明日约定 + 星际足迹 */}
+      <div className="flex gap-3">
+        {/* 左边：添加明日约定 */}
+        <div
+          onClick={() => setShowTomorrowModal(true)}
+          className={`flex-1 p-4 rounded-[20px] border cursor-pointer transition-all active:scale-[0.98] ${
+            isDark ? 'bg-[#171724] border-white/5 hover:bg-[#1a1a2e]' : 'bg-white border-gray-100 shadow-sm hover:shadow-md'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-100'}`}>
+              <Plus size={20} className={isDark ? 'text-emerald-300' : 'text-emerald-500'} />
+            </div>
+            <div className="min-w-0">
+              <p className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>添加明日约定</p>
+              <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>给自己定一个小目标</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* 星际足迹入口 */}
-      <div
-        onClick={() => setShowStarTrail(true)}
-        className={`p-5 rounded-[24px] cursor-pointer transition-all active:scale-[0.98] ${
-          isDark ? 'bg-[#171724] border border-white/5 hover:bg-[#1a1a2e]' : 'bg-white border border-gray-100 shadow-sm hover:shadow-md'
-        }`}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-100'}`}>
-              <Footprints size={24} className={isDark ? 'text-emerald-300' : 'text-emerald-500'} />
-            </div>
-            <div>
-              <p className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>星际足迹</p>
-              <p className={`text-[11px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                {taskFootprints.length > 0 ? '查看你的任务完成记录' : '还没有记录，完成任务后会在这里留下足迹'}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
-              {taskFootprints.length} 个
-            </span>
-            <ChevronDown size={16} className={`rotate-[-90deg] ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
-          </div>
+        {/* 右边：星际足迹入口 */}
+        <div
+          onClick={() => setShowStarTrail(true)}
+          className={`w-[80px] rounded-[20px] border cursor-pointer transition-all active:scale-[0.98] flex flex-col items-center justify-center gap-1 ${
+            isDark ? 'bg-[#171724] border-white/5 hover:bg-[#1a1a2e]' : 'bg-white border-gray-100 shadow-sm hover:shadow-md'
+          }`}
+        >
+          <Footprints size={20} className={isDark ? 'text-emerald-300' : 'text-emerald-500'} />
+          <span className={`text-[10px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>星际足迹</span>
         </div>
       </div>
 
@@ -565,7 +551,7 @@ export default function TreeholeView({
 
         <div
           ref={hotScrollRef}
-          className="relative h-[200px] overflow-hidden -mx-5 px-5"
+          className="relative max-h-[420px] overflow-hidden -mx-5 px-5"
           onScroll={(e) => {
             const container = e.currentTarget;
             const scrollTop = container.scrollTop;
@@ -575,9 +561,9 @@ export default function TreeholeView({
               setHotIndex(newIndex);
             }
           }}
-          style={{ scrollSnapType: 'y mandatory', overflowY: 'scroll' }}
+          style={{ overflowY: 'scroll' }}
         >
-          <div className="py-[40px]">
+          <div className="py-4">
             {hotTasks.map((challenge, index) => {
               const isActive = index === hotIndex;
               const followed = isFollowed(challenge.id);
@@ -585,13 +571,12 @@ export default function TreeholeView({
               return (
                 <div
                   key={challenge._instanceId}
-                  className="mb-4"
-                  style={{ scrollSnapAlign: 'center' }}
+                  className="mb-3"
                 >
                   <div
-                    className={`relative h-[160px] p-5 rounded-[24px] border overflow-hidden transition-all duration-500 ${
+                    className={`relative p-4 rounded-[20px] border overflow-hidden transition-all duration-500 ${
                       isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm'
-                    } ${isActive ? 'shadow-lg scale-100 opacity-100' : 'shadow-sm scale-90 opacity-40 blur-[2px]'}`}
+                    } ${isActive ? 'shadow-lg scale-100 opacity-100' : 'shadow-sm scale-95 opacity-50'}`}
                   >
                     <div className="flex items-start gap-3 mb-3 relative z-10">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#171724]' : 'bg-white'} shadow-sm shrink-0`}>
