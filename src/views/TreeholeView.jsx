@@ -18,8 +18,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   Heart, X, Star, ChevronDown, Trash2, Send,
   BookOpen, Sparkles, Plus, CheckCircle2,
-  Edit3, Radio, Flame, Footprints,
-  MessageCircle, Calendar, ChevronLeft
+  Edit3, Radio, Flame, Footprints
 } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import StarTrailView from './StarTrailView.jsx';
@@ -355,16 +354,6 @@ export default function TreeholeView({
   // === 渲染：星海 Tab ===
   const renderStarSea = () => (
     <div className="space-y-5">
-      {/* 顶部状态 */}
-      <div className={`flex items-center gap-2 px-1`}>
-        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${isDark ? 'bg-pink-500/10 border border-pink-500/20' : 'bg-pink-50 border border-pink-100'}`}>
-          <MessageCircle size={12} className={isDark ? 'text-pink-400' : 'text-pink-500'} />
-          <span className={`text-[11px] ${isDark ? 'text-pink-300' : 'text-pink-600'}`}>
-            今日可发射 {postsLeft} 次
-          </span>
-        </div>
-      </div>
-
       {/* 快速发射入口 */}
       <div
         onClick={() => setShowEmitModal(true)}
@@ -454,55 +443,50 @@ export default function TreeholeView({
         )}
       </div>
 
-      {/* 星际回音 — 左右滑动卡片 */}
+      {/* 星际回音 — 上下滑动卡片 */}
       <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Sparkles size={16} className="text-pink-400" />
             <h3 className="text-sm font-medium">星际回音</h3>
           </div>
-          <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-[#1f1f2e] text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-            {echoIndex + 1} / {MOCK_WHISPERS.length}
-          </span>
         </div>
 
-        <div className="overflow-x-auto no-scrollbar -mx-5 px-5">
-          <div className="flex gap-3" style={{ width: 'max-content' }}>
-            {MOCK_WHISPERS.map((whisper) => {
-              const isHugged = userData.huggedWhispers.includes(whisper.id);
-              return (
-                <div
-                  key={whisper.id}
-                  className={`w-[260px] shrink-0 p-4 rounded-[20px] border ${
-                    isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border-white/5' : 'bg-gradient-to-br from-pink-50/50 to-white border-pink-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
-                      {whisper.emotion}
-                    </span>
-                  </div>
-                  <p className={`text-sm leading-relaxed font-light mb-4 ${isDark ? 'text-gray-200' : 'text-gray-700'} line-clamp-4`}>
-                    "{whisper.text}"
-                  </p>
-                  <div className="flex justify-end">
-                    <button
-                      onClick={(e) => handleGiveHug(whisper.id, e)}
-                      disabled={isHugged}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all active:scale-95 ${
-                        isHugged
-                          ? (isDark ? 'bg-pink-500/20 text-pink-300 border border-pink-400/40' : 'bg-pink-100 text-pink-600 border border-pink-300')
-                          : (isDark ? 'bg-white/5 text-pink-400 border border-white/10 hover:bg-white/10' : 'bg-pink-50 text-pink-500 border border-pink-100 hover:bg-pink-100')
-                      }`}
-                    >
-                      <Heart size={12} fill={isHugged ? 'currentColor' : 'none'} />
-                      <span className="text-[11px]">{isHugged ? '已温暖' : '温暖'}</span>
-                    </button>
-                  </div>
+        <div className="space-y-3">
+          {MOCK_WHISPERS.map((whisper) => {
+            const isHugged = userData.huggedWhispers.includes(whisper.id);
+            return (
+              <div
+                key={whisper.id}
+                className={`p-4 rounded-[20px] border ${
+                  isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border-white/5' : 'bg-gradient-to-br from-pink-50/50 to-white border-pink-50'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
+                    {whisper.emotion}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
+                <p className={`text-sm leading-relaxed font-light mb-4 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+                  "{whisper.text}"
+                </p>
+                <div className="flex justify-end">
+                  <button
+                    onClick={(e) => handleGiveHug(whisper.id, e)}
+                    disabled={isHugged}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all active:scale-95 ${
+                      isHugged
+                        ? (isDark ? 'bg-pink-500/20 text-pink-300 border border-pink-400/40' : 'bg-pink-100 text-pink-600 border border-pink-300')
+                        : (isDark ? 'bg-white/5 text-pink-400 border border-white/10 hover:bg-white/10' : 'bg-pink-50 text-pink-500 border border-pink-100 hover:bg-pink-100')
+                    }`}
+                  >
+                    <Heart size={12} fill={isHugged ? 'currentColor' : 'none'} />
+                    <span className="text-[11px]">{isHugged ? '已温暖' : '温暖'}</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -511,16 +495,6 @@ export default function TreeholeView({
   // === 渲染：明日 Tab ===
   const renderTomorrow = () => (
     <div className="space-y-5">
-      {/* 顶部状态 */}
-      <div className={`flex items-center gap-2 px-1`}>
-        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${isDark ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-emerald-50 border border-emerald-100'}`}>
-          <Calendar size={12} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
-          <span className={`text-[11px] ${isDark ? 'text-emerald-300' : 'text-emerald-600'}`}>
-            今日任务 {todayTasks.filter(t => t.completed).length}/{todayTasks.length}
-          </span>
-        </div>
-      </div>
-
       {/* 添加明日约定 */}
       <div
         onClick={() => setShowTomorrowModal(true)}
@@ -538,6 +512,34 @@ export default function TreeholeView({
           </div>
         </div>
       </div>
+
+      {/* 星际足迹入口 */}
+      {taskFootprints.length > 0 && (
+        <div
+          onClick={() => setShowStarTrail(true)}
+          className={`p-5 rounded-[24px] cursor-pointer transition-all active:scale-[0.98] ${
+            isDark ? 'bg-[#171724] border border-white/5 hover:bg-[#1a1a2e]' : 'bg-white border border-gray-100 shadow-sm hover:shadow-md'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-100'}`}>
+                <Footprints size={24} className={isDark ? 'text-emerald-300' : 'text-emerald-500'} />
+              </div>
+              <div>
+                <p className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>星际足迹</p>
+                <p className={`text-[11px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>查看你的任务完成记录</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
+                {taskFootprints.length} 个
+              </span>
+              <ChevronDown size={16} className={`rotate-[-90deg] ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 我的今日清单 */}
       <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
@@ -590,100 +592,70 @@ export default function TreeholeView({
         )}
       </div>
 
-      {/* 热门约定 — 左右滑动卡片 */}
+      {/* 热门约定 — 上下滑动卡片 */}
       <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Flame size={16} className={isDark ? 'text-orange-400' : 'text-orange-500'} />
+            <Flame size={16} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
             <h3 className="text-sm font-medium">热门约定</h3>
           </div>
         </div>
 
-        <div className="overflow-x-auto no-scrollbar -mx-5 px-5">
-          <div className="flex gap-3" style={{ width: 'max-content' }}>
-            {hotTasks.map((challenge) => {
-              const followed = isFollowed(challenge.id);
-              const isMine = challenge.isMyChallenge;
-              return (
-                <div
-                  key={challenge._instanceId}
-                  className={`w-[220px] shrink-0 p-4 rounded-[20px] border ${
-                    isMine
-                      ? (isDark ? 'bg-emerald-500/[0.07] border-emerald-500/25' : 'bg-emerald-50/40 border-emerald-200/60')
-                      : followed
-                        ? (isDark ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50/50 border-emerald-200/50')
-                        : (isDark ? 'bg-[#1f1f2e] border-white/5' : 'bg-gray-50 border-gray-100')
-                  }`}
-                >
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#171724]' : 'bg-white'} shadow-sm shrink-0`}>
-                      {challenge.emoji}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-xs font-medium ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
-                        {challenge.main}
-                      </p>
-                      <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                        {challenge.sub}
-                      </p>
-                    </div>
+        <div className="space-y-3">
+          {hotTasks.map((challenge) => {
+            const followed = isFollowed(challenge.id);
+            const isMine = challenge.isMyChallenge;
+            return (
+              <div
+                key={challenge._instanceId}
+                className={`p-4 rounded-[20px] border ${
+                  isMine
+                    ? (isDark ? 'bg-emerald-500/[0.07] border-emerald-500/25' : 'bg-emerald-50/40 border-emerald-200/60')
+                    : followed
+                      ? (isDark ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50/50 border-emerald-200/50')
+                      : (isDark ? 'bg-[#1f1f2e] border-white/5' : 'bg-gray-50 border-gray-100')
+                }`}
+              >
+                <div className="flex items-start gap-3 mb-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#171724]' : 'bg-white'} shadow-sm shrink-0`}>
+                    {challenge.emoji}
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                      <Flame size={10} /> {challenge.followCount} 人跟随
-                    </span>
-                    {isMine ? (
-                      <span className={`text-[10px] px-2 py-1 rounded-full ${isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-600'}`}>
-                        你发布的
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => followed ? null : handleFollowTask(challenge)}
-                        disabled={followed}
-                        className={`px-3 py-1 rounded-full text-[10px] font-medium transition-all active:scale-95 ${
-                          followed
-                            ? (isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200')
-                            : (isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50')
-                        }`}
-                      >
-                        {followed ? '已跟随' : '跟随'}
-                      </button>
-                    )}
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-xs font-medium ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
+                      {challenge.main}
+                    </p>
+                    <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                      {challenge.sub}
+                    </p>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+                <div className="flex items-center justify-between">
+                  <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    <Flame size={10} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} /> {challenge.followCount} 人跟随
+                  </span>
+                  {isMine ? (
+                    <span className={`text-[10px] px-2 py-1 rounded-full ${isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-600'}`}>
+                      你发布的
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => followed ? null : handleFollowTask(challenge)}
+                      disabled={followed}
+                      className={`px-3 py-1 rounded-full text-[10px] font-medium transition-all active:scale-95 ${
+                        followed
+                          ? (isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200')
+                          : (isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50')
+                      }`}
+                    >
+                      {followed ? '已跟随' : '跟随'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
-
-      {/* 星际足迹入口 */}
-      {taskFootprints.length > 0 && (
-        <div
-          onClick={() => setShowStarTrail(true)}
-          className={`p-5 rounded-[24px] cursor-pointer transition-all active:scale-[0.98] ${
-            isDark ? 'bg-[#171724] border border-white/5 hover:bg-[#1a1a2e]' : 'bg-white border border-gray-100 shadow-sm hover:shadow-md'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-100'}`}>
-                <Footprints size={24} className={isDark ? 'text-emerald-300' : 'text-emerald-500'} />
-              </div>
-              <div>
-                <p className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>星际足迹</p>
-                <p className={`text-[11px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>查看你的任务完成记录</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
-                {taskFootprints.length} 个
-              </span>
-              <ChevronDown size={16} className={`rotate-[-90deg] ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 底部温馨语句 */}
       <div className={`p-4 rounded-2xl text-center ${isDark ? 'bg-[#171724]/50 border border-white/5' : 'bg-emerald-50/30 border border-emerald-100/50'}`}>
