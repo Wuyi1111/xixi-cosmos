@@ -518,6 +518,11 @@ export default function TreeholeView({
                       : (isDark ? 'bg-[#1f1f2e] border-white/5' : 'bg-gray-50 border-gray-100')
                   }`}
                 >
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-xs ${task.completed ? (isDark ? 'text-emerald-300 line-through opacity-60' : 'text-emerald-600 line-through opacity-60') : (isDark ? 'text-gray-200' : 'text-gray-700')}`}>
+                      {task.main}
+                    </p>
+                  </div>
                   <button
                     onClick={() => handleToggleComplete(task.taskId)}
                     className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all shrink-0 ${
@@ -528,12 +533,6 @@ export default function TreeholeView({
                   >
                     {task.completed && <CheckCircle2 size={14} className="text-white" />}
                   </button>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-xs ${task.completed ? (isDark ? 'text-emerald-300 line-through opacity-60' : 'text-emerald-600 line-through opacity-60') : (isDark ? 'text-gray-200' : 'text-gray-700')}`}>
-                      {task.main}
-                    </p>
-                  </div>
-                  <span className="text-lg shrink-0">{task.emoji}</span>
                 </div>
               ))}
             </div>
