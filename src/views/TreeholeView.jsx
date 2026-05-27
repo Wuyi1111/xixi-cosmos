@@ -434,7 +434,7 @@ export default function TreeholeView({
                   style={{ scrollSnapAlign: 'start' }}
                 >
                   <div
-                    className={`relative h-[140px] p-4 rounded-[20px] border overflow-hidden transition-all duration-500 ${
+                    className={`relative p-4 rounded-[20px] border overflow-hidden transition-all duration-500 ${
                       isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm'
                     } ${
                       diff === 0
@@ -452,10 +452,10 @@ export default function TreeholeView({
                         <Radio size={10} /> 未知坐标
                       </span>
                     </div>
-                    <p className={`text-sm leading-relaxed font-light relative z-10 line-clamp-3 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+                    <p className={`text-sm leading-relaxed font-light relative z-10 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                       "{whisper.text}"
                     </p>
-                    <div className="absolute bottom-3 right-3 z-10">
+                    <div className="flex justify-end mt-3 relative z-10">
                       <button
                         onClick={(e) => handleGiveHug(whisper.id, e)}
                         disabled={isHugged}

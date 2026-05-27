@@ -65,16 +65,21 @@ export const PRESET_TAGS = {
 };
 
 export const MOCK_WHISPERS = [
-  { id: 1, text: '今天下班路上看到了一场很美的晚霞，想分享给不知道在哪里的你。', emotion: '小确幸', isPositive: true },
-  { id: 2, text: '面试又失败了，感觉自己好没用。但是今晚的星星很亮。', emotion: '失落', isPositive: false },
-  { id: 3, text: '买到了最后一块草莓蛋糕，开心！', emotion: '治愈', isPositive: true },
-  { id: 4, text: '突然觉得，平平淡淡的日子才是最难得的。', emotion: '平静', isPositive: true },
-  { id: 5, text: '想家了，不敢给爸妈打电话怕哭出来。', emotion: '孤独', isPositive: false },
-  { id: 6, text: '今天被陌生人让了座位，心里暖暖的。', emotion: '温暖', isPositive: true },
-  { id: 7, text: '加班到很晚，但看到窗外的月亮，觉得一切都没那么糟了。', emotion: '坚持', isPositive: true },
-  { id: 8, text: '和好朋友聊了一晚上，感觉被理解了，真好。', emotion: '陪伴', isPositive: true },
-  { id: 9, text: '今天什么也没做成，有点沮丧，但明天又是新的一天。', emotion: '释然', isPositive: true },
-  { id: 10, text: '路过花店买了一束向日葵，放在床头，希望梦也是金色的。', emotion: '浪漫', isPositive: true }
+  { id: 1, text: '今天吃了超好吃的拉面！', emotion: '小确幸', isPositive: true },
+  { id: 2, text: '今天下班路上看到了一场很美的晚霞，想分享给不知道在哪里的你。', emotion: '小确幸', isPositive: true },
+  { id: 3, text: '面试又失败了，感觉自己好没用。但是今晚的星星很亮。', emotion: '失落', isPositive: false },
+  { id: 4, text: '买到了最后一块草莓蛋糕，开心！', emotion: '治愈', isPositive: true },
+  { id: 5, text: '突然觉得，平平淡淡的日子才是最难得的。', emotion: '平静', isPositive: true },
+  { id: 6, text: '想家了，不敢给爸妈打电话怕哭出来。', emotion: '孤独', isPositive: false },
+  { id: 7, text: '今天被陌生人让了座位，心里暖暖的。', emotion: '温暖', isPositive: true },
+  { id: 8, text: '加班到很晚，但看到窗外的月亮，觉得一切都没那么糟了。', emotion: '坚持', isPositive: true },
+  { id: 9, text: '和好朋友聊了一晚上，感觉被理解了，真好。', emotion: '陪伴', isPositive: true },
+  { id: 10, text: '今天什么也没做成，有点沮丧，但明天又是新的一天。', emotion: '释然', isPositive: true },
+  { id: 11, text: '路过花店买了一束向日葵，放在床头，希望梦也是金色的。', emotion: '浪漫', isPositive: true },
+  { id: 12, text: '今天跟很久没见的朋友见了面，聊了很多以前的事。时间真的过得好快，但有些东西好像从来没变。希望下次见面不会隔太久，毕竟我们都已经不年轻了。', emotion: '感慨', isPositive: true },
+  { id: 13, text: '雨。', emotion: '安静', isPositive: true },
+  { id: 14, text: '终于完成了拖延很久的报告，虽然不知道结果会怎样，但至少我做到了。这种小小的成就感，在平凡的日子里显得特别珍贵。', emotion: '成就', isPositive: true },
+  { id: 15, text: '有时候觉得自己像一颗漂浮在宇宙里的小行星，没有方向，也没有归属。但也许，漂浮本身就是一种自由。', emotion: '自由', isPositive: true }
 ];
 
 // 16种宇宙睡眠人格图谱
