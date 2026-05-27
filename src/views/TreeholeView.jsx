@@ -79,9 +79,6 @@ export default function TreeholeView({
   // === 我的心语 state ===
   const [showMyWhispers, setShowMyWhispers] = useState(false);
 
-  // === 星际回音 state ===
-  const [echoIndex, setEchoIndex] = useState(0);
-  const echoScrollRef = useRef(null);
   const [particles, setParticles] = useState([]);
 
   // === 热门约定 state ===
@@ -400,7 +397,7 @@ export default function TreeholeView({
         </div>
       </div>
 
-      {/* 星际回音 — 垂直滑动卡片堆叠 */}
+      {/* 星际回音 — 自由上下滑动 */}
       <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -410,38 +407,20 @@ export default function TreeholeView({
         </div>
 
         <div
-          ref={echoScrollRef}
-          className="relative h-[440px] overflow-hidden -mx-5 px-5"
-          onScroll={(e) => {
-            const container = e.currentTarget;
-            const scrollTop = container.scrollTop;
-            const cardHeight = 140 + 12;
-            const newIndex = Math.round(scrollTop / cardHeight);
-            if (newIndex !== echoIndex && newIndex >= 0 && newIndex < MOCK_WHISPERS.length) {
-              setEchoIndex(newIndex);
-            }
-          }}
-          style={{ scrollSnapType: 'y mandatory', overflowY: 'scroll' }}
+          className="relative max-h-[440px] overflow-hidden -mx-5 px-5"
+          style={{ overflowY: 'scroll' }}
         >
-          <div className="pt-0 pb-[280px]">
-            {MOCK_WHISPERS.map((whisper, index) => {
-              const diff = index - echoIndex;
+          <div className="pb-4">
+            {MOCK_WHISPERS.map((whisper) => {
               const isHugged = userData.huggedWhispers.includes(whisper.id);
               return (
                 <div
                   key={whisper.id}
                   className="mb-3"
-                  style={{ scrollSnapAlign: 'start' }}
                 >
                   <div
-                    className={`relative p-4 rounded-[20px] border overflow-hidden transition-all duration-500 ${
+                    className={`relative p-4 rounded-[20px] border overflow-hidden ${
                       isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm'
-                    } ${
-                      diff === 0
-                        ? 'shadow-lg scale-100 opacity-100'
-                        : diff === 1
-                          ? 'shadow-sm scale-95 opacity-60'
-                          : 'shadow-none scale-85 opacity-30 blur-[2px]'
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-2 relative z-10">
