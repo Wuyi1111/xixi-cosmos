@@ -228,7 +228,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
         </button>
       </div>
 
-      {/* === 2. 今日状态卡片 === */}
+      {/* === 2. 今日状态卡片（含数据概览） === */}
       <div className={`p-5 rounded-[24px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border border-sky-500/15' : 'bg-gradient-to-br from-sky-50/70 to-white border border-sky-100'}`}>
         <div className="absolute -top-8 -right-6 w-32 h-32 rounded-full bg-sky-300/10 blur-3xl pointer-events-none" />
         <div className="absolute -bottom-8 -left-6 w-24 h-24 rounded-full bg-sky-300/10 blur-3xl pointer-events-none" />
@@ -250,7 +250,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 mb-4">
             <div className="flex items-center gap-1.5">
               <Flame size={12} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
               <span className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
@@ -265,10 +265,60 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
               </span>
             </div>
           </div>
+
+          {/* 数据概览合并到这里 */}
+          <div className={`pt-4 border-t ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <p className={`text-xl font-medium mb-0.5 ${isDark ? 'text-sky-300' : 'text-sky-600'}`}>
+                  {userData.totalDays}
+                </p>
+                <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>累积夜晚</p>
+              </div>
+              <div>
+                <p className={`text-xl font-medium mb-0.5 ${isDark ? 'text-sky-300' : 'text-sky-500'}`}>
+                  {userData.totalHugs}
+                </p>
+                <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>传递温暖</p>
+              </div>
+              <div>
+                <p className={`text-xl font-medium mb-0.5 ${isDark ? 'text-sky-300' : 'text-sky-500'}`}>
+                  {userData.totalFollows}
+                </p>
+                <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>同行者</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* === 3. 伴眠夜声（独立卡片） === */}
+      {/* === 3. 开始归星 === */}
+      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
+        <div className="flex items-center gap-2 mb-3">
+          <Moon size={16} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
+          <h3 className="text-sm font-medium">开始归星</h3>
+        </div>
+
+        <p className={`text-xs mb-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+          点击开始，接收来自宇宙的温暖话语
+        </p>
+
+        {/* 大按钮入口 */}
+        <button
+          onClick={startRitual}
+          disabled={hasCheckedInToday}
+          className={`w-full py-4 rounded-2xl font-medium tracking-wider transition-all flex items-center justify-center gap-2 ${
+            hasCheckedInToday
+              ? (isDark ? 'bg-[#1f1f2e] text-gray-600 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed')
+              : 'bg-sky-500 hover:bg-sky-600 text-white shadow-lg shadow-sky-500/20 active:scale-95'
+          }`}
+        >
+          <Moon size={20} />
+          {hasCheckedInToday ? '今晚已归星' : '开始归星'}
+        </button>
+      </div>
+
+      {/* === 4. 伴眠夜声（独立卡片） === */}
       <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -327,32 +377,6 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
         </div>
       </div>
 
-      {/* === 4. 开始归星 === */}
-      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
-        <div className="flex items-center gap-2 mb-3">
-          <Moon size={16} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
-          <h3 className="text-sm font-medium">开始归星</h3>
-        </div>
-
-        <p className={`text-xs mb-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-          点击开始，接收来自宇宙的温暖话语
-        </p>
-
-        {/* 大按钮入口 */}
-        <button
-          onClick={startRitual}
-          disabled={hasCheckedInToday}
-          className={`w-full py-4 rounded-2xl font-medium tracking-wider transition-all flex items-center justify-center gap-2 ${
-            hasCheckedInToday
-              ? (isDark ? 'bg-[#1f1f2e] text-gray-600 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed')
-              : 'bg-sky-500 hover:bg-sky-600 text-white shadow-lg shadow-sky-500/20 active:scale-95'
-          }`}
-        >
-          <Moon size={20} />
-          {hasCheckedInToday ? '今晚已归星' : '开始归星'}
-        </button>
-      </div>
-
       {/* === 4. 成就徽章墙 === */}
       <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
         <div className="flex items-center justify-between mb-4">
@@ -398,31 +422,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
         </div>
       </div>
 
-      {/* === 5. 数据概览 === */}
-      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div>
-            <p className={`text-2xl font-medium mb-1 ${isDark ? 'text-sky-300' : 'text-sky-600'}`}>
-              {userData.totalDays}
-            </p>
-            <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>累积夜晚</p>
-          </div>
-          <div>
-            <p className={`text-2xl font-medium mb-1 ${isDark ? 'text-sky-300' : 'text-sky-500'}`}>
-              {userData.totalHugs}
-            </p>
-            <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>传递温暖</p>
-          </div>
-          <div>
-            <p className={`text-2xl font-medium mb-1 ${isDark ? 'text-sky-300' : 'text-sky-500'}`}>
-              {userData.totalFollows}
-            </p>
-            <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>同行者</p>
-          </div>
-        </div>
-      </div>
-
-      {/* === 6. 底部心愿池入口 === */}
+      {/* === 5. 底部心愿池入口 === */}
       <button
         onClick={() => setShowWishPool(true)}
         className={`w-full py-4 rounded-2xl text-sm font-medium transition-all active:scale-95 flex items-center justify-center gap-2 ${
