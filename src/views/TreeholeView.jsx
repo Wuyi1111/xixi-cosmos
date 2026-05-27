@@ -504,34 +504,39 @@ export default function TreeholeView({
         </div>
 
         {todayTasks.length > 0 ? (
-          <div className="space-y-2">
-            {todayTasks.map((task) => (
-              <div
-                key={task.taskId}
-                className={`p-3 rounded-[16px] border flex items-center gap-3 ${
-                  task.completed
-                    ? (isDark ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50/30 border-emerald-200/50')
-                    : (isDark ? 'bg-[#1f1f2e] border-white/5' : 'bg-gray-50 border-gray-100')
-                }`}
-              >
-                <button
-                  onClick={() => handleToggleComplete(task.taskId)}
-                  className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all shrink-0 ${
+          <div
+            className="relative max-h-[280px] overflow-hidden -mx-5 px-5"
+            style={{ overflowY: 'scroll' }}
+          >
+            <div className="py-4 space-y-2">
+              {todayTasks.map((task) => (
+                <div
+                  key={task.taskId}
+                  className={`p-3 rounded-[16px] border flex items-center gap-3 ${
                     task.completed
-                      ? (isDark ? 'bg-emerald-500 border-emerald-500' : 'bg-emerald-500 border-emerald-500')
-                      : (isDark ? 'border-gray-600 hover:border-emerald-500' : 'border-gray-300 hover:border-emerald-400')
+                      ? (isDark ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50/30 border-emerald-200/50')
+                      : (isDark ? 'bg-[#1f1f2e] border-white/5' : 'bg-gray-50 border-gray-100')
                   }`}
                 >
-                  {task.completed && <CheckCircle2 size={14} className="text-white" />}
-                </button>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-xs ${task.completed ? (isDark ? 'text-emerald-300 line-through opacity-60' : 'text-emerald-600 line-through opacity-60') : (isDark ? 'text-gray-200' : 'text-gray-700')}`}>
-                    {task.main}
-                  </p>
+                  <button
+                    onClick={() => handleToggleComplete(task.taskId)}
+                    className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all shrink-0 ${
+                      task.completed
+                        ? (isDark ? 'bg-emerald-500 border-emerald-500' : 'bg-emerald-500 border-emerald-500')
+                        : (isDark ? 'border-gray-600 hover:border-emerald-500' : 'border-gray-300 hover:border-emerald-400')
+                    }`}
+                  >
+                    {task.completed && <CheckCircle2 size={14} className="text-white" />}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-xs ${task.completed ? (isDark ? 'text-emerald-300 line-through opacity-60' : 'text-emerald-600 line-through opacity-60') : (isDark ? 'text-gray-200' : 'text-gray-700')}`}>
+                      {task.main}
+                    </p>
+                  </div>
+                  <span className="text-lg shrink-0">{task.emoji}</span>
                 </div>
-                <span className="text-lg shrink-0">{task.emoji}</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         ) : (
           <p className={`text-xs text-center py-4 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
