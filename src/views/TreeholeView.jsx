@@ -406,7 +406,7 @@ export default function TreeholeView({
           className="relative max-h-[580px] overflow-hidden -mx-5 px-5"
           style={{ overflowY: 'scroll' }}
         >
-          <div className="pb-4">
+          <div className="py-4">
             {MOCK_WHISPERS.map((whisper) => {
               const isHugged = userData.huggedWhispers.includes(whisper.id);
               return (
