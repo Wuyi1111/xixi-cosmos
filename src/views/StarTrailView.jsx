@@ -9,10 +9,14 @@
  */
 
 import { useState, useMemo } from 'react';
-import { ChevronLeft, CheckCircle2, Flame, Calendar, Trophy, TrendingUp } from 'lucide-react';
+import { ChevronLeft, CheckCircle2, ChevronDown, Calendar, Trophy, TrendingUp } from 'lucide-react';
 
 export default function StarTrailView({ isDark, userData, onClose }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [expandedDates, setExpandedDates] = useState(() => {
+    const todayStr = new Date().toDateString();
+    return { [todayStr]: true };
+  });
 
   // 获取所有已完成的任务（从 taskFootprints 中读取）
   const completedTasks = useMemo(() => {
@@ -45,18 +49,9 @@ export default function StarTrailView({ isDark, userData, onClose }) {
     return date.toDateString();
   })).size;
 
-  // 连续完成天数
-  const streakDays = useMemo(() => {
-    const dates = Object.keys(tasksByDate).map(d => new Date(d)).sort((a, b) => b - a);
-    if (dates.length === 0) return 0;
-    let streak = 1;
-    for (let i = 1; i < dates.length; i++) {
-      const diff = (dates[i - 1] - dates[i]) / (1000 * 60 * 60 * 24);
-      if (diff === 1) streak++;
-      else break;
-    }
-    return streak;
-  }, [tasksByDate]);
+  const toggleDate = (dateStr) => {
+    setExpandedDates(prev => ({ ...prev, [dateStr]: !prev[dateStr] }));
+  };
 
   // 日历数据
   const calendarDays = useMemo(() => {
@@ -108,27 +103,20 @@ export default function StarTrailView({ isDark, userData, onClose }) {
 
       {/* 统计卡片 */}
       <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
-        <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-2 gap-4 text-center">
           <div>
             <div className={`w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-100'}`}>
               <Calendar size={18} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
             </div>
             <p className={`text-xl font-medium ${isDark ? 'text-emerald-300' : 'text-emerald-600'}`}>{monthDays}</p>
-            <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>本月完成天数</p>
-          </div>
-          <div>
-            <div className={`w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center ${isDark ? 'bg-orange-500/15' : 'bg-orange-100'}`}>
-              <Flame size={18} className={isDark ? 'text-orange-400' : 'text-orange-500'} />
-            </div>
-            <p className={`text-xl font-medium ${isDark ? 'text-orange-300' : 'text-orange-600'}`}>{streakDays}</p>
-            <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>连续完成天数</p>
+            <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>本月约定天数</p>
           </div>
           <div>
             <div className={`w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center ${isDark ? 'bg-amber-500/15' : 'bg-amber-100'}`}>
               <Trophy size={18} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
             </div>
             <p className={`text-xl font-medium ${isDark ? 'text-amber-300' : 'text-amber-600'}`}>{completedTasks.length}</p>
-            <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>总完成任务</p>
+            <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>总完成约定</p>
           </div>
         </div>
       </div>
@@ -200,44 +188,60 @@ export default function StarTrailView({ isDark, userData, onClose }) {
 
         {Object.entries(tasksByDate).length === 0 ? (
           <div className={`p-8 rounded-[20px] text-center ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'}`}>
-            <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>还没有完成任务</p>
+            <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>还没有完成约定</p>
             <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>完成明日小事后会在这里留下足迹</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-2">
             {Object.entries(tasksByDate).map(([dateStr, tasks]) => {
               const date = new Date(dateStr);
               const isToday = dateStr === new Date().toDateString();
+              const isExpanded = expandedDates[dateStr];
               return (
-                <div key={dateStr} className="space-y-2">
-                  {/* 日期标题 */}
-                  <div className="flex items-center gap-2 px-1">
-                    <div className={`w-1 h-1 rounded-full ${isDark ? 'bg-emerald-400' : 'bg-emerald-500'}`} />
-                    <span className={`text-[11px] font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                      {isToday ? '今天' : `${date.getMonth() + 1}月${date.getDate()}日`}
-                    </span>
-                    <span className={`text-[10px] ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                      {tasks.length} 个任务
-                    </span>
-                  </div>
-
-                  {/* 任务卡片 */}
-                  {tasks.map((task, idx) => (
-                    <div
-                      key={idx}
-                      className={`p-3 rounded-[16px] border flex items-center gap-3 ${
-                        isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm'
-                      }`}
-                    >
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-lg ${isDark ? 'bg-emerald-500/10' : 'bg-emerald-50'}`}>
-                        {task.emoji || '✅'}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{task.main}</p>
-                      </div>
-                      <CheckCircle2 size={16} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
+                <div key={dateStr}>
+                  {/* 日期标题（可点击折叠） */}
+                  <button
+                    onClick={() => toggleDate(dateStr)}
+                    className={`w-full flex items-center justify-between p-3 rounded-[16px] transition-all ${
+                      isDark ? 'bg-[#171724] border border-white/5 hover:bg-[#1f1f2e]' : 'bg-white border border-gray-100 shadow-sm hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={`w-1 h-1 rounded-full ${isDark ? 'bg-emerald-400' : 'bg-emerald-500'}`} />
+                      <span className={`text-[11px] font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {isToday ? '今天' : `${date.getMonth() + 1}月${date.getDate()}日`}
+                      </span>
+                      <span className={`text-[10px] ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                        {tasks.length} 个约定
+                      </span>
                     </div>
-                  ))}
+                    <ChevronDown
+                      size={14}
+                      className={`transition-transform ${isExpanded ? 'rotate-180' : ''} ${isDark ? 'text-gray-500' : 'text-gray-400'}`}
+                    />
+                  </button>
+
+                  {/* 任务卡片（可折叠） */}
+                  {isExpanded && (
+                    <div className="mt-2 space-y-2 px-1">
+                      {tasks.map((task, idx) => (
+                        <div
+                          key={idx}
+                          className={`p-3 rounded-[16px] border flex items-center gap-3 ${
+                            isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm'
+                          }`}
+                        >
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-lg ${isDark ? 'bg-emerald-500/10' : 'bg-emerald-50'}`}>
+                            {task.emoji || '✅'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>{task.main}</p>
+                          </div>
+                          <CheckCircle2 size={16} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
