@@ -459,7 +459,7 @@ export default function TreeholeView({
 
         <div
           ref={echoScrollRef}
-          className="relative h-[240px] overflow-hidden -mx-5 px-5"
+          className="relative h-[200px] overflow-hidden -mx-5 px-5"
           onScroll={(e) => {
             const container = e.currentTarget;
             const scrollTop = container.scrollTop;
@@ -632,7 +632,7 @@ export default function TreeholeView({
 
         <div
           ref={hotScrollRef}
-          className="relative h-[240px] overflow-hidden -mx-5 px-5"
+          className="relative h-[200px] overflow-hidden -mx-5 px-5"
           onScroll={(e) => {
             const container = e.currentTarget;
             const scrollTop = container.scrollTop;
