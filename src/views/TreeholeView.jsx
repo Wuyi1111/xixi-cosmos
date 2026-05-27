@@ -403,7 +403,7 @@ export default function TreeholeView({
         </div>
 
         <div
-          className="relative max-h-[640px] overflow-hidden -mx-5 px-5"
+          className="relative max-h-[600px] overflow-hidden -mx-5 px-5"
           style={{ overflowY: 'scroll' }}
         >
           <div className="py-4">
