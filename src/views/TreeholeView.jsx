@@ -349,6 +349,7 @@ export default function TreeholeView({
         userData={userData}
         saveUserData={saveUserData}
         onClose={() => setShowMyWhispers(false)}
+        currentDateStr={currentDateStr}
       />
     );
   }

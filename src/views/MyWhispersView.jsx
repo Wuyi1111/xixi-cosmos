@@ -1,17 +1,25 @@
 /**
  * MyWhispersView.jsx — "我的心语"独立子界面
  *
- * 显示用户发射过的所有心语，支持展开、收藏、删除
+ * 参考星际足迹排版：
+ *   - 顶部返回按钮 + 标题
+ *   - 统计卡片：总心语数 / 收藏数 / 今日发射
+ *   - 心语列表：按日期倒序排列
  */
 
 import { useState } from 'react';
-import { X, Star, Trash2, Radio, ChevronLeft } from 'lucide-react';
+import { Star, Trash2, Radio, ChevronLeft, Heart, Calendar, MessageCircle } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 
-export default function MyWhispersView({ isDark, userData, saveUserData, onClose }) {
+export default function MyWhispersView({ isDark, userData, saveUserData, onClose, currentDateStr }) {
   const myWhispers = userData.myWhispers || [];
   const [expandedWhisperId, setExpandedWhisperId] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+
+  // 统计数据
+  const totalWhispers = myWhispers.length;
+  const favoriteCount = myWhispers.filter(w => w.isFavorite).length;
+  const todayWhispers = myWhispers.filter(w => w.date === currentDateStr).length;
 
   const toggleFavoriteWhisper = (id) => {
     const newList = myWhispers.map(log =>
@@ -37,55 +45,82 @@ export default function MyWhispersView({ isDark, userData, saveUserData, onClose
             <ChevronLeft size={20} />
           </button>
           <h2 className="text-lg font-medium">我的心语</h2>
-          <span className={`text-[11px] px-2 py-0.5 rounded-full ml-auto ${isDark ? 'bg-[#1f1f2e] text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-            {myWhispers.length} 条
-          </span>
         </div>
 
         {/* 内容区域 */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-          {myWhispers.length > 0 ? (
-            myWhispers.map(whisper => {
-              const isExpanded = expandedWhisperId === whisper.id;
-              return (
-                <div
-                  key={whisper.id}
-                  onClick={() => setExpandedWhisperId(isExpanded ? null : whisper.id)}
-                  className={`p-4 rounded-[20px] border cursor-pointer transition-all ${
-                    isDark ? 'bg-[#171724] border-white/5 hover:bg-[#1a1a2e]' : 'bg-white border-gray-100 hover:shadow-md'
-                  } active:scale-[0.98]`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[10px] px-2.5 py-1 rounded-md ${isDark ? 'bg-pink-500/10 text-pink-400' : 'bg-pink-50 text-pink-600'}`}>
-                        {whisper.emotion}
-                      </span>
-                      <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{whisper.date}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleFavoriteWhisper(whisper.id); }}
-                        className="p-1.5 hover:scale-110 transition-transform"
-                      >
-                        <Star
-                          size={14}
-                          className={`${whisper.isFavorite ? 'text-yellow-400 fill-yellow-400' : (isDark ? 'text-gray-600' : 'text-gray-300')}`}
-                        />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(whisper.id); }}
-                        className={`p-1.5 ${isDark ? 'text-gray-600 hover:text-red-400' : 'text-gray-400 hover:text-red-500'}`}
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  </div>
-                  <p className={`text-sm font-light leading-relaxed ${isDark ? 'text-gray-200' : 'text-gray-700'} ${!isExpanded ? 'line-clamp-3' : ''}`}>
-                    {whisper.text}
-                  </p>
+        <div className="flex-1 overflow-y-auto px-5 pb-10 space-y-5">
+          {/* 统计卡片 */}
+          <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <div className={`w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center ${isDark ? 'bg-pink-500/15' : 'bg-pink-100'}`}>
+                  <MessageCircle size={18} className={isDark ? 'text-pink-400' : 'text-pink-500'} />
                 </div>
-              );
-            })
+                <p className={`text-xl font-semibold ${isDark ? 'text-pink-400' : 'text-pink-500'}`}>{totalWhispers}</p>
+                <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>总心语数</p>
+              </div>
+              <div>
+                <div className={`w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center ${isDark ? 'bg-yellow-500/15' : 'bg-yellow-100'}`}>
+                  <Heart size={18} className={isDark ? 'text-yellow-400' : 'text-yellow-500'} />
+                </div>
+                <p className={`text-xl font-semibold ${isDark ? 'text-yellow-400' : 'text-yellow-500'}`}>{favoriteCount}</p>
+                <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>收藏数</p>
+              </div>
+              <div>
+                <div className={`w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-100'}`}>
+                  <Calendar size={18} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
+                </div>
+                <p className={`text-xl font-semibold ${isDark ? 'text-emerald-400' : 'text-emerald-500'}`}>{todayWhispers}</p>
+                <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>今日发射</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 心语列表 */}
+          {myWhispers.length > 0 ? (
+            <div className="space-y-3">
+              {myWhispers.map(whisper => {
+                const isExpanded = expandedWhisperId === whisper.id;
+                return (
+                  <div
+                    key={whisper.id}
+                    onClick={() => setExpandedWhisperId(isExpanded ? null : whisper.id)}
+                    className={`p-4 rounded-[20px] border cursor-pointer transition-all ${
+                      isDark ? 'bg-[#171724] border-white/5 hover:bg-[#1a1a2e]' : 'bg-white border-gray-100 hover:shadow-md'
+                    } active:scale-[0.98]`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] px-2.5 py-1 rounded-md ${isDark ? 'bg-pink-500/10 text-pink-400' : 'bg-pink-50 text-pink-600'}`}>
+                          {whisper.emotion}
+                        </span>
+                        <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{whisper.date}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleFavoriteWhisper(whisper.id); }}
+                          className="p-1.5 hover:scale-110 transition-transform"
+                        >
+                          <Star
+                            size={14}
+                            className={`${whisper.isFavorite ? 'text-yellow-400 fill-yellow-400' : (isDark ? 'text-gray-600' : 'text-gray-300')}`}
+                          />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(whisper.id); }}
+                          className={`p-1.5 ${isDark ? 'text-gray-600 hover:text-red-400' : 'text-gray-400 hover:text-red-500'}`}
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </div>
+                    <p className={`text-sm font-light leading-relaxed ${isDark ? 'text-gray-200' : 'text-gray-700'} ${!isExpanded ? 'line-clamp-3' : ''}`}>
+                      {whisper.text}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-20">
               <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${isDark ? 'bg-pink-500/10' : 'bg-pink-50'}`}>
