@@ -16,12 +16,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import {
-  Heart, X, Star, ChevronDown, Trash2, Send,
+  Heart, X, Star, ChevronDown, Send,
   BookOpen, Sparkles, Plus, CheckCircle2,
   Edit3, Radio, Flame, Footprints
 } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import StarTrailView from './StarTrailView.jsx';
+import MyWhispersView from './MyWhispersView.jsx';
 import { MOCK_WHISPERS, PRESET_TAGS, TOMORROW_SUGGESTIONS } from '../constants.js';
 
 const MODES = ['starsea', 'tomorrow'];
@@ -76,9 +77,7 @@ export default function TreeholeView({
   const [showTomorrowToast, setShowTomorrowToast] = useState(false);
 
   // === 我的心语 state ===
-  const [expandedWhisperId, setExpandedWhisperId] = useState(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
-  const [showAllMyWhispers, setShowAllMyWhispers] = useState(false);
+  const [showMyWhispers, setShowMyWhispers] = useState(false);
 
   // === 星际回音 state ===
   const [echoIndex, setEchoIndex] = useState(0);
@@ -179,17 +178,6 @@ export default function TreeholeView({
     setVisibility('public');
     setShowEmitModal(false);
     setShowToast(true);
-  };
-
-  const toggleFavoriteWhisper = (id, e) => {
-    e.stopPropagation();
-    const newList = myWhispers.map(log => log.id === id ? { ...log, isFavorite: !log.isFavorite } : log);
-    saveUserData({ ...userData, myWhispers: newList });
-  };
-
-  const confirmDeleteWhisper = () => {
-    saveUserData({ ...userData, myWhispers: myWhispers.filter(log => log.id !== deleteConfirmId) });
-    setDeleteConfirmId(null);
   };
 
   const handlePublishTomorrow = () => {
@@ -356,96 +344,60 @@ export default function TreeholeView({
     );
   }
 
+  // === 我的心语子界面 ===
+  if (showMyWhispers) {
+    return (
+      <MyWhispersView
+        isDark={isDark}
+        userData={userData}
+        saveUserData={saveUserData}
+        onClose={() => setShowMyWhispers(false)}
+      />
+    );
+  }
+
   // === 渲染：星海 Tab ===
   const renderStarSea = () => (
     <div className="space-y-5">
-      {/* 快速发射入口 */}
-      <div
-        onClick={() => setShowEmitModal(true)}
-        className={`p-5 rounded-[24px] border cursor-pointer transition-all active:scale-[0.98] ${
-          isDark ? 'bg-[#171724] border-white/5 hover:bg-[#1a1a2e]' : 'bg-white border-gray-100 shadow-sm hover:shadow-md'
-        }`}
-      >
-        <div className="flex items-center gap-3">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isDark ? 'bg-pink-500/15' : 'bg-pink-100'}`}>
-            <Edit3 size={24} className={isDark ? 'text-pink-300' : 'text-pink-500'} />
-          </div>
-          <div className="flex-1">
-            <p className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
-              {postsLeft > 0 ? '向深空发射信号' : '今日星际能量已耗尽'}
-            </p>
-            <p className={`text-[11px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-              {postsLeft > 0 ? '倾诉你的心声，让宇宙听见' : '明日 00:00 自动恢复'}
-            </p>
-          </div>
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
-            <Plus size={20} className={isDark ? 'text-gray-400' : 'text-gray-500'} />
+      {/* 左右并排：发射信号 + 我的心语入口 */}
+      <div className="flex gap-3">
+        {/* 左边：向深空发射信号 */}
+        <div
+          onClick={() => setShowEmitModal(true)}
+          className={`flex-1 p-4 rounded-[20px] border cursor-pointer transition-all active:scale-[0.98] ${
+            isDark ? 'bg-[#171724] border-white/5 hover:bg-[#1a1a2e]' : 'bg-white border-gray-100 shadow-sm hover:shadow-md'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isDark ? 'bg-pink-500/15' : 'bg-pink-100'}`}>
+              <Edit3 size={20} className={isDark ? 'text-pink-300' : 'text-pink-500'} />
+            </div>
+            <div className="min-w-0">
+              <p className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+                {postsLeft > 0 ? '向深空发射信号' : '能量已耗尽'}
+              </p>
+              <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                {postsLeft > 0 ? '倾诉你的心声' : '明日 00:00 恢复'}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* 我的心语流 */}
-      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Radio size={16} className="text-pink-400" />
-            <h3 className="text-sm font-medium">我的心语</h3>
-          </div>
+        {/* 右边：我的心语入口 */}
+        <div
+          onClick={() => setShowMyWhispers(true)}
+          className={`w-[80px] rounded-[20px] border cursor-pointer transition-all active:scale-[0.98] flex flex-col items-center justify-center gap-1 ${
+            isDark ? 'bg-[#171724] border-white/5 hover:bg-[#1a1a2e]' : 'bg-white border-gray-100 shadow-sm hover:shadow-md'
+          }`}
+        >
+          <Radio size={20} className="text-pink-400" />
+          <span className={`text-[10px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>我的心语</span>
           {myWhispers.length > 0 && (
-            <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-[#1f1f2e] text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-              {myWhispers.length} 条
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${isDark ? 'bg-pink-500/10 text-pink-400' : 'bg-pink-50 text-pink-600'}`}>
+              {myWhispers.length}
             </span>
           )}
         </div>
-
-        {myWhispers.length > 0 ? (
-          <div className="space-y-2">
-            {myWhispers.slice(0, showAllMyWhispers ? undefined : 3).map(whisper => {
-              const isExpanded = expandedWhisperId === whisper.id;
-              return (
-                <div
-                  key={whisper.id}
-                  onClick={() => setExpandedWhisperId(isExpanded ? null : whisper.id)}
-                  className={`p-3 rounded-[16px] border cursor-pointer transition-all ${
-                    isDark ? 'bg-[#1f1f2e] border-white/5 hover:bg-[#262638]' : 'bg-gray-50 border-gray-100 hover:bg-gray-100'
-                  } active:scale-[0.98]`}
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-sm ${isDark ? 'bg-pink-500/10 text-pink-400' : 'bg-pink-50 text-pink-600'}`}>
-                        {whisper.emotion}
-                      </span>
-                      <span className={`text-[9px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{whisper.date}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button onClick={(e) => toggleFavoriteWhisper(whisper.id, e)} className="p-1 hover:scale-110 transition-transform">
-                        <Star size={12} className={`${whisper.isFavorite ? 'text-yellow-400 fill-yellow-400' : (isDark ? 'text-gray-600' : 'text-gray-300')}`} />
-                      </button>
-                      <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(whisper.id); }} className={`p-1 ${isDark ? 'text-gray-600 hover:text-red-400' : 'text-gray-400 hover:text-red-500'}`}>
-                        <Trash2 size={10} />
-                      </button>
-                    </div>
-                  </div>
-                  <p className={`text-xs font-light leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-600'} ${!isExpanded ? 'line-clamp-2' : ''}`}>
-                    {whisper.text}
-                  </p>
-                </div>
-              );
-            })}
-            {myWhispers.length > 3 && !showAllMyWhispers && (
-              <button
-                onClick={() => setShowAllMyWhispers(true)}
-                className={`w-full py-2 rounded-xl text-[11px] transition-colors ${isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
-              >
-                查看全部 {myWhispers.length} 条
-              </button>
-            )}
-          </div>
-        ) : (
-          <p className={`text-xs text-center py-4 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-            还没有心语，点击上方发射你的第一条信号
-          </p>
-        )}
       </div>
 
       {/* 星际回音 — 垂直滑动卡片堆叠 */}
@@ -968,24 +920,6 @@ export default function TreeholeView({
         </Portal>
       )}
 
-      {/* === 删除确认弹窗 === */}
-      {deleteConfirmId && (
-        <Portal>
-          <div className={`fixed inset-0 z-[60] flex items-center justify-center p-6 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setDeleteConfirmId(null)}>
-            <div className={`w-full max-w-xs p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative text-center`} onClick={e => e.stopPropagation()}>
-              <div className="mx-auto w-12 h-12 mb-4 rounded-full flex items-center justify-center bg-red-500/10 text-red-500">
-                <Trash2 size={24} />
-              </div>
-              <h3 className={`text-lg font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>确认消散</h3>
-              <p className={`text-xs mb-6 leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>确定要让这段信号消散在宇宙中吗？此操作不可撤销。</p>
-              <div className="flex gap-3">
-                <button onClick={() => setDeleteConfirmId(null)} className={`flex-1 py-3 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-[#1f1f2e] hover:bg-[#262638] text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}>保留</button>
-                <button onClick={confirmDeleteWhisper} className="flex-1 py-3 rounded-xl text-sm font-medium bg-red-500 hover:bg-red-600 text-white transition-colors shadow-lg shadow-red-500/20 active:scale-95">消散</button>
-              </div>
-            </div>
-          </div>
-        </Portal>
-      )}
     </div>
   );
 }
