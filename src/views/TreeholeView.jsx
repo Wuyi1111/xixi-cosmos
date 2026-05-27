@@ -82,7 +82,12 @@ export default function TreeholeView({
 
   // === 星际回音 state ===
   const [echoIndex, setEchoIndex] = useState(0);
+  const echoScrollRef = useRef(null);
   const [particles, setParticles] = useState([]);
+
+  // === 热门约定 state ===
+  const [hotIndex, setHotIndex] = useState(0);
+  const hotScrollRef = useRef(null);
 
   // === 热门任务 state ===
   const [displayedSuggestions, setDisplayedSuggestions] = useState(() =>
@@ -443,7 +448,7 @@ export default function TreeholeView({
         )}
       </div>
 
-      {/* 星际回音 — 上下滑动卡片 */}
+      {/* 星际回音 — 垂直滑动卡片堆叠 */}
       <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -452,41 +457,65 @@ export default function TreeholeView({
           </div>
         </div>
 
-        <div className="space-y-3">
-          {MOCK_WHISPERS.map((whisper) => {
-            const isHugged = userData.huggedWhispers.includes(whisper.id);
-            return (
-              <div
-                key={whisper.id}
-                className={`p-4 rounded-[20px] border ${
-                  isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border-white/5' : 'bg-gradient-to-br from-pink-50/50 to-white border-pink-50'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
-                    {whisper.emotion}
-                  </span>
-                </div>
-                <p className={`text-sm leading-relaxed font-light mb-4 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
-                  "{whisper.text}"
-                </p>
-                <div className="flex justify-end">
-                  <button
-                    onClick={(e) => handleGiveHug(whisper.id, e)}
-                    disabled={isHugged}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all active:scale-95 ${
-                      isHugged
-                        ? (isDark ? 'bg-pink-500/20 text-pink-300 border border-pink-400/40' : 'bg-pink-100 text-pink-600 border border-pink-300')
-                        : (isDark ? 'bg-white/5 text-pink-400 border border-white/10 hover:bg-white/10' : 'bg-pink-50 text-pink-500 border border-pink-100 hover:bg-pink-100')
-                    }`}
+        <div
+          ref={echoScrollRef}
+          className="relative h-[240px] overflow-hidden -mx-5 px-5"
+          onScroll={(e) => {
+            const container = e.currentTarget;
+            const scrollTop = container.scrollTop;
+            const cardHeight = 160 + 16;
+            const newIndex = Math.round(scrollTop / cardHeight);
+            if (newIndex !== echoIndex && newIndex >= 0 && newIndex < MOCK_WHISPERS.length) {
+              setEchoIndex(newIndex);
+            }
+          }}
+          style={{ scrollSnapType: 'y mandatory', overflowY: 'scroll' }}
+        >
+          <div className="py-[40px]">
+            {MOCK_WHISPERS.map((whisper, index) => {
+              const isActive = index === echoIndex;
+              const isHugged = userData.huggedWhispers.includes(whisper.id);
+              return (
+                <div
+                  key={whisper.id}
+                  className="mb-4"
+                  style={{ scrollSnapAlign: 'center' }}
+                >
+                  <div
+                    className={`relative h-[160px] p-5 rounded-[24px] border overflow-hidden transition-all duration-500 ${
+                      isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm'
+                    } ${isActive ? 'shadow-lg scale-100 opacity-100' : 'shadow-sm scale-90 opacity-40 blur-[2px]'}`}
                   >
-                    <Heart size={12} fill={isHugged ? 'currentColor' : 'none'} />
-                    <span className="text-[11px]">{isHugged ? '已温暖' : '温暖'}</span>
-                  </button>
+                    <div className="flex items-center gap-2 mb-3 relative z-10">
+                      <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
+                        {whisper.emotion}
+                      </span>
+                      <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        <Radio size={10} /> 未知坐标
+                      </span>
+                    </div>
+                    <p className={`text-sm leading-relaxed font-light relative z-10 line-clamp-3 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+                      "{whisper.text}"
+                    </p>
+                    <div className="absolute bottom-4 right-4 z-10">
+                      <button
+                        onClick={(e) => handleGiveHug(whisper.id, e)}
+                        disabled={isHugged}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all active:scale-95 ${
+                          isHugged
+                            ? (isDark ? 'bg-pink-500/20 text-pink-300 border border-pink-400/40' : 'bg-pink-100 text-pink-600 border border-pink-300')
+                            : (isDark ? 'bg-white/5 text-pink-400 border border-white/10 hover:bg-white/10' : 'bg-pink-50 text-pink-500 border border-pink-100 hover:bg-pink-100')
+                        }`}
+                      >
+                        <Heart size={12} fill={isHugged ? 'currentColor' : 'none'} />
+                        <span className="text-[11px]">{isHugged ? '已温暖' : '温暖'}</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
@@ -592,7 +621,7 @@ export default function TreeholeView({
         )}
       </div>
 
-      {/* 热门约定 — 上下滑动卡片 */}
+      {/* 热门约定 — 垂直滑动卡片堆叠 */}
       <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -601,59 +630,76 @@ export default function TreeholeView({
           </div>
         </div>
 
-        <div className="space-y-3">
-          {hotTasks.map((challenge) => {
-            const followed = isFollowed(challenge.id);
-            const isMine = challenge.isMyChallenge;
-            return (
-              <div
-                key={challenge._instanceId}
-                className={`p-4 rounded-[20px] border ${
-                  isMine
-                    ? (isDark ? 'bg-emerald-500/[0.07] border-emerald-500/25' : 'bg-emerald-50/40 border-emerald-200/60')
-                    : followed
-                      ? (isDark ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50/50 border-emerald-200/50')
-                      : (isDark ? 'bg-[#1f1f2e] border-white/5' : 'bg-gray-50 border-gray-100')
-                }`}
-              >
-                <div className="flex items-start gap-3 mb-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#171724]' : 'bg-white'} shadow-sm shrink-0`}>
-                    {challenge.emoji}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-xs font-medium ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
-                      {challenge.main}
-                    </p>
-                    <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                      {challenge.sub}
-                    </p>
+        <div
+          ref={hotScrollRef}
+          className="relative h-[240px] overflow-hidden -mx-5 px-5"
+          onScroll={(e) => {
+            const container = e.currentTarget;
+            const scrollTop = container.scrollTop;
+            const cardHeight = 160 + 16;
+            const newIndex = Math.round(scrollTop / cardHeight);
+            if (newIndex !== hotIndex && newIndex >= 0 && newIndex < hotTasks.length) {
+              setHotIndex(newIndex);
+            }
+          }}
+          style={{ scrollSnapType: 'y mandatory', overflowY: 'scroll' }}
+        >
+          <div className="py-[40px]">
+            {hotTasks.map((challenge, index) => {
+              const isActive = index === hotIndex;
+              const followed = isFollowed(challenge.id);
+              const isMine = challenge.isMyChallenge;
+              return (
+                <div
+                  key={challenge._instanceId}
+                  className="mb-4"
+                  style={{ scrollSnapAlign: 'center' }}
+                >
+                  <div
+                    className={`relative h-[160px] p-5 rounded-[24px] border overflow-hidden transition-all duration-500 ${
+                      isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm'
+                    } ${isActive ? 'shadow-lg scale-100 opacity-100' : 'shadow-sm scale-90 opacity-40 blur-[2px]'}`}
+                  >
+                    <div className="flex items-start gap-3 mb-3 relative z-10">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#171724]' : 'bg-white'} shadow-sm shrink-0`}>
+                        {challenge.emoji}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs font-medium ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
+                          {challenge.main}
+                        </p>
+                        <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                          {challenge.sub}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between relative z-10">
+                      <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        <Flame size={10} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} /> {challenge.followCount} 人跟随
+                      </span>
+                      {isMine ? (
+                        <span className={`text-[10px] px-2 py-1 rounded-full ${isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-600'}`}>
+                          你发布的
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => followed ? null : handleFollowTask(challenge)}
+                          disabled={followed}
+                          className={`px-3 py-1 rounded-full text-[10px] font-medium transition-all active:scale-95 ${
+                            followed
+                              ? (isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200')
+                              : (isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50')
+                          }`}
+                        >
+                          {followed ? '已跟随' : '跟随'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                    <Flame size={10} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} /> {challenge.followCount} 人跟随
-                  </span>
-                  {isMine ? (
-                    <span className={`text-[10px] px-2 py-1 rounded-full ${isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-600'}`}>
-                      你发布的
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => followed ? null : handleFollowTask(challenge)}
-                      disabled={followed}
-                      className={`px-3 py-1 rounded-full text-[10px] font-medium transition-all active:scale-95 ${
-                        followed
-                          ? (isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200')
-                          : (isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50')
-                      }`}
-                    >
-                      {followed ? '已跟随' : '跟随'}
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
 
