@@ -20,6 +20,7 @@ import {
   RotateCcw, Edit3, Radio, Flame, Footprints
 } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
+import StarTrailView from './StarTrailView.jsx';
 import { MOCK_WHISPERS, PRESET_TAGS, TOMORROW_SUGGESTIONS } from '../constants.js';
 
 const MODES = ['starsea', 'tomorrow'];
@@ -91,6 +92,7 @@ export default function TreeholeView({
   );
   const [showAllFootprints, setShowAllFootprints] = useState(false);
   const [footprintsExpanded, setFootprintsExpanded] = useState(false);
+  const [showStarTrail, setShowStarTrail] = useState(false);
 
   // 星际回音当前索引
   const [echoIndex, setEchoIndex] = useState(0);
@@ -816,67 +818,26 @@ export default function TreeholeView({
         </div>
       )}
 
-      {/* 星际足迹 — 可折叠 */}
+      {/* 星际足迹 — 入口按钮 */}
       {taskFootprints.length > 0 && (
-        <div className={`rounded-[20px] border transition-all duration-300 ${
-          isDark ? 'bg-[#171724] border-white/5' : 'bg-white border-gray-100 shadow-sm'
-        }`}>
-          {/* 标题栏 — 点击折叠/展开 */}
-          <div
-            onClick={() => setFootprintsExpanded(!footprintsExpanded)}
-            className="p-4 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-transform"
-          >
-            <div className="flex items-center gap-2">
-              <Footprints size={14} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
-              <h3 className="text-sm font-medium">星际足迹</h3>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
-                {taskFootprints.length} 个
-              </span>
-            </div>
-            <div className={`transition-transform duration-300 ${footprintsExpanded ? 'rotate-180' : ''}`}>
-              <ChevronDown size={16} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
-            </div>
+        <button
+          onClick={() => setShowStarTrail(true)}
+          className={`w-full p-4 rounded-[20px] border flex items-center gap-3 transition-all active:scale-[0.98] ${
+            isDark ? 'bg-[#171724] border-white/5 hover:bg-[#1a1a2e]' : 'bg-white border-gray-100 shadow-sm hover:shadow-md'
+          }`}
+        >
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-100'}`}>
+            <Footprints size={20} className={isDark ? 'text-emerald-300' : 'text-emerald-500'} />
           </div>
-
-          {/* 展开内容 */}
-          <div className={`grid transition-all duration-300 ease-in-out ${footprintsExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-            <div className="overflow-hidden">
-              <div className="px-4 pb-4 space-y-2">
-                {(showAllFootprints ? taskFootprints : taskFootprints.slice(0, 5)).map((footprint) => (
-                  <div
-                    key={`${footprint.taskId}-${footprint.date}`}
-                    className={`p-3 rounded-[16px] border flex items-center gap-3 ${
-                      isDark ? 'bg-[#1a1a2e] border-white/5' : 'bg-gray-50/50 border-gray-100'
-                    }`}
-                  >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-lg ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
-                      {footprint.emoji}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
-                        {footprint.main}
-                      </p>
-                      <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                        {footprint.date}
-                      </p>
-                    </div>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
-                      已完成
-                    </span>
-                  </div>
-                ))}
-                {taskFootprints.length > 5 && !showAllFootprints && (
-                  <button
-                    onClick={() => setShowAllFootprints(true)}
-                    className={`w-full py-2.5 rounded-xl text-xs transition-colors ${isDark ? 'text-gray-400 hover:text-gray-300 hover:bg-white/5' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
-                  >
-                    查看全部 {taskFootprints.length} 个足迹
-                  </button>
-                )}
-              </div>
-            </div>
+          <div className="flex-1 text-left">
+            <p className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>星际足迹</p>
+            <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>查看你的任务完成记录</p>
           </div>
-        </div>
+          <div className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
+            {taskFootprints.length} 个
+          </div>
+          <ChevronDown size={16} className={`rotate-[-90deg] ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+        </button>
       )}
 
       {/* 底部温馨语句 */}
@@ -1105,6 +1066,17 @@ export default function TreeholeView({
   };
 
   // === 主渲染 ===
+  // === 星际足迹子界面 ===
+  if (showStarTrail) {
+    return (
+      <StarTrailView
+        isDark={isDark}
+        userData={userData}
+        onClose={() => setShowStarTrail(false)}
+      />
+    );
+  }
+
   return (
     <div className="animate-fade-in pb-10 relative">
       {/* 双栏导航 */}
