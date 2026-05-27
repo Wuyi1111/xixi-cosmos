@@ -55,11 +55,11 @@ const WARM_MESSAGES = [
 
 // 成就徽章定义
 const BADGES = [
-  { id: 'nights_7', name: '7夜行者', desc: '连续归星7天', icon: Moon, minDays: 7, color: 'indigo' },
+  { id: 'nights_7', name: '7夜行者', desc: '连续归星7天', icon: Moon, minDays: 7, color: 'sky' },
   { id: 'nights_30', name: '月度星旅', desc: '连续归星30天', icon: Moon, minDays: 30, color: 'amber' },
-  { id: 'hugs_10', name: '温暖使者', desc: '传递温暖10次', icon: Heart, minHugs: 10, color: 'pink' },
-  { id: 'hugs_50', name: '光之传递', desc: '传递温暖50次', icon: Heart, minHugs: 50, color: 'rose' },
-  { id: 'follows_5', name: '同行者', desc: '跟随5个任务', icon: Users, minFollows: 5, color: 'cyan' },
+  { id: 'hugs_10', name: '温暖使者', desc: '传递温暖10次', icon: Heart, minHugs: 10, color: 'sky' },
+  { id: 'hugs_50', name: '光之传递', desc: '传递温暖50次', icon: Heart, minHugs: 50, color: 'sky' },
+  { id: 'follows_5', name: '同行者', desc: '跟随5个任务', icon: Users, minFollows: 5, color: 'sky' },
   { id: 'follows_20', name: '星际伙伴', desc: '跟随20个任务', icon: Users, minFollows: 20, color: 'blue' },
 ];
 
@@ -207,7 +207,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
       {/* === 1. 顶部精简个人信息 === */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${isDark ? 'bg-[#171724] border border-indigo-500/20' : 'bg-white shadow-sm border border-indigo-100'}`}>
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${isDark ? 'bg-[#171724] border border-sky-500/20' : 'bg-white shadow-sm border border-sky-100'}`}>
             {userData.avatarEmoji || '🪐'}
           </div>
           <div>
@@ -229,23 +229,23 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
       </div>
 
       {/* === 2. 今日状态卡片 === */}
-      <div className={`p-5 rounded-[24px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border border-indigo-500/15' : 'bg-gradient-to-br from-indigo-50/70 to-white border border-indigo-100'}`}>
-        <div className="absolute -top-8 -right-6 w-32 h-32 rounded-full bg-indigo-300/10 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-8 -left-6 w-24 h-24 rounded-full bg-purple-300/10 blur-3xl pointer-events-none" />
+      <div className={`p-5 rounded-[24px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border border-sky-500/15' : 'bg-gradient-to-br from-sky-50/70 to-white border border-sky-100'}`}>
+        <div className="absolute -top-8 -right-6 w-32 h-32 rounded-full bg-sky-300/10 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-8 -left-6 w-24 h-24 rounded-full bg-sky-300/10 blur-3xl pointer-events-none" />
 
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>今晚状态</p>
-              <h3 className={`text-lg font-medium ${hasCheckedInToday ? (isDark ? 'text-emerald-400' : 'text-emerald-600') : (isDark ? 'text-indigo-300' : 'text-indigo-600')}`}>
+              <h3 className={`text-lg font-medium ${hasCheckedInToday ? (isDark ? 'text-emerald-400' : 'text-emerald-600') : (isDark ? 'text-sky-300' : 'text-sky-600')}`}>
                 {hasCheckedInToday ? '已归星' : '尚未归星'}
               </h3>
             </div>
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${hasCheckedInToday ? (isDark ? 'bg-emerald-500/15' : 'bg-emerald-50') : (isDark ? 'bg-indigo-500/15' : 'bg-indigo-50')}`}>
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${hasCheckedInToday ? (isDark ? 'bg-emerald-500/15' : 'bg-emerald-50') : (isDark ? 'bg-sky-500/15' : 'bg-sky-50')}`}>
               {hasCheckedInToday ? (
                 <CheckCircle2 size={24} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
               ) : (
-                <Moon size={24} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+                <Moon size={24} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
               )}
             </div>
           </div>
@@ -272,10 +272,10 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
       <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Music size={16} className={isDark ? 'text-cyan-400' : 'text-cyan-500'} />
+            <Music size={16} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
             <h3 className="text-sm font-medium">伴眠夜声</h3>
           </div>
-          <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-cyan-500/10 text-cyan-300' : 'bg-cyan-50 text-cyan-600'}`}>
+          <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-sky-500/10 text-sky-300' : 'bg-sky-50 text-sky-600'}`}>
             {selectedSound.name}
           </span>
         </div>
@@ -290,7 +290,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
             onClick={togglePlay}
             className={`p-2.5 rounded-full transition-all active:scale-95 ${
               isPlaying
-                ? (isDark ? 'bg-cyan-500/20 text-cyan-300' : 'bg-cyan-100 text-cyan-600')
+                ? (isDark ? 'bg-sky-500/20 text-sky-300' : 'bg-sky-100 text-sky-600')
                 : (isDark ? 'bg-white/5 text-gray-400' : 'bg-white text-gray-500 shadow-sm')
             }`}
           >
@@ -315,11 +315,11 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
               }}
               className={`p-2 rounded-xl text-center transition-all active:scale-95 ${
                 selectedSound.id === sound.id
-                  ? (isDark ? 'bg-cyan-500/15 border border-cyan-500/30' : 'bg-cyan-50 border border-cyan-200')
+                  ? (isDark ? 'bg-sky-500/15 border border-sky-500/30' : 'bg-sky-50 border border-sky-200')
                   : (isDark ? 'bg-[#1f1f2e] border border-transparent' : 'bg-gray-50 border border-transparent')
               }`}
             >
-              <p className={`text-[10px] font-medium ${selectedSound.id === sound.id ? (isDark ? 'text-cyan-300' : 'text-cyan-600') : (isDark ? 'text-gray-400' : 'text-gray-500')}`}>
+              <p className={`text-[10px] font-medium ${selectedSound.id === sound.id ? (isDark ? 'text-sky-300' : 'text-sky-600') : (isDark ? 'text-gray-400' : 'text-gray-500')}`}>
                 {sound.name}
               </p>
             </button>
@@ -330,7 +330,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
       {/* === 4. 开始归星 === */}
       <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
         <div className="flex items-center gap-2 mb-3">
-          <Moon size={16} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+          <Moon size={16} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
           <h3 className="text-sm font-medium">开始归星</h3>
         </div>
 
@@ -345,7 +345,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
           className={`w-full py-4 rounded-2xl font-medium tracking-wider transition-all flex items-center justify-center gap-2 ${
             hasCheckedInToday
               ? (isDark ? 'bg-[#1f1f2e] text-gray-600 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed')
-              : 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 active:scale-95'
+              : 'bg-sky-500 hover:bg-sky-600 text-white shadow-lg shadow-sky-500/20 active:scale-95'
           }`}
         >
           <Moon size={20} />
@@ -402,19 +402,19 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
       <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
-            <p className={`text-2xl font-medium mb-1 ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>
+            <p className={`text-2xl font-medium mb-1 ${isDark ? 'text-sky-300' : 'text-sky-600'}`}>
               {userData.totalDays}
             </p>
             <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>累积夜晚</p>
           </div>
           <div>
-            <p className={`text-2xl font-medium mb-1 ${isDark ? 'text-pink-300' : 'text-pink-500'}`}>
+            <p className={`text-2xl font-medium mb-1 ${isDark ? 'text-sky-300' : 'text-sky-500'}`}>
               {userData.totalHugs}
             </p>
             <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>传递温暖</p>
           </div>
           <div>
-            <p className={`text-2xl font-medium mb-1 ${isDark ? 'text-cyan-300' : 'text-cyan-500'}`}>
+            <p className={`text-2xl font-medium mb-1 ${isDark ? 'text-sky-300' : 'text-sky-500'}`}>
               {userData.totalFollows}
             </p>
             <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>同行者</p>
@@ -457,17 +457,17 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
                     }}
                     className={`w-full p-3 rounded-xl text-left transition-all flex items-center gap-3 ${
                       selectedSound.id === sound.id
-                        ? (isDark ? 'bg-indigo-500/15 border border-indigo-500/30' : 'bg-indigo-50 border border-indigo-200')
+                        ? (isDark ? 'bg-sky-500/15 border border-sky-500/30' : 'bg-sky-50 border border-sky-200')
                         : (isDark ? 'bg-[#1f1f2e] hover:bg-white/5' : 'bg-gray-50 hover:bg-white')
                     }`}
                   >
-                    <Wind size={16} className={isDark ? 'text-cyan-400' : 'text-cyan-500'} />
+                    <Wind size={16} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
                     <div>
                       <p className="text-xs font-medium">{sound.name}</p>
                       <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{sound.desc}</p>
                     </div>
                     {selectedSound.id === sound.id && (
-                      <CheckCircle2 size={16} className={`ml-auto ${isDark ? 'text-indigo-400' : 'text-indigo-500'}`} />
+                      <CheckCircle2 size={16} className={`ml-auto ${isDark ? 'text-sky-400' : 'text-sky-500'}`} />
                     )}
                   </button>
                 ))}
@@ -486,13 +486,13 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
               <div className="w-full max-w-sm mx-6 text-center">
                 {/* 装饰星星 */}
                 <div className="relative mb-8">
-                  <div className={`w-24 h-24 rounded-full mx-auto flex items-center justify-center ${isDark ? 'bg-indigo-500/10' : 'bg-indigo-50'}`}>
-                    <Quote size={32} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+                  <div className={`w-24 h-24 rounded-full mx-auto flex items-center justify-center ${isDark ? 'bg-sky-500/10' : 'bg-sky-50'}`}>
+                    <Quote size={32} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
                   </div>
                   {/* 浮动小星星 */}
                   <div className="absolute top-0 left-1/4 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                  <div className="absolute bottom-2 right-1/4 w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" style={{ animationDelay: '0.5s' }} />
-                  <div className="absolute top-4 right-1/3 w-1 h-1 rounded-full bg-pink-400 animate-pulse" style={{ animationDelay: '1s' }} />
+                  <div className="absolute bottom-2 right-1/4 w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" style={{ animationDelay: '0.5s' }} />
+                  <div className="absolute top-4 right-1/3 w-1 h-1 rounded-full bg-sky-400 animate-pulse" style={{ animationDelay: '1s' }} />
                 </div>
 
                 {/* 话术内容 */}
@@ -508,7 +508,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
                 {/* 完成按钮 */}
                 <button
                   onClick={completeRitual}
-                  className="w-full py-4 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
+                  className="w-full py-4 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-medium shadow-lg shadow-sky-500/20 active:scale-95 transition-all"
                 >
                   接收这份温暖，完成归星
                 </button>
@@ -529,7 +529,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
                 <div className={`p-4 rounded-2xl mb-6 ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
                   <div className="flex items-center justify-center gap-6">
                     <div className="text-center">
-                      <p className={`text-lg font-medium ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>+1</p>
+                      <p className={`text-lg font-medium ${isDark ? 'text-sky-300' : 'text-sky-600'}`}>+1</p>
                       <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>累积夜晚</p>
                     </div>
                     <div className={`w-[1px] h-8 ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`} />
@@ -542,7 +542,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
 
                 <button
                   onClick={closeRitual}
-                  className="px-8 py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
+                  className="px-8 py-3 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-medium shadow-lg shadow-sky-500/20 active:scale-95 transition-all"
                 >
                   晚安
                 </button>
@@ -551,8 +551,8 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
 
             {ritualPhase === 'already-completed' && (
               <div className="text-center">
-                <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl bg-indigo-500/10">
-                  <Moon size={40} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+                <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl bg-sky-500/10">
+                  <Moon size={40} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
                 </div>
                 <h3 className="text-xl font-light mb-2">今晚已经归星过了</h3>
                 <p className={`text-xs mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -560,7 +560,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
                 </p>
                 <button
                   onClick={closeRitual}
-                  className="px-8 py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
+                  className="px-8 py-3 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-medium shadow-lg shadow-sky-500/20 active:scale-95 transition-all"
                 >
                   晚安
                 </button>
