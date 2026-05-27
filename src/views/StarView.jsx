@@ -1,17 +1,17 @@
 /**
- * StarView.jsx — "归星"板块（v4.25.0 仪式驱动型重构）
+ * StarView.jsx — "归星"板块（v4.27.0 简化版）
  *
  * 页面结构：
  *   1) 顶部精简个人信息：头像 + 名字 + 设置
  *   2) 今日状态卡片：今晚归星状态 / 连续天数 / 心情
- *   3) 归星仪式入口：大按钮，点击进入全屏仪式
- *   4) 夜声配置：仪式前的声音选择
+ *   3) 伴眠夜声：独立声音播放卡片
+ *   4) 开始归星：点击后显示随机温暖话术，完成归星
  *   5) 成就徽章墙：累积夜晚 / 传递温暖 / 同行者
  *   6) 底部：心愿池独立入口
  */
 
-import { useState, useEffect, useRef } from 'react';
-import { Settings, Sparkles, Moon, Heart, Users, Play, Pause, Wind, ChevronRight, X, CheckCircle2, Award, Flame, Music } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Settings, Sparkles, Moon, Heart, Users, Play, Pause, Wind, ChevronRight, X, CheckCircle2, Award, Flame, Music, Quote } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import SettingsPanel from './SettingsPanel.jsx';
 import WishPoolView from './WishPoolView.jsx';
@@ -29,13 +29,28 @@ const NIGHT_SOUNDS = [
   { id: 'silent', name: '静默星空', desc: '近乎无声，只保留极轻环境底噪' },
 ];
 
-const SLEEP_POSES = [
-  { id: 'gaze', name: '仰望星空', emoji: '🌠', desc: '躺在星球上，看星河从眼前流过' },
-  { id: 'side', name: '侧卧星河', emoji: '🌙', desc: '侧身沉入星河，让星光从背后淌过' },
-  { id: 'curl', name: '云朵蜷睡', emoji: '☁️', desc: '像一朵云那样，把自己轻轻卷起来' },
-  { id: 'hug', name: '抱星入眠', emoji: '⭐', desc: '怀里抱着一颗温柔的星，慢慢睡去' },
-  { id: 'float', name: '自由漂浮', emoji: '🌌', desc: '什么都不抓，只是漂浮在宇宙里' },
-  { id: 'small', name: '小行星趴睡', emoji: '🪐', desc: '趴在一颗小行星上，听它缓慢自转' },
+// 温暖话术库 — 每次归星随机显示一条
+const WARM_MESSAGES = [
+  { text: '今天的你已经很棒了，明天会更好。', author: '宇宙' },
+  { text: '你走过的每一步，都在成为更好的自己。', author: '星星' },
+  { text: '不必着急，慢慢来也是一种力量。', author: '月光' },
+  { text: '你的努力，宇宙都看在眼里。', author: '星云' },
+  { text: '即使今天不够完美，也值得被温柔以待。', author: '晚风' },
+  { text: '相信自己，你比想象中更强大。', author: '银河' },
+  { text: '每一个平凡的日子，都藏着不平凡的光芒。', author: '星辰' },
+  { text: '累了就休息，明天的太阳依旧会升起。', author: '晨曦' },
+  { text: '你的存在本身，就是一份美好的礼物。', author: '宇宙' },
+  { text: '不必和别人比较，你的节奏就是最好的节奏。', author: '行星' },
+  { text: '今天的疲惫，会在梦里化作星光。', author: '夜空' },
+  { text: '你已经做得很好了，真的。', author: '云朵' },
+  { text: '生活也许不易，但你一直在勇敢前行。', author: '流星' },
+  { text: '给自己一个拥抱，你值得被温柔对待。', author: '星光' },
+  { text: '明天的你，会比今天更接近心中的光。', author: '日出' },
+  { text: '无论今天经历了什么，此刻请安心入眠。', author: '潮汐' },
+  { text: '你的坚持，终将成为照亮前路的光。', author: '灯塔' },
+  { text: '放下今天的烦恼，让心灵在星空中自由漂浮。', author: '深空' },
+  { text: '你是一颗独一无二的星，闪耀着属于自己的光芒。', author: '星座' },
+  { text: '晚安，愿你的梦里充满温柔与希望。', author: '月亮' },
 ];
 
 // 成就徽章定义
@@ -57,13 +72,11 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
   const [isPlaying, setIsPlaying] = useState(false);
   const [showSoundPicker, setShowSoundPicker] = useState(false);
 
-  // 归星仪式状态
-  const [selectedPose, setSelectedPose] = useState(SLEEP_POSES[0]);
+  // 归星状态
   const [showRitual, setShowRitual] = useState(false);
-  const [ritualPhase, setRitualPhase] = useState('select');
-  const [breathPhase, setBreathPhase] = useState('inhale');
+  const [ritualPhase, setRitualPhase] = useState('message');
+  const [warmMessage, setWarmMessage] = useState(null);
   const ritualTimersRef = useRef([]);
-  const ritualActiveRef = useRef(false);
 
   const clearRitualTimers = () => {
     ritualTimersRef.current.forEach(id => clearTimeout(id));
@@ -77,52 +90,25 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
   // 夜声播放（模拟）
   const togglePlay = () => setIsPlaying(!isPlaying);
 
-  // 调息动画
-  const startBreathing = () => {
-    clearRitualTimers();
-    ritualActiveRef.current = true;
-    setRitualPhase('breathing');
-    setBreathPhase('inhale');
+  // 随机获取一条温暖话术
+  const getRandomMessage = useCallback(() => {
+    const index = Math.floor(Math.random() * WARM_MESSAGES.length);
+    return WARM_MESSAGES[index];
+  }, []);
 
-    let cycle = 0;
-    const runCycle = () => {
-      if (!ritualActiveRef.current) return;
-      setBreathPhase('inhale');
-      const t1 = setTimeout(() => {
-        if (!ritualActiveRef.current) return;
-        setBreathPhase('hold');
-        const t2 = setTimeout(() => {
-          if (!ritualActiveRef.current) return;
-          setBreathPhase('exhale');
-          const t3 = setTimeout(() => {
-            if (!ritualActiveRef.current) return;
-            cycle++;
-            if (cycle < 3) {
-              runCycle();
-            } else {
-              completeRitual();
-            }
-          }, 3000);
-          ritualTimersRef.current.push(t3);
-        }, 2000);
-        ritualTimersRef.current.push(t2);
-      }, 3000);
-      ritualTimersRef.current.push(t1);
-    };
-    runCycle();
+  const startRitual = () => {
+    if (hasCheckedInToday) return;
+    const message = getRandomMessage();
+    setWarmMessage(message);
+    setRitualPhase('message');
+    setShowRitual(true);
   };
 
   const completeRitual = () => {
-    if (!ritualActiveRef.current) return;
     if (hasCheckedInToday) {
-      ritualActiveRef.current = false;
-      clearRitualTimers();
       setRitualPhase('already-completed');
       return;
     }
-    ritualActiveRef.current = false;
-    clearRitualTimers();
-    setRitualPhase('complete');
 
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
@@ -142,11 +128,10 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
       timestamp: Date.now(),
       moodId: 'ritual',
       moodName: '归星仪式',
-      whisper: `通过「${selectedPose?.name || '归星'}」完成今晚的睡前仪式`,
+      whisper: warmMessage ? `「${warmMessage.text}」— ${warmMessage.author}` : '完成今晚的归星',
       stardustEarned: earned,
       isFirstCheckIn: userData.checkInHistory.length === 0,
       triggeredBy: 'ritual',
-      poseId: selectedPose?.id,
     };
 
     saveUserData({
@@ -156,19 +141,19 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
       stardust: userData.stardust + earned,
       checkInHistory: [newEntry, ...userData.checkInHistory],
     });
+
+    setRitualPhase('complete');
   };
 
   const closeRitual = () => {
-    ritualActiveRef.current = false;
     clearRitualTimers();
     setShowRitual(false);
-    setRitualPhase('select');
-    setBreathPhase('inhale');
+    setRitualPhase('message');
+    setWarmMessage(null);
   };
 
   useEffect(() => {
     return () => {
-      ritualActiveRef.current = false;
       clearRitualTimers();
     };
   }, []);
@@ -283,77 +268,79 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
         </div>
       </div>
 
-      {/* === 3. 归星仪式入口 === */}
+      {/* === 3. 伴眠夜声（独立卡片） === */}
       <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
-        <div className="flex items-center gap-2 mb-3">
-          <Moon size={16} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
-          <h3 className="text-sm font-medium">睡前归星仪式</h3>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Music size={16} className={isDark ? 'text-cyan-400' : 'text-cyan-500'} />
+            <h3 className="text-sm font-medium">伴眠夜声</h3>
+          </div>
+          <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-cyan-500/10 text-cyan-300' : 'bg-cyan-50 text-cyan-600'}`}>
+            {selectedSound.name}
+          </span>
         </div>
 
-        {/* 睡姿快速选择 */}
-        <div className="grid grid-cols-6 gap-2 mb-4">
-          {SLEEP_POSES.map((pose) => (
-            <button
-              key={pose.id}
-              onClick={() => setSelectedPose(pose)}
-              className={`p-2 rounded-xl text-center transition-all active:scale-95 ${
-                selectedPose?.id === pose.id
-                  ? (isDark ? 'bg-indigo-500/15 border border-indigo-500/30' : 'bg-indigo-50 border border-indigo-200')
-                  : (isDark ? 'bg-[#1f1f2e] border border-transparent' : 'bg-gray-50 border border-transparent')
-              }`}
-            >
-              <span className="text-xl block">{pose.emoji}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* 选中睡姿描述 */}
-        <div className={`p-3 rounded-xl mb-4 text-center ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
-          <p className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-            <span className="font-medium">{selectedPose.name}</span>
-            <span className={`text-[10px] ml-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{selectedPose.desc}</span>
-          </p>
-        </div>
-
-        {/* 夜声配置 */}
         <div className={`flex items-center gap-3 p-3 rounded-xl mb-4 ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
-          <Music size={14} className={isDark ? 'text-cyan-400' : 'text-cyan-500'} />
           <div className="flex-1 min-w-0">
-            <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>伴眠夜声</p>
+            <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>当前播放</p>
             <p className="text-xs font-medium">{selectedSound.name}</p>
+            <p className={`text-[10px] ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{selectedSound.desc}</p>
           </div>
           <button
             onClick={togglePlay}
-            className={`p-1.5 rounded-full transition-all active:scale-95 ${
+            className={`p-2.5 rounded-full transition-all active:scale-95 ${
               isPlaying
                 ? (isDark ? 'bg-cyan-500/20 text-cyan-300' : 'bg-cyan-100 text-cyan-600')
                 : (isDark ? 'bg-white/5 text-gray-400' : 'bg-white text-gray-500 shadow-sm')
             }`}
           >
-            {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+            {isPlaying ? <Pause size={18} /> : <Play size={18} />}
           </button>
           <button
             onClick={() => setShowSoundPicker(true)}
-            className={`p-1.5 rounded-full transition-all active:scale-95 ${isDark ? 'bg-white/5 text-gray-400' : 'bg-white text-gray-500 shadow-sm'}`}
+            className={`p-2.5 rounded-full transition-all active:scale-95 ${isDark ? 'bg-white/5 text-gray-400' : 'bg-white text-gray-500 shadow-sm'}`}
           >
-            <Wind size={14} />
+            <Wind size={18} />
           </button>
         </div>
 
+        {/* 快捷声音选择 */}
+        <div className="grid grid-cols-4 gap-2">
+          {NIGHT_SOUNDS.slice(0, 4).map((sound) => (
+            <button
+              key={sound.id}
+              onClick={() => {
+                setSelectedSound(sound);
+                setIsPlaying(false);
+              }}
+              className={`p-2 rounded-xl text-center transition-all active:scale-95 ${
+                selectedSound.id === sound.id
+                  ? (isDark ? 'bg-cyan-500/15 border border-cyan-500/30' : 'bg-cyan-50 border border-cyan-200')
+                  : (isDark ? 'bg-[#1f1f2e] border border-transparent' : 'bg-gray-50 border border-transparent')
+              }`}
+            >
+              <p className={`text-[10px] font-medium ${selectedSound.id === sound.id ? (isDark ? 'text-cyan-300' : 'text-cyan-600') : (isDark ? 'text-gray-400' : 'text-gray-500')}`}>
+                {sound.name}
+              </p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* === 4. 开始归星 === */}
+      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
+        <div className="flex items-center gap-2 mb-3">
+          <Moon size={16} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+          <h3 className="text-sm font-medium">开始归星</h3>
+        </div>
+
+        <p className={`text-xs mb-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+          点击开始，接收来自宇宙的温暖话语
+        </p>
+
         {/* 大按钮入口 */}
         <button
-          onClick={() => {
-            if (!hasCheckedInToday) {
-              setShowRitual(true);
-              setRitualPhase('breathing');
-              ritualActiveRef.current = true;
-              // 2.5秒后自动完成
-              const timer = setTimeout(() => {
-                completeRitual();
-              }, 2500);
-              ritualTimersRef.current.push(timer);
-            }
-          }}
+          onClick={startRitual}
           disabled={hasCheckedInToday}
           className={`w-full py-4 rounded-2xl font-medium tracking-wider transition-all flex items-center justify-center gap-2 ${
             hasCheckedInToday
@@ -494,107 +481,71 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
       {showRitual && (
         <Portal>
           <div className={`fixed inset-0 z-[60] flex items-center justify-center ${isDark ? 'bg-[#0f0f1a]' : 'bg-[#f8fafc]'} animate-fade-in`}>
-            {/* 粒子汇聚阶段 */}
-            {ritualPhase === 'breathing' && (
-              <div className="relative w-full h-full flex items-center justify-center">
-                {/* 周围粒子向中心汇聚 */}
-                {Array.from({ length: 20 }).map((_, i) => {
-                  const angle = (i * 18) * (Math.PI / 180);
-                  const distance = 120 + Math.random() * 80;
-                  const startX = Math.cos(angle) * distance;
-                  const startY = Math.sin(angle) * distance;
-                  const size = 2 + Math.random() * 3;
-                  const delay = Math.random() * 0.5;
-                  return (
-                    <div
-                      key={i}
-                      className="absolute rounded-full animate-particle-gather"
-                      style={{
-                        width: `${size}px`,
-                        height: `${size}px`,
-                        backgroundColor: isDark ? '#818cf8' : '#6366f1',
-                        '--start-x': `${startX}px`,
-                        '--start-y': `${startY}px`,
-                        animationDelay: `${delay}s`,
-                      }}
-                    />
-                  );
-                })}
-
-                {/* 中央呼吸圆 */}
-                <div className="relative">
-                  <div
-                    className={`w-32 h-32 rounded-full ${isDark ? 'bg-indigo-500/20' : 'bg-indigo-100'} animate-ritual-breathe`}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-4xl">{selectedPose?.emoji}</span>
+            {/* 温暖话术阶段 */}
+            {ritualPhase === 'message' && warmMessage && (
+              <div className="w-full max-w-sm mx-6 text-center">
+                {/* 装饰星星 */}
+                <div className="relative mb-8">
+                  <div className={`w-24 h-24 rounded-full mx-auto flex items-center justify-center ${isDark ? 'bg-indigo-500/10' : 'bg-indigo-50'}`}>
+                    <Quote size={32} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
                   </div>
+                  {/* 浮动小星星 */}
+                  <div className="absolute top-0 left-1/4 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                  <div className="absolute bottom-2 right-1/4 w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" style={{ animationDelay: '0.5s' }} />
+                  <div className="absolute top-4 right-1/3 w-1 h-1 rounded-full bg-pink-400 animate-pulse" style={{ animationDelay: '1s' }} />
                 </div>
 
-                {/* 文案 */}
-                <div className="absolute bottom-32 text-center">
-                  <p className={`text-lg font-light ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>
-                    正在归星...
+                {/* 话术内容 */}
+                <div className={`p-6 rounded-[24px] mb-8 ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
+                  <p className={`text-lg font-light leading-relaxed mb-4 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
+                    「{warmMessage.text}」
                   </p>
-                  <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                    让星光带你回到自己
+                  <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    —— {warmMessage.author}
                   </p>
                 </div>
+
+                {/* 完成按钮 */}
+                <button
+                  onClick={completeRitual}
+                  className="w-full py-4 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
+                >
+                  接收这份温暖，完成归星
+                </button>
               </div>
             )}
 
-            {/* 完成后星星爆开 */}
+            {/* 完成后 */}
             {ritualPhase === 'complete' && (
-              <div className="relative w-full h-full flex items-center justify-center">
-                {/* 爆开的星星 */}
-                {Array.from({ length: 12 }).map((_, i) => {
-                  const angle = (i * 30) * (Math.PI / 180);
-                  const distance = 60 + Math.random() * 40;
-                  const dx = Math.cos(angle) * distance;
-                  const dy = Math.sin(angle) * distance;
-                  return (
-                    <div
-                      key={i}
-                      className="absolute w-2 h-2 rounded-full bg-amber-400 animate-star-burst"
-                      style={{
-                        '--dx': `${dx}px`,
-                        '--dy': `${dy}px`,
-                        animationDelay: `${i * 0.05}s`,
-                      }}
-                    />
-                  );
-                })}
+              <div className="text-center">
+                <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl bg-emerald-500/10">
+                  <CheckCircle2 size={40} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
+                </div>
+                <h3 className="text-xl font-light mb-2">归星完成</h3>
+                <p className={`text-xs mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  今晚的你，已经收到宇宙的温柔。
+                </p>
 
-                <div className="text-center">
-                  <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl bg-emerald-500/10">
-                    <CheckCircle2 size={40} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
-                  </div>
-                  <h3 className="text-xl font-light mb-2">归星完成</h3>
-                  <p className={`text-xs mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                    今晚的你，已经回到自己的星空。
-                  </p>
-
-                  <div className={`p-4 rounded-2xl mb-6 ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
-                    <div className="flex items-center justify-center gap-6">
-                      <div className="text-center">
-                        <p className={`text-lg font-medium ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>+1</p>
-                        <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>累积夜晚</p>
-                      </div>
-                      <div className={`w-[1px] h-8 ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`} />
-                      <div className="text-center">
-                        <p className={`text-lg font-medium ${isDark ? 'text-amber-300' : 'text-amber-500'}`}>+10</p>
-                        <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>星尘</p>
-                      </div>
+                <div className={`p-4 rounded-2xl mb-6 ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
+                  <div className="flex items-center justify-center gap-6">
+                    <div className="text-center">
+                      <p className={`text-lg font-medium ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>+1</p>
+                      <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>累积夜晚</p>
+                    </div>
+                    <div className={`w-[1px] h-8 ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`} />
+                    <div className="text-center">
+                      <p className={`text-lg font-medium ${isDark ? 'text-amber-300' : 'text-amber-500'}`}>+10</p>
+                      <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>星尘</p>
                     </div>
                   </div>
-
-                  <button
-                    onClick={closeRitual}
-                    className="px-8 py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
-                  >
-                    晚安
-                  </button>
                 </div>
+
+                <button
+                  onClick={closeRitual}
+                  className="px-8 py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
+                >
+                  晚安
+                </button>
               </div>
             )}
 
