@@ -423,15 +423,15 @@ export default function TreeholeView({
           }}
           style={{ scrollSnapType: 'y mandatory', overflowY: 'scroll' }}
         >
-          <div className="py-[150px]">
+          <div className="pt-0 pb-[280px]">
             {MOCK_WHISPERS.map((whisper, index) => {
-              const diff = Math.abs(index - echoIndex);
+              const diff = index - echoIndex;
               const isHugged = userData.huggedWhispers.includes(whisper.id);
               return (
                 <div
                   key={whisper.id}
                   className="mb-3"
-                  style={{ scrollSnapAlign: 'center' }}
+                  style={{ scrollSnapAlign: 'start' }}
                 >
                   <div
                     className={`relative h-[140px] p-4 rounded-[20px] border overflow-hidden transition-all duration-500 ${
