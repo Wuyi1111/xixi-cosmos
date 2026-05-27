@@ -505,7 +505,7 @@ export default function TreeholeView({
 
         {todayTasks.length > 0 ? (
           <div
-            className="relative max-h-[280px] overflow-hidden -mx-5 px-5"
+            className="relative max-h-[220px] overflow-hidden -mx-5 px-5"
             style={{ overflowY: 'scroll' }}
           >
             <div className="py-4 space-y-2">
