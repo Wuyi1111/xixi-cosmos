@@ -56,7 +56,7 @@ const WARM_MESSAGES = [
 // 成就徽章定义
 const BADGES = [
   { id: 'nights_7', name: '7夜行者', desc: '连续归星7天', icon: Moon, minDays: 7, color: 'sky' },
-  { id: 'nights_30', name: '月度星旅', desc: '连续归星30天', icon: Moon, minDays: 30, color: 'amber' },
+  { id: 'nights_30', name: '月度星旅', desc: '连续归星30天', icon: Moon, minDays: 30, color: 'sky' },
   { id: 'hugs_10', name: '温暖使者', desc: '传递温暖10次', icon: Heart, minHugs: 10, color: 'sky' },
   { id: 'hugs_50', name: '光之传递', desc: '传递温暖50次', icon: Heart, minHugs: 50, color: 'sky' },
   { id: 'follows_5', name: '同行者', desc: '跟随5个任务', icon: Users, minFollows: 5, color: 'sky' },
@@ -213,7 +213,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
           <div>
             <h2 className="text-base font-medium">{userData.displayName || '星星旅人'}</h2>
             <div className="flex items-center gap-1">
-              <Moon size={10} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
+              <Moon size={10} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
               <span className={`text-[10px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                 连续 {displayContinuousDays} 夜
               </span>
@@ -237,13 +237,13 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>今晚状态</p>
-              <h3 className={`text-lg font-medium ${hasCheckedInToday ? (isDark ? 'text-emerald-400' : 'text-emerald-600') : (isDark ? 'text-sky-300' : 'text-sky-600')}`}>
+              <h3 className={`text-lg font-medium ${hasCheckedInToday ? (isDark ? 'text-sky-400' : 'text-sky-600') : (isDark ? 'text-sky-300' : 'text-sky-600')}`}>
                 {hasCheckedInToday ? '已归星' : '尚未归星'}
               </h3>
             </div>
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${hasCheckedInToday ? (isDark ? 'bg-emerald-500/15' : 'bg-emerald-50') : (isDark ? 'bg-sky-500/15' : 'bg-sky-50')}`}>
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${hasCheckedInToday ? (isDark ? 'bg-sky-500/15' : 'bg-sky-50') : (isDark ? 'bg-sky-500/15' : 'bg-sky-50')}`}>
               {hasCheckedInToday ? (
-                <CheckCircle2 size={24} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
+                <CheckCircle2 size={24} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
               ) : (
                 <Moon size={24} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
               )}
@@ -252,15 +252,15 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5">
-              <Flame size={12} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
+              <Flame size={12} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
               <span className={`text-xs ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                 连续 {displayContinuousDays} 天
               </span>
             </div>
             <div className={`w-px h-3 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
             <div className="flex items-center gap-1.5">
-              <Sparkles size={12} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
-              <span className={`text-xs font-medium ${isDark ? 'text-amber-300' : 'text-amber-600'}`}>
+              <Sparkles size={12} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
+              <span className={`text-xs font-medium ${isDark ? 'text-sky-300' : 'text-sky-600'}`}>
                 {userData.stardust} 星尘
               </span>
             </div>
@@ -357,7 +357,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
       <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Award size={16} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
+            <Award size={16} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
             <h3 className="text-sm font-medium">成就徽章</h3>
           </div>
           <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
@@ -374,7 +374,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
                 key={badge.id}
                 className={`p-3 rounded-xl text-center transition-all ${
                   isUnlocked
-                    ? (isDark ? 'bg-amber-500/10 border border-amber-500/20' : 'bg-amber-50 border border-amber-100')
+                    ? (isDark ? 'bg-sky-500/10 border border-sky-500/20' : 'bg-sky-50 border border-sky-100')
                     : (isDark ? 'bg-[#1f1f2e] border border-transparent opacity-50' : 'bg-gray-50 border border-transparent opacity-50')
                 }`}
               >
@@ -382,11 +382,11 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
                   size={20}
                   className={`mx-auto mb-1.5 ${
                     isUnlocked
-                      ? (isDark ? 'text-amber-400' : 'text-amber-500')
+                      ? (isDark ? 'text-sky-400' : 'text-sky-500')
                       : (isDark ? 'text-gray-600' : 'text-gray-400')
                   }`}
                 />
-                <p className={`text-[10px] font-medium ${isUnlocked ? (isDark ? 'text-amber-300' : 'text-amber-600') : (isDark ? 'text-gray-600' : 'text-gray-400')}`}>
+                <p className={`text-[10px] font-medium ${isUnlocked ? (isDark ? 'text-sky-300' : 'text-sky-600') : (isDark ? 'text-gray-600' : 'text-gray-400')}`}>
                   {badge.name}
                 </p>
                 <p className={`text-[8px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
@@ -490,7 +490,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
                     <Quote size={32} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
                   </div>
                   {/* 浮动小星星 */}
-                  <div className="absolute top-0 left-1/4 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                  <div className="absolute top-0 left-1/4 w-2 h-2 rounded-full bg-sky-400 animate-pulse" />
                   <div className="absolute bottom-2 right-1/4 w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" style={{ animationDelay: '0.5s' }} />
                   <div className="absolute top-4 right-1/3 w-1 h-1 rounded-full bg-sky-400 animate-pulse" style={{ animationDelay: '1s' }} />
                 </div>
@@ -518,8 +518,8 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
             {/* 完成后 */}
             {ritualPhase === 'complete' && (
               <div className="text-center">
-                <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl bg-emerald-500/10">
-                  <CheckCircle2 size={40} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
+                <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl bg-sky-500/10">
+                  <CheckCircle2 size={40} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
                 </div>
                 <h3 className="text-xl font-light mb-2">归星完成</h3>
                 <p className={`text-xs mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -534,7 +534,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
                     </div>
                     <div className={`w-[1px] h-8 ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`} />
                     <div className="text-center">
-                      <p className={`text-lg font-medium ${isDark ? 'text-amber-300' : 'text-amber-500'}`}>+10</p>
+                      <p className={`text-lg font-medium ${isDark ? 'text-sky-300' : 'text-sky-500'}`}>+10</p>
                       <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>星尘</p>
                     </div>
                   </div>
