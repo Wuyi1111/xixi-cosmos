@@ -48,7 +48,7 @@ export default function MyWhispersView({ isDark, userData, saveUserData, onClose
         </div>
 
         {/* 内容区域 */}
-        <div className="flex-1 overflow-y-auto px-5 pb-10 space-y-5">
+        <div className="flex-1 overflow-y-auto px-5 pt-6 pb-10 space-y-5">
           {/* 统计卡片 */}
           <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
             <div className="grid grid-cols-3 gap-4 text-center">

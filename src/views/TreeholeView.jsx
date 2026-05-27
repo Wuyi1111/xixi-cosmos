@@ -390,11 +390,6 @@ export default function TreeholeView({
         >
           <Radio size={20} className="text-pink-400" />
           <span className={`text-[10px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>我的心语</span>
-          {myWhispers.length > 0 && (
-            <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${isDark ? 'bg-pink-500/10 text-pink-400' : 'bg-pink-50 text-pink-600'}`}>
-              {myWhispers.length}
-            </span>
-          )}
         </div>
       </div>
 
