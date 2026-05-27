@@ -29,17 +29,14 @@ export default function MyWhispersView({ isDark, userData, saveUserData, onClose
     <Portal>
       <div className={`fixed inset-0 z-[60] ${isDark ? 'bg-[#0f0f1a]' : 'bg-[#f8fafc]'} animate-fade-in flex flex-col`}>
         {/* 顶部导航 */}
-        <div className={`flex items-center gap-3 px-5 pt-12 pb-4 border-b ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+        <div className="flex items-center gap-3 px-5 py-4">
           <button
             onClick={onClose}
-            className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-100'}`}
+            className={`p-2 rounded-full ${isDark ? 'bg-[#171724] text-gray-400' : 'bg-white text-gray-500 shadow-sm'}`}
           >
-            <ChevronLeft size={20} className={isDark ? 'text-gray-300' : 'text-gray-600'} />
+            <ChevronLeft size={20} />
           </button>
-          <div className="flex items-center gap-2">
-            <Radio size={18} className="text-pink-400" />
-            <h2 className={`text-base font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>我的心语</h2>
-          </div>
+          <h2 className="text-lg font-medium">我的心语</h2>
           <span className={`text-[11px] px-2 py-0.5 rounded-full ml-auto ${isDark ? 'bg-[#1f1f2e] text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
             {myWhispers.length} 条
           </span>
