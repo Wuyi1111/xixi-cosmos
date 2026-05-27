@@ -1072,7 +1072,10 @@ export default function TreeholeView({
       <StarTrailView
         isDark={isDark}
         userData={userData}
-        onClose={() => setShowStarTrail(false)}
+        onClose={() => {
+          setShowStarTrail(false);
+          setMode('tomorrow');
+        }}
       />
     );
   }
