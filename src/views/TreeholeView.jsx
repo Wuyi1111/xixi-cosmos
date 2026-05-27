@@ -411,11 +411,11 @@ export default function TreeholeView({
 
         <div
           ref={echoScrollRef}
-          className="relative h-[200px] overflow-hidden -mx-5 px-5"
+          className="relative h-[440px] overflow-hidden -mx-5 px-5"
           onScroll={(e) => {
             const container = e.currentTarget;
             const scrollTop = container.scrollTop;
-            const cardHeight = 160 + 16;
+            const cardHeight = 140 + 12;
             const newIndex = Math.round(scrollTop / cardHeight);
             if (newIndex !== echoIndex && newIndex >= 0 && newIndex < MOCK_WHISPERS.length) {
               setEchoIndex(newIndex);
@@ -423,22 +423,28 @@ export default function TreeholeView({
           }}
           style={{ scrollSnapType: 'y mandatory', overflowY: 'scroll' }}
         >
-          <div className="py-[40px]">
+          <div className="py-[150px]">
             {MOCK_WHISPERS.map((whisper, index) => {
-              const isActive = index === echoIndex;
+              const diff = Math.abs(index - echoIndex);
               const isHugged = userData.huggedWhispers.includes(whisper.id);
               return (
                 <div
                   key={whisper.id}
-                  className="mb-4"
+                  className="mb-3"
                   style={{ scrollSnapAlign: 'center' }}
                 >
                   <div
-                    className={`relative h-[160px] p-5 rounded-[24px] border overflow-hidden transition-all duration-500 ${
+                    className={`relative h-[140px] p-4 rounded-[20px] border overflow-hidden transition-all duration-500 ${
                       isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm'
-                    } ${isActive ? 'shadow-lg scale-100 opacity-100' : 'shadow-sm scale-90 opacity-40 blur-[2px]'}`}
+                    } ${
+                      diff === 0
+                        ? 'shadow-lg scale-100 opacity-100'
+                        : diff === 1
+                          ? 'shadow-sm scale-95 opacity-60'
+                          : 'shadow-none scale-85 opacity-30 blur-[2px]'
+                    }`}
                   >
-                    <div className="flex items-center gap-2 mb-3 relative z-10">
+                    <div className="flex items-center gap-2 mb-2 relative z-10">
                       <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
                         {whisper.emotion}
                       </span>
@@ -449,7 +455,7 @@ export default function TreeholeView({
                     <p className={`text-sm leading-relaxed font-light relative z-10 line-clamp-3 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                       "{whisper.text}"
                     </p>
-                    <div className="absolute bottom-4 right-4 z-10">
+                    <div className="absolute bottom-3 right-3 z-10">
                       <button
                         onClick={(e) => handleGiveHug(whisper.id, e)}
                         disabled={isHugged}

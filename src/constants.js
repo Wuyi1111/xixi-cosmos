@@ -69,7 +69,12 @@ export const MOCK_WHISPERS = [
   { id: 2, text: '面试又失败了，感觉自己好没用。但是今晚的星星很亮。', emotion: '失落', isPositive: false },
   { id: 3, text: '买到了最后一块草莓蛋糕，开心！', emotion: '治愈', isPositive: true },
   { id: 4, text: '突然觉得，平平淡淡的日子才是最难得的。', emotion: '平静', isPositive: true },
-  { id: 5, text: '想家了，不敢给爸妈打电话怕哭出来。', emotion: '孤独', isPositive: false }
+  { id: 5, text: '想家了，不敢给爸妈打电话怕哭出来。', emotion: '孤独', isPositive: false },
+  { id: 6, text: '今天被陌生人让了座位，心里暖暖的。', emotion: '温暖', isPositive: true },
+  { id: 7, text: '加班到很晚，但看到窗外的月亮，觉得一切都没那么糟了。', emotion: '坚持', isPositive: true },
+  { id: 8, text: '和好朋友聊了一晚上，感觉被理解了，真好。', emotion: '陪伴', isPositive: true },
+  { id: 9, text: '今天什么也没做成，有点沮丧，但明天又是新的一天。', emotion: '释然', isPositive: true },
+  { id: 10, text: '路过花店买了一束向日葵，放在床头，希望梦也是金色的。', emotion: '浪漫', isPositive: true }
 ];
 
 // 16种宇宙睡眠人格图谱
