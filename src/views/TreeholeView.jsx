@@ -476,32 +476,32 @@ export default function TreeholeView({
       </div>
 
       {/* 星际足迹入口 */}
-      {taskFootprints.length > 0 && (
-        <div
-          onClick={() => setShowStarTrail(true)}
-          className={`p-5 rounded-[24px] cursor-pointer transition-all active:scale-[0.98] ${
-            isDark ? 'bg-[#171724] border border-white/5 hover:bg-[#1a1a2e]' : 'bg-white border border-gray-100 shadow-sm hover:shadow-md'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-100'}`}>
-                <Footprints size={24} className={isDark ? 'text-emerald-300' : 'text-emerald-500'} />
-              </div>
-              <div>
-                <p className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>星际足迹</p>
-                <p className={`text-[11px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>查看你的任务完成记录</p>
-              </div>
+      <div
+        onClick={() => setShowStarTrail(true)}
+        className={`p-5 rounded-[24px] cursor-pointer transition-all active:scale-[0.98] ${
+          isDark ? 'bg-[#171724] border border-white/5 hover:bg-[#1a1a2e]' : 'bg-white border border-gray-100 shadow-sm hover:shadow-md'
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-100'}`}>
+              <Footprints size={24} className={isDark ? 'text-emerald-300' : 'text-emerald-500'} />
             </div>
-            <div className="flex items-center gap-2">
-              <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
-                {taskFootprints.length} 个
-              </span>
-              <ChevronDown size={16} className={`rotate-[-90deg] ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+            <div>
+              <p className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>星际足迹</p>
+              <p className={`text-[11px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                {taskFootprints.length > 0 ? '查看你的任务完成记录' : '还没有记录，完成任务后会在这里留下足迹'}
+              </p>
             </div>
           </div>
+          <div className="flex items-center gap-2">
+            <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
+              {taskFootprints.length} 个
+            </span>
+            <ChevronDown size={16} className={`rotate-[-90deg] ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+          </div>
         </div>
-      )}
+      </div>
 
       {/* 我的今日清单 */}
       <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
