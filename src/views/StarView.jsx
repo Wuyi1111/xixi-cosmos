@@ -1,22 +1,21 @@
 /**
- * StarView.jsx — "归星"板块（v4.34.0 个人中心版）
+ * StarView.jsx — "归星"板块（v4.35.0 个人中心入口版）
  *
  * 页面结构：
- *   1) 顶部个人信息：头像(可编辑) + 名字(可编辑) + 设置
+ *   1) 顶部个人中心入口：头像 + 名字 + 右箭头
  *   2) 今日状态卡片：今晚归星状态 / 连续天数 / 心情
  *   3) 伴眠夜声：独立声音播放卡片
  *   4) 开始归星：点击后显示随机温暖话术，完成归星
- *   5) 成就徽章：首页展示一排4个 + 查看全部入口
- *   6) 底部：心愿池独立入口
+ *   5) 底部：心愿池独立入口
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Settings, Sparkles, Moon, Heart, Users, Play, Pause, Wind, ChevronRight, X, CheckCircle2, Award, Flame, Music, Quote, Edit3 } from 'lucide-react';
+import { Settings, Sparkles, Moon, Heart, Users, Play, Pause, Wind, ChevronRight, X, CheckCircle2, Award, Flame, Music, Quote } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import SettingsPanel from './SettingsPanel.jsx';
 import WishPoolView from './WishPoolView.jsx';
-import BadgeCollectionView, { getHomeBadges } from './BadgeCollectionView.jsx';
-import { INITIAL_USER_DATA, AVATAR_EMOJIS } from '../constants.js';
+import ProfileView from './ProfileView.jsx';
+import { INITIAL_USER_DATA } from '../constants.js';
 import { computeStreakInfo } from '../utils.js';
 
 const NIGHT_SOUNDS = [
@@ -57,12 +56,7 @@ const WARM_MESSAGES = [
 export default function StarView({ isDark, theme, setTheme, userData, saveUserData, setUserData, currentDateStr }) {
   const [showSettings, setShowSettings] = useState(false);
   const [showWishPool, setShowWishPool] = useState(false);
-  const [showBadgeCollection, setShowBadgeCollection] = useState(false);
-
-  // 编辑个人信息
-  const [showProfileEdit, setShowProfileEdit] = useState(false);
-  const [editName, setEditName] = useState(userData.displayName || '');
-  const [editAvatar, setEditAvatar] = useState(userData.avatarEmoji || '🪐');
+  const [showProfile, setShowProfile] = useState(false);
 
   // 夜声状态
   const [selectedSound, setSelectedSound] = useState(NIGHT_SOUNDS[0]);
@@ -155,24 +149,6 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
     };
   }, []);
 
-  // 保存个人信息编辑
-  const saveProfile = () => {
-    const trimmedName = editName.trim();
-    if (trimmedName) {
-      saveUserData({
-        ...userData,
-        displayName: trimmedName,
-        avatarEmoji: editAvatar,
-      });
-    }
-    setShowProfileEdit(false);
-  };
-
-  // 首页展示的4个徽章
-  const homeBadges = getHomeBadges(userData);
-  const totalBadgesCount = 19; // 所有徽章总数
-  const unlockedCount = homeBadges.filter(b => b.isUnlocked).length;
-
   if (showSettings) {
     return (
       <SettingsPanel
@@ -207,43 +183,32 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
     );
   }
 
-  if (showBadgeCollection) {
+  if (showProfile) {
     return (
-      <BadgeCollectionView
+      <ProfileView
         isDark={isDark}
         userData={userData}
-        onClose={() => setShowBadgeCollection(false)}
+        saveUserData={saveUserData}
+        onClose={() => setShowProfile(false)}
       />
     );
   }
 
   return (
     <div className="animate-fade-in pb-10 space-y-5">
-      {/* === 1. 顶部个人信息（可编辑） === */}
+      {/* === 1. 顶部个人中心入口（简洁） === */}
       <div className="flex items-center justify-between">
         <button
-          onClick={() => {
-            setEditName(userData.displayName || '星星旅人');
-            setEditAvatar(userData.avatarEmoji || '🪐');
-            setShowProfileEdit(true);
-          }}
+          onClick={() => setShowProfile(true)}
           className="flex items-center gap-3 flex-1 text-left"
         >
           <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${isDark ? 'bg-[#171724] border border-sky-500/20' : 'bg-white shadow-sm border border-sky-100'}`}>
             {userData.avatarEmoji || '🪐'}
           </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h2 className="text-base font-medium">{userData.displayName || '星星旅人'}</h2>
-              <Edit3 size={12} className={isDark ? 'text-gray-600' : 'text-gray-400'} />
-            </div>
-            <div className="flex items-center gap-1">
-              <Moon size={10} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
-              <span className={`text-[10px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                连续 {displayContinuousDays} 夜
-              </span>
-            </div>
+          <div className="flex-1">
+            <h2 className="text-base font-medium">{userData.displayName || '星星旅人'}</h2>
           </div>
+          <ChevronRight size={18} className={isDark ? 'text-gray-600' : 'text-gray-400'} />
         </button>
         <button
           onClick={() => setShowSettings(true)}
@@ -402,69 +367,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
         </div>
       </div>
 
-      {/* === 5. 成就徽章（首页一排4个 + 查看全部） === */}
-      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Award size={16} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
-            <h3 className="text-sm font-medium">成就徽章</h3>
-          </div>
-          <button
-            onClick={() => setShowBadgeCollection(true)}
-            className={`flex items-center gap-1 text-[10px] transition-colors ${isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
-          >
-            查看全部 <ChevronRight size={12} />
-          </button>
-        </div>
-
-        {/* 一排4个徽章 */}
-        <div className="grid grid-cols-4 gap-3">
-          {homeBadges.map((badge) => {
-            const Icon = badge.icon;
-            const isUnlocked = badge.isUnlocked;
-            return (
-              <div
-                key={badge.id}
-                className={`p-3 rounded-xl text-center transition-all ${
-                  isUnlocked
-                    ? (isDark ? 'bg-sky-500/10 border border-sky-500/20' : 'bg-sky-50 border border-sky-100')
-                    : (isDark ? 'bg-[#1f1f2e] border border-transparent opacity-50' : 'bg-gray-50 border border-transparent opacity-50')
-                }`}
-              >
-                <Icon
-                  size={20}
-                  className={`mx-auto mb-1.5 ${
-                    isUnlocked
-                      ? (isDark ? 'text-sky-400' : 'text-sky-500')
-                      : (isDark ? 'text-gray-600' : 'text-gray-400')
-                  }`}
-                />
-                <p className={`text-[10px] font-medium ${isUnlocked ? (isDark ? 'text-sky-300' : 'text-sky-600') : (isDark ? 'text-gray-600' : 'text-gray-400')}`}>
-                  {badge.name}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* 收集进度 */}
-        <div className={`mt-3 pt-3 border-t ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
-          <div className="flex items-center justify-between">
-            <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>收集进度</span>
-            <span className={`text-[10px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              {unlockedCount}/{totalBadgesCount}
-            </span>
-          </div>
-          <div className={`w-full h-1.5 rounded-full mt-1.5 ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-100'} overflow-hidden`}>
-            <div
-              className="h-full rounded-full bg-sky-500 transition-all duration-500"
-              style={{ width: `${totalBadgesCount > 0 ? (unlockedCount / totalBadgesCount) * 100 : 0}%` }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* === 6. 底部心愿池入口 === */}
+      {/* === 5. 底部心愿池入口 === */}
       <button
         onClick={() => setShowWishPool(true)}
         className={`w-full py-4 rounded-2xl text-sm font-medium transition-all active:scale-95 flex items-center justify-center gap-2 ${
@@ -477,65 +380,6 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
         进入心愿池
         <ChevronRight size={14} />
       </button>
-
-      {/* === 个人信息编辑弹窗 === */}
-      {showProfileEdit && (
-        <Portal>
-          <div className={`fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setShowProfileEdit(false)}>
-            <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`} onClick={e => e.stopPropagation()}>
-              <button onClick={() => setShowProfileEdit(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-200">
-                <X size={20} />
-              </button>
-              <h3 className="text-lg font-medium mb-5 text-center">编辑资料</h3>
-
-              {/* 头像选择 */}
-              <div className="mb-5">
-                <p className={`text-xs mb-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>选择头像</p>
-                <div className="grid grid-cols-7 gap-2">
-                  {AVATAR_EMOJIS.map((emoji) => (
-                    <button
-                      key={emoji}
-                      onClick={() => setEditAvatar(emoji)}
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all active:scale-90 ${
-                        editAvatar === emoji
-                          ? (isDark ? 'bg-sky-500/20 border border-sky-500/40' : 'bg-sky-50 border border-sky-300')
-                          : (isDark ? 'bg-[#1f1f2e] border border-transparent' : 'bg-gray-50 border border-transparent')
-                      }`}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 名字输入 */}
-              <div className="mb-5">
-                <p className={`text-xs mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>昵称</p>
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  maxLength={12}
-                  className={`w-full px-4 py-3 rounded-xl text-sm outline-none transition-all ${
-                    isDark
-                      ? 'bg-[#1f1f2e] text-white border border-white/10 focus:border-sky-500/50'
-                      : 'bg-gray-50 text-gray-900 border border-gray-200 focus:border-sky-300'
-                  }`}
-                  placeholder="输入你的昵称"
-                />
-              </div>
-
-              {/* 保存按钮 */}
-              <button
-                onClick={saveProfile}
-                className="w-full py-3.5 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-medium shadow-lg shadow-sky-500/20 active:scale-95 transition-all"
-              >
-                保存
-              </button>
-            </div>
-          </div>
-        </Portal>
-      )}
 
       {/* === 夜声选择器弹窗 === */}
       {showSoundPicker && (
