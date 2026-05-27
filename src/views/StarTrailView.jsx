@@ -112,10 +112,10 @@ export default function StarTrailView({ isDark, userData, onClose }) {
             <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>本月约定天数</p>
           </div>
           <div>
-            <div className={`w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center ${isDark ? 'bg-amber-500/15' : 'bg-amber-100'}`}>
-              <Trophy size={18} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
+            <div className={`w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-100'}`}>
+              <Trophy size={18} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
             </div>
-            <p className={`text-xl font-medium ${isDark ? 'text-amber-300' : 'text-amber-600'}`}>{completedTasks.length}</p>
+            <p className={`text-xl font-medium ${isDark ? 'text-emerald-300' : 'text-emerald-600'}`}>{completedTasks.length}</p>
             <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>总完成约定</p>
           </div>
         </div>

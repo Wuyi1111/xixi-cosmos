@@ -60,17 +60,17 @@ export default function MyWhispersView({ isDark, userData, saveUserData, onClose
                 <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>总心语数</p>
               </div>
               <div>
-                <div className={`w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center ${isDark ? 'bg-yellow-500/15' : 'bg-yellow-100'}`}>
-                  <Heart size={18} className={isDark ? 'text-yellow-400' : 'text-yellow-500'} />
+                <div className={`w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center ${isDark ? 'bg-pink-500/15' : 'bg-pink-100'}`}>
+                  <Heart size={18} className={isDark ? 'text-pink-400' : 'text-pink-500'} />
                 </div>
-                <p className={`text-xl font-semibold ${isDark ? 'text-yellow-400' : 'text-yellow-500'}`}>{favoriteCount}</p>
+                <p className={`text-xl font-semibold ${isDark ? 'text-pink-400' : 'text-pink-500'}`}>{favoriteCount}</p>
                 <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>收藏数</p>
               </div>
               <div>
-                <div className={`w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-100'}`}>
-                  <Calendar size={18} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
+                <div className={`w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center ${isDark ? 'bg-pink-500/15' : 'bg-pink-100'}`}>
+                  <Calendar size={18} className={isDark ? 'text-pink-400' : 'text-pink-500'} />
                 </div>
-                <p className={`text-xl font-semibold ${isDark ? 'text-emerald-400' : 'text-emerald-500'}`}>{todayWhispers}</p>
+                <p className={`text-xl font-semibold ${isDark ? 'text-pink-400' : 'text-pink-500'}`}>{todayWhispers}</p>
                 <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>今日发射</p>
               </div>
             </div>
