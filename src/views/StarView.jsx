@@ -196,62 +196,83 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
 
   return (
     <div className="animate-fade-in pb-10 space-y-5">
-      {/* === 1. 统一个人中心入口卡片 === */}
-      <button
-        onClick={() => setShowProfile(true)}
-        className={`w-full text-left rounded-[20px] p-4 transition-all active:scale-[0.98] ${
-          isDark
-            ? 'bg-[#171724] border border-sky-500/20 hover:border-sky-500/40'
-            : 'bg-white border border-sky-100 hover:border-sky-300 shadow-sm'
-        }`}
-      >
-        {/* 上半：个人信息 */}
-        <div className="flex items-center gap-3">
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl shrink-0 ${isDark ? 'bg-[#13131f] border border-sky-500/20' : 'bg-sky-50 border border-sky-100'}`}>
-            {userData.avatarEmoji || '🪐'}
+      {/* === 1. 统一个人中心入口卡片 + 设置按钮 === */}
+      <div className="flex items-start gap-3">
+        {/* 个人中心卡片 */}
+        <button
+          onClick={() => setShowProfile(true)}
+          className={`flex-1 text-left rounded-[20px] p-4 transition-all active:scale-[0.98] ${
+            isDark
+              ? 'bg-[#171724] border border-sky-500/20 hover:border-sky-500/40'
+              : 'bg-white border border-sky-100 hover:border-sky-300 shadow-sm'
+          }`}
+        >
+          {/* 上半：个人信息 */}
+          <div className="flex items-center gap-3">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl shrink-0 ${isDark ? 'bg-[#13131f] border border-sky-500/20' : 'bg-sky-50 border border-sky-100'}`}>
+              {userData.avatarEmoji || '🪐'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-base font-medium">{userData.displayName || '星星旅人'}</h2>
+            </div>
+            <ChevronRight size={18} className={isDark ? 'text-gray-600' : 'text-gray-400'} />
           </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="text-base font-medium">{userData.displayName || '星星旅人'}</h2>
-          </div>
-          <ChevronRight size={18} className={isDark ? 'text-gray-600' : 'text-gray-400'} />
-        </div>
 
-        {/* 分隔线 */}
-        <div className={`my-3 border-t ${isDark ? 'border-white/5' : 'border-gray-100'}`} />
+          {/* 分隔线 */}
+          <div className={`my-3 border-t ${isDark ? 'border-white/5' : 'border-gray-100'}`} />
 
-        {/* 下半：人格信息 / 测试引导 */}
-        {userData.personality ? (
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
+          {/* 下半：人格信息 / 测试引导 */}
+          {userData.personality ? (
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <Sparkles size={14} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+                <span className="text-sm font-medium">{userData.personality.name}</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+                  {userData.personality.type}
+                </span>
+              </div>
+              <p className={`text-[11px] mb-2 line-clamp-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                {userData.personality.desc}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {userData.personality.tags.slice(0, 3).map((tag, idx) => (
+                  <span key={idx} className={`text-[9px] px-2 py-0.5 rounded-full ${isDark ? 'bg-indigo-500/15 text-indigo-300' : 'bg-indigo-50 text-indigo-600'}`}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                window.dispatchEvent(new CustomEvent('xixi:start-personality-test'));
+              }}
+              className="flex items-center gap-2"
+            >
               <Sparkles size={14} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
-              <span className="text-sm font-medium">{userData.personality.name}</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-                {userData.personality.type}
+              <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                探索睡眠人格
+              </span>
+              <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                · 8 道题发现你的宇宙归属
               </span>
             </div>
-            <p className={`text-[11px] mb-2 line-clamp-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              {userData.personality.desc}
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {userData.personality.tags.slice(0, 3).map((tag, idx) => (
-                <span key={idx} className={`text-[9px] px-2 py-0.5 rounded-full ${isDark ? 'bg-indigo-500/15 text-indigo-300' : 'bg-indigo-50 text-indigo-600'}`}>
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <Sparkles size={14} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
-            <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-              探索睡眠人格
-            </span>
-            <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-              · 8 道题发现你的宇宙归属
-            </span>
-          </div>
-        )}
-      </button>
+          )}
+        </button>
+
+        {/* 设置按钮 */}
+        <button
+          onClick={() => setShowSettings(true)}
+          className={`p-3 rounded-[20px] shrink-0 transition-all active:scale-95 ${
+            isDark
+              ? 'bg-[#171724] border border-sky-500/20 text-gray-400 hover:text-gray-300'
+              : 'bg-white border border-sky-100 text-gray-500 shadow-sm hover:text-gray-700'
+          }`}
+        >
+          <Settings size={20} />
+        </button>
+      </div>
 
       {/* === 2. 今日状态卡片（含数据概览） === */}
       <div className={`p-5 rounded-[24px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border border-sky-500/15' : 'bg-gradient-to-br from-sky-50/70 to-white border border-sky-100'}`}>
