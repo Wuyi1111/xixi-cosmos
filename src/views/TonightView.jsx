@@ -1,132 +1,261 @@
 /**
- * TonightView.jsx — "此刻"板块（v4.41.0 情绪陪伴对话版）
+ * TonightView.jsx — "此刻"板块（v4.42.0 聊天记录式对话版）
  *
- * 纯情绪疏导，不做功能跳转。
- * 多轮对话 + 互动元素：宇宙拥抱、呼吸引导、丢进黑洞、随机星语。
+ * 纯对话流，不做功能跳转。
+ * 像聊天一样：App 说 → 用户选回复 → App 回应 → 继续聊。
+ * 开场 3 个选项，多轮对话深入，最后自然晚安收尾。
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  Moon, Sun, CloudRain, Coffee, Flame, Brain, Sparkles,
-  Heart, Wind, Shuffle, RotateCcw, Send, X, ChevronRight
-} from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Moon, RotateCcw } from 'lucide-react';
 
-/* ─────────────── 温暖语录库 ─────────────── */
-const WARM_QUOTES = [
-  { text: '今天的你已经很棒了，明天会更好。', author: '宇宙' },
-  { text: '你走过的每一步，都在成为更好的自己。', author: '星星' },
-  { text: '不必着急，慢慢来也是一种力量。', author: '月光' },
-  { text: '你的努力，宇宙都看在眼里。', author: '星云' },
-  { text: '即使今天不够完美，也值得被温柔以待。', author: '晚风' },
-  { text: '相信自己，你比想象中更强大。', author: '银河' },
-  { text: '每一个平凡的日子，都藏着不平凡的光芒。', author: '星辰' },
-  { text: '累了就休息，明天的太阳依旧会升起。', author: '晨曦' },
-  { text: '你的存在本身，就是一份美好的礼物。', author: '宇宙' },
-  { text: '不必和别人比较，你的节奏就是最好的节奏。', author: '行星' },
-  { text: '今天的疲惫，会在梦里化作星光。', author: '夜空' },
-  { text: '你已经做得很好了，真的。', author: '云朵' },
-  { text: '生活也许不易，但你一直在勇敢前行。', author: '流星' },
-  { text: '给自己一个拥抱，你值得被温柔对待。', author: '星光' },
-  { text: '明天的你，会比今天更接近心中的光。', author: '日出' },
-  { text: '无论今天经历了什么，此刻请安心入眠。', author: '潮汐' },
-  { text: '你的坚持，终将成为照亮前路的光。', author: '灯塔' },
-  { text: '放下今天的烦恼，让心灵在星空中自由漂浮。', author: '深空' },
-  { text: '你是一颗独一无二的星，闪耀着属于自己的光芒。', author: '星座' },
-  { text: '晚安，愿你的梦里充满温柔与希望。', author: '月亮' },
-];
+/* ─────────────── 对话树配置 ─────────────── */
+const DIALOG_TREE = {
+  // 开场
+  greeting: {
+    type: 'app',
+    text: '今天的小宇宙是什么状态？',
+    options: [
+      { text: '有点累，像被重力压着的星', next: 'tired_1' },
+      { text: '还不错，今天有小小的光', next: 'good_1' },
+      { text: '有点闷，云挡住了星光', next: 'gloomy_1' },
+    ],
+  },
 
-/* ─────────────── 情绪对话配置 ─────────────── */
-const EMOTION_FLOW = {
-  tired: {
-    icon: Coffee,
-    responses: [
-      '累的时候，星星也会变暗一点，这很正常。',
-      '宇宙不会催你，你可以慢慢走。',
-      '今天的你已经很努力了，真的。',
-    ],
-    actions: [
-      { key: 'hug', label: '给我一个宇宙拥抱', icon: Heart },
-      { key: 'breathe', label: '潮汐呼吸', icon: Wind },
-      { key: 'blackhole', label: '把累写下来，丢进黑洞', icon: Sparkles },
-      { key: 'quote', label: '来句随机的宇宙安慰', icon: Shuffle },
+  // ── 累了分支 ──
+  tired_1: {
+    type: 'app',
+    text: '累的时候，星星也会变暗一点，这很正常。\n宇宙不会催你，你可以慢慢走。',
+    options: [
+      { text: '工作/学习太累了', next: 'tired_work' },
+      { text: '说不清，就是累', next: 'tired_vague' },
+      { text: '不想说，想被安慰', next: 'tired_comfort' },
     ],
   },
-  good: {
-    icon: Sun,
-    responses: [
-      '真好，星星也会为你多亮一点。',
-      '带着这份光入睡，梦会更甜。',
-      '宇宙喜欢看到开心的你。',
-    ],
-    actions: [
-      { key: 'quote', label: '抽一张宇宙祝福', icon: Shuffle },
-      { key: 'hug', label: '把这份温暖存起来', icon: Heart },
-      { key: 'wish', label: '对着星空许个愿', icon: Sparkles },
+  tired_work: {
+    type: 'app',
+    text: '辛苦了。今天的任务已经完成了，剩下的交给明天的自己。\n现在，把重力交给宇宙，你只管休息。',
+    options: [
+      { text: '嗯，我会的', next: 'tired_better' },
+      { text: '但还是有点焦虑', next: 'tired_anxious' },
+      { text: '可以陪我说说话吗', next: 'tired_talk' },
     ],
   },
-  gloomy: {
-    icon: CloudRain,
-    responses: [
-      '云挡住了星光，但星星还在那里。',
-      '这种天气，适合躲进被窝里。',
-      '没关系，宇宙会陪你等云散。',
-    ],
-    actions: [
-      { key: 'quote', label: '来句温暖的话', icon: Shuffle },
-      { key: 'breathe', label: '深呼吸，让心静下来', icon: Wind },
-      { key: 'blackhole', label: '把闷写下来，丢进黑洞', icon: Sparkles },
+  tired_vague: {
+    type: 'app',
+    text: '有时候累不需要理由，就像星星也会无缘无故变暗。\n没关系，宇宙会陪着你，直到你重新亮起来。',
+    options: [
+      { text: '谢谢你懂我', next: 'tired_better' },
+      { text: '还是睡不着怎么办', next: 'tired_sleep' },
+      { text: '想听点温暖的话', next: 'tired_quote' },
     ],
   },
-  anxious: {
-    icon: Flame,
-    responses: [
-      '烦躁的时候，连星星都会闪得更快。',
-      '试着把注意力放在呼吸上，就像看着潮汐来去。',
-      '这股能量会过去的，就像流星划过。',
-    ],
-    actions: [
-      { key: 'breathe', label: '潮汐呼吸', icon: Wind },
-      { key: 'blackhole', label: '把烦躁丢进黑洞', icon: Sparkles },
-      { key: 'quote', label: '来句冷静的话', icon: Shuffle },
+  tired_comfort: {
+    type: 'app',
+    text: '那我就不问了。\n只是想说：你已经做得很好了。\n现在，深呼吸，让宇宙抱一抱你。',
+    options: [
+      { text: '感觉好一点了', next: 'tired_better' },
+      { text: '可以多抱一会儿吗', next: 'tired_more_hug' },
+      { text: '我想去睡了', next: 'goodnight' },
     ],
   },
-  racing: {
-    icon: Brain,
-    responses: [
-      '脑子停不下来的时候，就像彗星乱飞。',
-      '试着把它们写下来，宇宙会帮你保管。',
-      '一件一件来，不用急着解决所有问题。',
-    ],
-    actions: [
-      { key: 'blackhole', label: '把杂念写下来，丢进黑洞', icon: Sparkles },
-      { key: 'breathe', label: '潮汐呼吸', icon: Wind },
-      { key: 'quote', label: '来句安心的话', icon: Shuffle },
+  tired_better: {
+    type: 'app',
+    text: '真好。记住这种感觉，它是属于你的光。\n今晚，让这份温柔陪你入梦吧。',
+    options: [
+      { text: '晚安，宇宙', next: 'goodnight' },
+      { text: '还想再聊聊', next: 'tired_talk' },
     ],
   },
-  calm: {
-    icon: Moon,
-    responses: [
-      '像深空一样安静，这是最好的状态。',
-      '享受这份宁静，宇宙也在休息。',
-      '平静的心，会吸引美好的梦。',
-    ],
-    actions: [
-      { key: 'quote', label: '抽一张晚安祝福', icon: Shuffle },
-      { key: 'wish', label: '对着星空许个愿', icon: Sparkles },
-      { key: 'hug', label: '存一份温暖', icon: Heart },
+  tired_anxious: {
+    type: 'app',
+    text: '焦虑的时候，试着把注意力放在呼吸上。\n吸气…呼气…就像潮汐来去，一切都会平静。',
+    options: [
+      { text: '嗯，我试试', next: 'tired_better' },
+      { text: '还是放不下', next: 'tired_letgo' },
     ],
   },
-  happy: {
-    icon: Sparkles,
-    responses: [
-      '哇，今天的你闪闪发光！',
-      '这份快乐像超新星爆发一样耀眼。',
-      '宇宙也想分享你的喜悦。',
+  tired_talk: {
+    type: 'app',
+    text: '我在听。宇宙有很多时间，我们可以慢慢聊。\n不过如果你困了，也不用勉强，去睡吧。',
+    options: [
+      { text: '其实也没什么了', next: 'tired_better' },
+      { text: '我想去睡了', next: 'goodnight' },
     ],
-    actions: [
-      { key: 'quote', label: '抽一张庆祝祝福', icon: Shuffle },
-      { key: 'wish', label: '把快乐存进星星', icon: Sparkles },
-      { key: 'hug', label: '把温暖传递出去', icon: Heart },
+  },
+  tired_sleep: {
+    type: 'app',
+    text: '睡不着的时候，不要强迫自己。\n试着闭上眼睛，想象自己漂浮在星空中，没有重力，没有烦恼。',
+    options: [
+      { text: '我试试', next: 'goodnight' },
+      { text: '还是睡不着', next: 'tired_still_awake' },
+    ],
+  },
+  tired_quote: {
+    type: 'app',
+    text: '"今天的疲惫，会在梦里化作星光。"\n—— 夜空',
+    options: [
+      { text: '这句话真好', next: 'tired_better' },
+      { text: '还有吗', next: 'tired_quote2' },
+    ],
+  },
+  tired_quote2: {
+    type: 'app',
+    text: '"你已经做得很好了，真的。"\n—— 云朵',
+    options: [
+      { text: '谢谢你', next: 'tired_better' },
+      { text: '我想去睡了', next: 'goodnight' },
+    ],
+  },
+  tired_more_hug: {
+    type: 'app',
+    text: '宇宙抱得更紧了一点。\n你可以把脸埋进星光里，哭一会儿也没关系。',
+    options: [
+      { text: '好了，谢谢你', next: 'tired_better' },
+      { text: '我想去睡了', next: 'goodnight' },
+    ],
+  },
+  tired_letgo: {
+    type: 'app',
+    text: '放不下也没关系，不用逼自己。\n有些重量，需要时间慢慢变轻。\n今晚，先允许自己带着它休息。',
+    options: [
+      { text: '嗯，我懂了', next: 'tired_better' },
+      { text: '我想去睡了', next: 'goodnight' },
+    ],
+  },
+  tired_still_awake: {
+    type: 'app',
+    text: '那我们就再聊一会儿。\n或者，你可以试着数星星，从最近的那颗开始…',
+    options: [
+      { text: '一颗…两颗…', next: 'goodnight' },
+      { text: '还是聊天吧', next: 'tired_talk' },
+    ],
+  },
+
+  // ── 不错分支 ──
+  good_1: {
+    type: 'app',
+    text: '真好，星星也会为你多亮一点。\n带着这份光入睡，梦会更甜。',
+    options: [
+      { text: '今天发生了开心的事', next: 'good_share' },
+      { text: '就是觉得平静', next: 'good_calm' },
+      { text: '想分享这份光芒', next: 'good_spread' },
+    ],
+  },
+  good_share: {
+    type: 'app',
+    text: '宇宙也想听听。\n（虽然我不能真的听见，但我能感受到你的喜悦。）',
+    options: [
+      { text: '其实也没什么大事', next: 'good_calm' },
+      { text: '就是小确幸', next: 'good_small_joy' },
+    ],
+  },
+  good_calm: {
+    type: 'app',
+    text: '平静本身就是一种幸福。\n像深空一样安静，没有波澜，却藏着无限。',
+    options: [
+      { text: '说得真好', next: 'good_better' },
+      { text: '我想去睡了', next: 'goodnight' },
+    ],
+  },
+  good_spread: {
+    type: 'app',
+    text: '你的光芒已经照亮了这片星空。\n明天，它会继续温暖更多的人。',
+    options: [
+      { text: '谢谢你', next: 'good_better' },
+      { text: '晚安', next: 'goodnight' },
+    ],
+  },
+  good_small_joy: {
+    type: 'app',
+    text: '小确幸最珍贵。\n一杯热茶、一缕阳光、一句问候…\n宇宙就是由这些微小的光组成的。',
+    options: [
+      { text: '对，就是这样', next: 'good_better' },
+      { text: '我想去睡了', next: 'goodnight' },
+    ],
+  },
+  good_better: {
+    type: 'app',
+    text: '带着这份好心情入梦吧。\n明天，宇宙会给你更多惊喜。',
+    options: [
+      { text: '晚安，宇宙', next: 'goodnight' },
+      { text: '还想再聊聊', next: 'good_talk' },
+    ],
+  },
+  good_talk: {
+    type: 'app',
+    text: '我在。想聊什么？\n或者，我们可以一起静静地看星星。',
+    options: [
+      { text: '就这样静静待着也好', next: 'goodnight' },
+      { text: '晚安', next: 'goodnight' },
+    ],
+  },
+
+  // ── 闷了分支 ──
+  gloomy_1: {
+    type: 'app',
+    text: '云挡住了星光，但星星还在那里。\n没关系，宇宙会陪你等云散。',
+    options: [
+      { text: '不知道为什么闷', next: 'gloomy_vague' },
+      { text: '有点孤独', next: 'gloomy_lonely' },
+      { text: '想被安慰', next: 'gloomy_comfort' },
+    ],
+  },
+  gloomy_vague: {
+    type: 'app',
+    text: '有时候闷也不需要理由，就像天气会无缘无故转阴。\n这种时候，允许自己闷一会儿，也是一种温柔。',
+    options: [
+      { text: '嗯，我允许自己闷着', next: 'gloomy_allow' },
+      { text: '但想快点好起来', next: 'gloomy_better' },
+    ],
+  },
+  gloomy_lonely: {
+    type: 'app',
+    text: '孤独的时候，星星也在彼此远离。\n但它们的光芒，穿越亿万公里，最终还是会相遇。\n你并不孤单，宇宙和你在一起。',
+    options: [
+      { text: '谢谢你陪着我', next: 'gloomy_better' },
+      { text: '还是很难受', next: 'gloomy_comfort' },
+    ],
+  },
+  gloomy_comfort: {
+    type: 'app',
+    text: '我在这里，不会离开。\n你可以把闷说出来，或者就这样安静地待着。\n宇宙有很多耐心。',
+    options: [
+      { text: '感觉好一点了', next: 'gloomy_better' },
+      { text: '我想去睡了', next: 'goodnight' },
+    ],
+  },
+  gloomy_allow: {
+    type: 'app',
+    text: '真好。接纳自己的情绪，是最勇敢的温柔。\n云会散的，星光会重新照进来。',
+    options: [
+      { text: '嗯，我等云散', next: 'gloomy_better' },
+      { text: '我想去睡了', next: 'goodnight' },
+    ],
+  },
+  gloomy_better: {
+    type: 'app',
+    text: '你看，云已经开始变薄了。\n你的光，从来都在。',
+    options: [
+      { text: '晚安，宇宙', next: 'goodnight' },
+      { text: '还想再聊聊', next: 'gloomy_talk' },
+    ],
+  },
+  gloomy_talk: {
+    type: 'app',
+    text: '我在。不管聊什么，或者什么都不聊，都可以。\n宇宙会一直在这里。',
+    options: [
+      { text: '就这样吧', next: 'goodnight' },
+      { text: '晚安', next: 'goodnight' },
+    ],
+  },
+
+  // ── 晚安结束 ──
+  goodnight: {
+    type: 'app',
+    text: '晚安，星星旅人。\n愿你的梦里充满温柔与星光。\n宇宙会一直陪着你，直到天亮。',
+    options: [
+      { text: '再聊一次', next: 'reset' },
     ],
   },
 };
@@ -142,72 +271,11 @@ function getGreeting() {
 
 /* ─────────────── 主组件 ─────────────── */
 export default function TonightView({ isDark }) {
-  const [step, setStep] = useState('greeting');
-  const [emotionKey, setEmotionKey] = useState(null);
-  const [responseIndex, setResponseIndex] = useState(0);
-  const [activeInteraction, setActiveInteraction] = useState(null);
-  const [blackholeText, setBlackholeText] = useState('');
-  const [wishText, setWishText] = useState('');
-  const [quote, setQuote] = useState(null);
-  const [hugVisible, setHugVisible] = useState(false);
-  const [showGoodnight, setShowGoodnight] = useState(false);
-
-  const blackholeRef = useRef(null);
-
-  /* 随机选一条语录 */
-  const drawQuote = useCallback(() => {
-    const idx = Math.floor(Math.random() * WARM_QUOTES.length);
-    setQuote(WARM_QUOTES[idx]);
-  }, []);
-
-  /* 选择情绪 */
-  const pickEmotion = (key) => {
-    setEmotionKey(key);
-    setResponseIndex(Math.floor(Math.random() * EMOTION_FLOW[key].responses.length));
-    setStep('responding');
-  };
-
-  /* 执行互动 */
-  const doInteraction = (key) => {
-    setActiveInteraction(key);
-    if (key === 'quote') drawQuote();
-    if (key === 'hug') {
-      setHugVisible(true);
-      setTimeout(() => setHugVisible(false), 2500);
-    }
-  };
-
-  /* 丢进黑洞 */
-  const throwToBlackhole = () => {
-    if (!blackholeText.trim()) return;
-    setBlackholeText('');
-    setActiveInteraction('blackhole-done');
-    setTimeout(() => setActiveInteraction(null), 2000);
-  };
-
-  /* 许愿 */
-  const makeWish = () => {
-    if (!wishText.trim()) return;
-    setWishText('');
-    setActiveInteraction('wish-done');
-    setTimeout(() => setActiveInteraction(null), 2000);
-  };
-
-  /* 返回重新选择 */
-  const reset = () => {
-    setStep('greeting');
-    setEmotionKey(null);
-    setActiveInteraction(null);
-    setQuote(null);
-    setShowGoodnight(false);
-    setBlackholeText('');
-    setWishText('');
-  };
-
-  /* 晚安 */
-  const goodnight = () => {
-    setShowGoodnight(true);
-  };
+  const [messages, setMessages] = useState([]);
+  const [currentNode, setCurrentNode] = useState('greeting');
+  const [isTyping, setIsTyping] = useState(false);
+  const scrollRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
   const greeting = getGreeting();
   const today = new Date();
@@ -216,8 +284,65 @@ export default function TonightView({ isDark }) {
   const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
   const weekDay = weekDays[today.getDay()];
 
-  const emotion = emotionKey ? EMOTION_FLOW[emotionKey] : null;
-  const EmotionIcon = emotion?.icon || Moon;
+  /* 滚动到底部 */
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isTyping]);
+
+  /* 初始化：添加开场问候 */
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMessages([
+        { role: 'app', text: greeting.text, isGreeting: true },
+        { role: 'app', text: greeting.sub, isSub: true },
+      ]);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, []);
+
+  /* 用户选择 */
+  const handleOption = (option) => {
+    // 添加用户消息
+    setMessages((prev) => [...prev, { role: 'user', text: option.text }]);
+
+    // 模拟打字中
+    setIsTyping(true);
+
+    // 延迟后添加 App 回复
+    const nextNode = DIALOG_TREE[option.next];
+    if (option.next === 'reset') {
+      setTimeout(() => {
+        setMessages([]);
+        setCurrentNode('greeting');
+        setIsTyping(false);
+        // 重新开场
+        setTimeout(() => {
+          setMessages([
+            { role: 'app', text: greeting.text, isGreeting: true },
+            { role: 'app', text: greeting.sub, isSub: true },
+          ]);
+        }, 300);
+      }, 500);
+      return;
+    }
+
+    setTimeout(() => {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'app', text: nextNode.text },
+      ]);
+      setCurrentNode(option.next);
+      setIsTyping(false);
+    }, 800 + Math.random() * 400);
+  };
+
+  /* 获取当前选项 */
+  const currentOptions = DIALOG_TREE[currentNode]?.options || [];
+  const isGoodnight = currentNode === 'goodnight';
 
   return (
     <div className="animate-fade-in pb-10 space-y-5">
@@ -229,255 +354,101 @@ export default function TonightView({ isDark }) {
         </p>
       </div>
 
-      {/* === 对话互动区 === */}
-      <div className={`p-6 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm relative overflow-hidden`}>
-
-        {/* ── 宇宙拥抱动画层 ── */}
-        {hugVisible && (
-          <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-            <div className="relative">
-              <div className={`w-40 h-40 rounded-full ${isDark ? 'bg-indigo-500/20' : 'bg-indigo-100'} animate-hug-expand`} />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Heart size={48} className="text-rose-400 animate-hug-pulse" fill="currentColor" />
-              </div>
-            </div>
-            <div className="absolute bottom-20 text-center">
-              <p className={`text-sm font-medium ${isDark ? 'text-rose-300' : 'text-rose-500'}`}>宇宙抱了抱你</p>
-            </div>
-          </div>
-        )}
-
-        {/* ── 问候 / 情绪选择 ── */}
-        {step === 'greeting' && !showGoodnight && (
-          <>
-            <div className="text-center space-y-3 mb-6">
-              <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto ${isDark ? 'bg-indigo-500/10' : 'bg-indigo-50'}`}>
-                <Moon size={28} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
-              </div>
-              <h2 className="text-lg font-medium">{greeting.text}</h2>
-              <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{greeting.sub}</p>
-              <p className={`text-sm mt-2 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>今天的小宇宙是什么状态？</p>
-            </div>
-
-            <div className="space-y-2.5">
-              {[
-                { key: 'tired', text: '有点累，像被重力压着的星', icon: Coffee },
-                { key: 'good', text: '还不错，今天有小小的光', icon: Sun },
-                { key: 'gloomy', text: '有点闷，云挡住了星光', icon: CloudRain },
-                { key: 'anxious', text: '很烦躁，像要爆发的超新星', icon: Flame },
-                { key: 'racing', text: '脑子里停不下来，像乱飞的彗星', icon: Brain },
-                { key: 'calm', text: '很平静，像深空一样安静', icon: Moon },
-                { key: 'happy', text: '超开心，想分享这份光芒', icon: Sparkles },
-              ].map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.key}
-                    onClick={() => pickEmotion(item.key)}
-                    className={`w-full p-3.5 rounded-2xl text-sm transition-all border flex items-center gap-3 active:scale-[0.98] ${
-                      isDark
-                        ? 'bg-[#1f1f2e] border-gray-800 hover:border-indigo-500/30'
-                        : 'bg-gray-50 border-gray-100 hover:border-indigo-200'
+      {/* === 对话区 === */}
+      <div
+        ref={scrollRef}
+        className={`rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm overflow-hidden flex flex-col`}
+        style={{ maxHeight: 'calc(100vh - 220px)' }}
+      >
+        {/* 消息列表 */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
+          {messages.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
+            >
+              {msg.role === 'app' && (
+                <div className="flex gap-2 max-w-[85%]">
+                  {/* App 头像 */}
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-50'}`}>
+                    <Moon size={14} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+                  </div>
+                  {/* App 消息气泡 */}
+                  <div
+                    className={`px-4 py-2.5 rounded-2xl text-sm whitespace-pre-line ${
+                      msg.isGreeting
+                        ? isDark
+                          ? 'bg-indigo-500/10 text-indigo-200 rounded-tl-2xl'
+                          : 'bg-indigo-50 text-indigo-700 rounded-tl-2xl'
+                        : msg.isSub
+                          ? isDark
+                            ? 'bg-transparent text-gray-500 text-xs px-0 py-0'
+                            : 'bg-transparent text-gray-400 text-xs px-0 py-0'
+                          : isDark
+                            ? 'bg-[#1f1f2e] text-gray-200 rounded-tl-md'
+                            : 'bg-gray-50 text-gray-700 rounded-tl-md'
                     }`}
                   >
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${isDark ? 'bg-indigo-500/10' : 'bg-indigo-50'}`}>
-                      <Icon size={16} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
-                    </div>
-                    <span className="flex-1 text-left">{item.text}</span>
-                    <ChevronRight size={14} className={isDark ? 'text-gray-600' : 'text-gray-400'} />
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        )}
+                    {msg.text}
+                  </div>
+                </div>
+              )}
 
-        {/* ── 情绪回应 + 互动选项 ── */}
-        {step === 'responding' && emotion && !showGoodnight && (
-          <>
-            <div className="text-center space-y-3 mb-6">
-              <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto ${isDark ? 'bg-indigo-500/10' : 'bg-indigo-50'}`}>
-                <EmotionIcon size={24} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+              {msg.role === 'user' && (
+                <div
+                  className={`px-4 py-2.5 rounded-2xl text-sm max-w-[80%] rounded-tr-md ${
+                    isDark
+                      ? 'bg-indigo-500/20 text-indigo-200'
+                      : 'bg-indigo-100 text-indigo-700'
+                  }`}
+                >
+                  {msg.text}
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* 打字中指示器 */}
+          {isTyping && (
+            <div className="flex gap-2 animate-fade-in">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-50'}`}>
+                <Moon size={14} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
               </div>
-              <h2 className="text-base font-medium">{emotion.responses[responseIndex]}</h2>
-              <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>想试试这个吗？</p>
-            </div>
-
-            {/* 互动内容区 */}
-            <div className="mb-4">
-              {/* 随机语录 */}
-              {activeInteraction === 'quote' && quote && (
-                <div className={`p-4 rounded-2xl text-center animate-fade-in ${isDark ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-indigo-50 border border-indigo-100'}`}>
-                  <p className={`text-sm italic mb-2 ${isDark ? 'text-indigo-200' : 'text-indigo-700'}`}>"{quote.text}"</p>
-                  <p className={`text-xs ${isDark ? 'text-indigo-400' : 'text-indigo-500'}`}>— {quote.author}</p>
+              <div className={`px-4 py-2.5 rounded-2xl rounded-tl-md ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
+                <div className="flex gap-1">
+                  <span className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-gray-500' : 'bg-gray-400'} animate-bounce`} style={{ animationDelay: '0ms' }} />
+                  <span className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-gray-500' : 'bg-gray-400'} animate-bounce`} style={{ animationDelay: '150ms' }} />
+                  <span className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-gray-500' : 'bg-gray-400'} animate-bounce`} style={{ animationDelay: '300ms' }} />
                 </div>
-              )}
-
-              {/* 呼吸引导 */}
-              {activeInteraction === 'breathe' && (
-                <div className="flex flex-col items-center py-6 animate-fade-in">
-                  <div className="relative w-32 h-32 flex items-center justify-center">
-                    <div className="absolute inset-0 rounded-full bg-indigo-400/20 animate-breathe-ring" />
-                    <div className="absolute inset-4 rounded-full bg-indigo-400/10 animate-breathe-ring-delay" />
-                    <Wind size={32} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
-                  </div>
-                  <p className={`text-xs mt-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>跟着圆环，吸气…呼气…</p>
-                </div>
-              )}
-
-              {/* 丢进黑洞输入 */}
-              {activeInteraction === 'blackhole' && (
-                <div className="animate-fade-in space-y-3">
-                  <p className={`text-xs text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>写下来，然后让它消失</p>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={blackholeText}
-                      onChange={(e) => setBlackholeText(e.target.value)}
-                      placeholder="写下你想丢掉的东西…"
-                      className={`flex-1 px-4 py-3 rounded-xl text-sm outline-none border ${
-                        isDark
-                          ? 'bg-[#1f1f2e] border-gray-700 text-white placeholder-gray-600'
-                          : 'bg-gray-50 border-gray-200 text-gray-800 placeholder-gray-400'
-                      }`}
-                      onKeyDown={(e) => e.key === 'Enter' && throwToBlackhole()}
-                    />
-                    <button
-                      onClick={throwToBlackhole}
-                      className="px-4 py-2 rounded-xl bg-indigo-500 text-white text-sm active:scale-95 transition-transform"
-                    >
-                      <Send size={16} />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* 黑洞吸入动画 */}
-              {activeInteraction === 'blackhole-done' && (
-                <div className="py-8 text-center animate-fade-in">
-                  <div className="relative w-20 h-20 mx-auto mb-3">
-                    <div className={`w-20 h-20 rounded-full ${isDark ? 'bg-gray-800' : 'bg-gray-200'} animate-blackhole-suck`} />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Sparkles size={24} className={isDark ? 'text-gray-600' : 'text-gray-400'} />
-                    </div>
-                  </div>
-                  <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>已经丢进黑洞了</p>
-                  <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>宇宙帮你保管，不再打扰你</p>
-                </div>
-              )}
-
-              {/* 许愿输入 */}
-              {activeInteraction === 'wish' && (
-                <div className="animate-fade-in space-y-3">
-                  <p className={`text-xs text-center ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>对着星空许个愿吧</p>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={wishText}
-                      onChange={(e) => setWishText(e.target.value)}
-                      placeholder="写下你的愿望…"
-                      className={`flex-1 px-4 py-3 rounded-xl text-sm outline-none border ${
-                        isDark
-                          ? 'bg-[#1f1f2e] border-gray-700 text-white placeholder-gray-600'
-                          : 'bg-gray-50 border-gray-200 text-gray-800 placeholder-gray-400'
-                      }`}
-                      onKeyDown={(e) => e.key === 'Enter' && makeWish()}
-                    />
-                    <button
-                      onClick={makeWish}
-                      className="px-4 py-2 rounded-xl bg-indigo-500 text-white text-sm active:scale-95 transition-transform"
-                    >
-                      <Send size={16} />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* 许愿完成 */}
-              {activeInteraction === 'wish-done' && (
-                <div className="py-8 text-center animate-fade-in">
-                  <div className="relative w-20 h-20 mx-auto mb-3">
-                    <Sparkles size={40} className={`mx-auto animate-wish-fly ${isDark ? 'text-indigo-400' : 'text-indigo-500'}`} />
-                  </div>
-                  <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>愿望已飞向星空</p>
-                  <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>宇宙收到了，会帮你守着</p>
-                </div>
-              )}
-            </div>
-
-            {/* 互动按钮 */}
-            {!activeInteraction?.includes('-done') && (
-              <div className="space-y-2 mb-4">
-                {emotion.actions.map((action) => {
-                  const ActionIcon = action.icon;
-                  const isActive = activeInteraction === action.key;
-                  return (
-                    <button
-                      key={action.key}
-                      onClick={() => doInteraction(action.key)}
-                      className={`w-full p-3 rounded-xl text-sm transition-all border flex items-center gap-2.5 active:scale-[0.98] ${
-                        isActive
-                          ? isDark
-                            ? 'bg-indigo-500/20 border-indigo-500/40'
-                            : 'bg-indigo-50 border-indigo-300'
-                          : isDark
-                            ? 'bg-[#1f1f2e] border-gray-800 hover:border-indigo-500/30'
-                            : 'bg-gray-50 border-gray-100 hover:border-indigo-200'
-                      }`}
-                    >
-                      <ActionIcon size={15} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
-                      <span className="flex-1 text-left">{action.label}</span>
-                    </button>
-                  );
-                })}
               </div>
-            )}
-
-            {/* 底部操作 */}
-            <div className="flex gap-2 pt-2 border-t ${isDark ? 'border-white/5' : 'border-gray-100'}">
-              <button
-                onClick={reset}
-                className={`flex-1 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors ${
-                  isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <RotateCcw size={13} />
-                还想聊聊
-              </button>
-              <button
-                onClick={goodnight}
-                className={`flex-1 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 ${
-                  isDark ? 'bg-indigo-500/15 text-indigo-300' : 'bg-indigo-50 text-indigo-600'
-                }`}
-              >
-                <Moon size={13} />
-                好了，晚安
-              </button>
             </div>
-          </>
-        )}
+          )}
 
-        {/* ── 晚安祝福 ── */}
-        {showGoodnight && (
-          <div className="text-center py-8 space-y-4 animate-fade-in">
-            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto ${isDark ? 'bg-indigo-500/10' : 'bg-indigo-50'}`}>
-              <Moon size={36} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* 选项按钮区 */}
+        {!isTyping && currentOptions.length > 0 && (
+          <div className={`p-4 border-t ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+            <div className="space-y-2">
+              {currentOptions.map((option, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleOption(option)}
+                  className={`w-full p-3.5 rounded-2xl text-sm transition-all active:scale-[0.98] ${
+                    isGoodnight
+                      ? isDark
+                        ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/20'
+                        : 'bg-indigo-50 text-indigo-600 border border-indigo-100'
+                      : isDark
+                        ? 'bg-[#1f1f2e] text-gray-300 border border-gray-800 hover:border-indigo-500/30'
+                        : 'bg-gray-50 text-gray-700 border border-gray-100 hover:border-indigo-200'
+                  }`}
+                >
+                  {option.text}
+                </button>
+              ))}
             </div>
-            <h2 className="text-lg font-medium">晚安，星星旅人</h2>
-            <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-              愿你的梦里充满温柔与星光
-            </p>
-            <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-              宇宙会一直陪着你，直到天亮
-            </p>
-            <button
-              onClick={reset}
-              className={`mt-4 px-6 py-2.5 rounded-xl text-sm transition-colors ${
-                isDark ? 'bg-[#1f1f2e] text-gray-300 border border-gray-700' : 'bg-gray-100 text-gray-600 border border-gray-200'
-              }`}
-            >
-              再聊一次
-            </button>
           </div>
         )}
       </div>
