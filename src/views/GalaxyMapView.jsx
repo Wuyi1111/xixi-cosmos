@@ -99,7 +99,7 @@ export default function GalaxyMapView({ isDark, userPersonality, onClose }) {
       {/* 选中详情弹窗 */}
       {selectedType && (
         <div
-          className={`fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`}
+          className={`fixed inset-0 z-[60] flex items-center justify-center p-4 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`}
           onClick={() => setSelectedType(null)}
         >
           {(() => {
