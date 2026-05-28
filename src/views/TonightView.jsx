@@ -169,37 +169,9 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
         /* 已测试：人格图标 + 进度环 */
         <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
           <div className="flex items-center gap-4">
-            {/* 进度环 */}
-            <div className="relative w-16 h-16 shrink-0">
-              <svg className="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
-                {/* 背景环 */}
-                <circle
-                  cx="32" cy="32" r="28"
-                  fill="none"
-                  stroke={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}
-                  strokeWidth="4"
-                />
-                {/* 进度环 */}
-                <circle
-                  cx="32" cy="32" r="28"
-                  fill="none"
-                  stroke="url(#progressGradient)"
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                  strokeDasharray={`${2 * Math.PI * 28}`}
-                  strokeDashoffset={`${2 * Math.PI * 28 * (1 - explorationProgress / 100)}`}
-                  className="transition-all duration-1000"
-                />
-                <defs>
-                  <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor={isDark ? '#818cf8' : '#6366f1'} />
-                    <stop offset="100%" stopColor={isDark ? '#c084fc' : '#a855f7'} />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Sparkles size={20} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
-              </div>
+            {/* 人格图标 */}
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-100'}`}>
+              <Sparkles size={28} className={isDark ? 'text-indigo-300' : 'text-indigo-500'} />
             </div>
 
             <div className="flex-1 min-w-0">
