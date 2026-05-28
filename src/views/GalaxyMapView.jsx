@@ -1,15 +1,17 @@
 /**
- * GalaxyMapView.jsx — 星系图谱全览子界面
+ * GalaxyMapView.jsx — 星系图谱全览子界面（v4.37.0 卡片滑动版）
  *
- * 展示全部 16 种宇宙睡眠人格，高亮用户已测出的类型
+ * 左右滑动卡片堆叠展示 16 种宇宙睡眠人格
+ * 中间卡片完整展示，两侧露出边缘
  */
 
-import { useState, useMemo } from 'react';
-import { ChevronRight, Sparkles, X } from 'lucide-react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { ChevronRight, Sparkles } from 'lucide-react';
 import { COSMIC_PERSONALITIES } from '../constants.js';
 
 export default function GalaxyMapView({ isDark, userPersonality, onClose }) {
-  const [selectedType, setSelectedType] = useState(null);
+  const scrollRef = useRef(null);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   const types = useMemo(() => {
     return Object.entries(COSMIC_PERSONALITIES).map(([type, data]) => ({
@@ -19,7 +21,33 @@ export default function GalaxyMapView({ isDark, userPersonality, onClose }) {
     }));
   }, [userPersonality]);
 
-  const myType = types.find((t) => t.isMine);
+  // 默认滚动到"我的归属"
+  useEffect(() => {
+    const mineIndex = types.findIndex((t) => t.isMine);
+    if (mineIndex >= 0 && scrollRef.current) {
+      const el = scrollRef.current;
+      const cardWidth = el.offsetWidth * 0.72;
+      const gap = 12;
+      el.scrollLeft = mineIndex * (cardWidth + gap);
+      setActiveIndex(mineIndex);
+    }
+  }, [types]);
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const cardWidth = el.offsetWidth * 0.72;
+    const gap = 12;
+    const index = Math.round(el.scrollLeft / (cardWidth + gap));
+    setActiveIndex(Math.max(0, Math.min(index, types.length - 1)));
+  };
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', handleScroll, { passive: true });
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <div className="animate-fade-in pb-10">
@@ -39,107 +67,79 @@ export default function GalaxyMapView({ isDark, userPersonality, onClose }) {
         </div>
       </div>
 
-      {/* 我的类型（如果已测试） */}
-      {myType && (
-        <div className={`p-5 rounded-[24px] mb-5 ${isDark ? 'bg-gradient-to-br from-indigo-500/10 to-[#171724] border border-indigo-500/20' : 'bg-gradient-to-br from-indigo-50 to-white border border-indigo-100'} shadow-sm`}>
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles size={14} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
-            <span className={`text-[10px] font-medium ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>你的归属</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-100'}`}>
-              <Sparkles size={28} className={isDark ? 'text-indigo-300' : 'text-indigo-500'} />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-base font-medium">{myType.name}</h3>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-                {myType.type}
-              </span>
-              <p className={`text-xs mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{myType.desc}</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-1.5 mt-3">
-            {myType.tags.map((tag, idx) => (
-              <span key={idx} className={`text-[10px] px-2 py-1 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-200' : 'bg-indigo-100 text-indigo-700'}`}>
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* 卡片滑动区域 */}
+      <div
+        ref={scrollRef}
+        className="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-4"
+        style={{ scrollPaddingLeft: '14%', scrollPaddingRight: '14%' }}
+      >
+        {/* 左侧占位 */}
+        <div className="snap-start shrink-0" style={{ width: '14%' }} />
 
-      {/* 全部类型网格 */}
-      <div className="grid grid-cols-2 gap-3">
-        {types.map((item) => (
-          <button
-            key={item.type}
-            onClick={() => setSelectedType(selectedType === item.type ? null : item.type)}
-            className={`p-4 rounded-2xl text-left transition-all active:scale-95 ${
-              item.isMine
-                ? (isDark ? 'bg-indigo-500/10 border border-indigo-500/30' : 'bg-indigo-50 border border-indigo-200')
-                : (isDark ? 'bg-[#171724] border border-white/5 hover:border-white/10' : 'bg-white border border-gray-100 hover:border-gray-200 shadow-sm')
-            }`}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className={`text-[10px] font-mono ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{item.type}</span>
-              {item.isMine && (
-                <Sparkles size={12} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
-              )}
+        {types.map((item, idx) => {
+          const isActive = idx === activeIndex;
+          return (
+            <div
+              key={item.type}
+              className={`snap-center shrink-0 rounded-[24px] p-6 transition-all duration-300 flex flex-col ${
+                isActive
+                  ? (isDark ? 'bg-[#171724] border border-white/10 shadow-lg' : 'bg-white border border-gray-200 shadow-lg')
+                  : (isDark ? 'bg-[#171724]/60 border border-white/5 opacity-70' : 'bg-white/60 border border-gray-100 opacity-70')
+              }`}
+              style={{ width: '72%' }}
+            >
+              {/* 顶部：类型 + 是否我的归属 */}
+              <div className="flex items-center justify-between mb-6">
+                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+                  {item.type}
+                </span>
+                {item.isMine && (
+                  <div className="flex items-center gap-1">
+                    <Sparkles size={12} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+                    <span className={`text-[10px] ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>你的归属</span>
+                  </div>
+                )}
+              </div>
+
+              {/* 中间：名字 */}
+              <h3 className={`text-2xl font-medium text-center mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                {item.name}
+              </h3>
+
+              {/* 描述 */}
+              <p className={`text-sm leading-relaxed text-center flex-1 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                {item.desc}
+              </p>
+
+              {/* 底部：标签 */}
+              <div className="flex flex-wrap justify-center gap-2 mt-6">
+                {item.tags.map((tag, idx) => (
+                  <span key={idx} className={`text-[10px] px-3 py-1.5 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-200' : 'bg-indigo-100 text-indigo-700'}`}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
             </div>
-            <h4 className={`text-sm font-medium mb-1 ${item.isMine ? (isDark ? 'text-indigo-300' : 'text-indigo-700') : ''}`}>
-              {item.name}
-            </h4>
-            <p className={`text-[10px] line-clamp-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-              {item.desc}
-            </p>
-          </button>
-        ))}
+          );
+        })}
+
+        {/* 右侧占位 */}
+        <div className="snap-start shrink-0" style={{ width: '14%' }} />
       </div>
 
-      {/* 选中详情弹窗 */}
-      {selectedType && (
-        <div
-          className={`fixed inset-0 z-[60] flex items-center justify-center p-4 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`}
-          onClick={() => setSelectedType(null)}
-        >
-          {(() => {
-            const item = types.find((t) => t.type === selectedType);
-            if (!item) return null;
-            return (
-              <div
-                className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button
-                  onClick={() => setSelectedType(null)}
-                  className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-200"
-                >
-                  <X size={20} />
-                </button>
-
-                <div className="text-center space-y-3">
-                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-                    {item.type}
-                  </span>
-                  <h3 className="text-xl font-medium">{item.name}</h3>
-
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {item.tags.map((tag, idx) => (
-                      <span key={idx} className={`text-[10px] px-3 py-1.5 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-200' : 'bg-indigo-100 text-indigo-700'}`}>
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-
-                  <p className={`text-sm leading-relaxed font-light ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                    {item.desc}
-                  </p>
-                </div>
-              </div>
-            );
-          })()}
-        </div>
-      )}
+      {/* 指示点 */}
+      <div className="flex justify-center gap-1.5 mt-2">
+        {types.map((_, idx) => (
+          <div
+            key={idx}
+            className={`rounded-full transition-all duration-300 ${
+              idx === activeIndex
+                ? (isDark ? 'bg-indigo-400 w-4 h-1.5' : 'bg-indigo-500 w-4 h-1.5')
+                : (isDark ? 'bg-gray-700 w-1.5 h-1.5' : 'bg-gray-300 w-1.5 h-1.5')
+            }`}
+          />
+        ))}
+      </div>
     </div>
   );
 }
