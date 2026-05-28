@@ -29,6 +29,7 @@ import GalaxyView from './views/GalaxyView.jsx';
 import StarView from './views/StarView.jsx';
 import SplashScreen from './components/SplashScreen.jsx';
 import PersonalityTestView from './views/PersonalityTestView.jsx';
+import TestInviteView from './views/TestInviteView.jsx';
 import StarField from './components/StarField.jsx';
 import { INITIAL_USER_DATA } from './constants.js';
 
@@ -51,7 +52,8 @@ export default function App() {
     }
   });
 
-  // 人格测试状态：首次用户或未测试用户需要完成测试
+  // 人格测试邀请状态
+  const [showTestInvite, setShowTestInvite] = useState(false);
   const [showPersonalityTest, setShowPersonalityTest] = useState(false);
 
   const handleSplashComplete = () => {
@@ -59,10 +61,19 @@ export default function App() {
       sessionStorage.setItem('xixi_splash_shown', 'true');
     } catch {}
     setShowSplash(false);
-    // 启动页结束后，如果用户还没做过人格测试，自动进入测试
+    // 启动页结束后，如果用户还没做过人格测试，显示邀请界面
     if (!userData.personality) {
-      setShowPersonalityTest(true);
+      setShowTestInvite(true);
     }
+  };
+
+  const handleStartTest = () => {
+    setShowTestInvite(false);
+    setShowPersonalityTest(true);
+  };
+
+  const handleSkipTest = () => {
+    setShowTestInvite(false);
   };
 
   const handleTestComplete = (result) => {
@@ -232,7 +243,16 @@ export default function App() {
         />
       )}
 
-      {/* 人格测试（首次用户） */}
+      {/* 测试邀请界面 */}
+      {showTestInvite && (
+        <TestInviteView
+          isDark={isDark}
+          onStartTest={handleStartTest}
+          onSkip={handleSkipTest}
+        />
+      )}
+
+      {/* 人格测试 */}
       {showPersonalityTest && (
         <PersonalityTestView
           isDark={isDark}
