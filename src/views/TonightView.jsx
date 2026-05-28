@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { Sparkles, ChevronRight, Heart, Send, X, RotateCcw, Compass, Star, Wind } from 'lucide-react';
+import { Sparkles, ChevronRight, ChevronDown, Heart, Send, X, RotateCcw, Compass, Star, Wind } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import QuizWidget from '../widgets/QuizWidget.jsx';
 import GalaxyMapView from '../views/GalaxyMapView.jsx';
@@ -24,6 +24,7 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
   const [huggedIds, setHuggedIds] = useState(new Set());
   const [showWriteWhisper, setShowWriteWhisper] = useState(false);
   const [whisperDraft, setWhisperDraft] = useState('');
+  const [expandPersonality, setExpandPersonality] = useState(false);
   const scrollRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -168,7 +169,7 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
       ) : (
         /* 已测试：人格图标 + 进度环 */
         <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
-          <div className="flex items-center gap-4">
+          <div className="flex items-start gap-4">
             {/* 人格图标 */}
             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-100'}`}>
               <Sparkles size={28} className={isDark ? 'text-indigo-300' : 'text-indigo-500'} />
@@ -181,17 +182,35 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
                   {personality.type}
                 </span>
               </div>
-              <p className={`text-xs line-clamp-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                {personality.desc}
+              </p>
+              {/* 标签 */}
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {personality.tags.map((tag, idx) => (
+                  <span key={idx} className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-indigo-500/15 text-indigo-300' : 'bg-indigo-50 text-indigo-600'}`}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* 下拉箭头 */}
+            <button
+              onClick={() => setExpandPersonality(!expandPersonality)}
+              className={`p-2 rounded-full transition-all active:scale-95 mt-1 ${isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-50 text-gray-500'}`}
+            >
+              <ChevronDown size={18} className={`transition-transform duration-300 ${expandPersonality ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+
+          {/* 展开内容 */}
+          <div className={`overflow-hidden transition-all duration-300 ${expandPersonality ? 'max-h-40 opacity-100 mt-3' : 'max-h-0 opacity-0'}`}>
+            <div className={`p-3 rounded-xl ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
+              <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                 {personality.desc}
               </p>
             </div>
-
-            <button
-              onClick={() => setShowGalaxyMap(true)}
-              className={`p-2 rounded-full transition-all active:scale-95 ${isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-50 text-gray-500'}`}
-            >
-              <ChevronRight size={18} />
-            </button>
           </div>
 
           {/* 快捷操作 */}
