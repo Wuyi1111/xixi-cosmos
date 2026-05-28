@@ -220,8 +220,8 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
           </button>
         </div>
 
-        {/* 人格测试结果卡片 */}
-        {userData.personality && (
+        {/* 人格测试结果卡片 / 测试入口 */}
+        {userData.personality ? (
           <div className={`p-4 rounded-[20px] ${isDark ? 'bg-[#171724] border border-indigo-500/20' : 'bg-white border border-indigo-100'} shadow-sm`}>
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-50'}`}>
@@ -247,6 +247,29 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
               ))}
             </div>
           </div>
+        ) : (
+          <button
+            onClick={() => {
+              // 触发人格测试 - 通过 App 层处理
+              window.dispatchEvent(new CustomEvent('xixi:start-personality-test'));
+            }}
+            className={`w-full p-4 rounded-[20px] text-left transition-all active:scale-[0.98] flex items-center gap-3 ${
+              isDark
+                ? 'bg-[#171724] border border-indigo-500/20 hover:border-indigo-500/40'
+                : 'bg-white border border-indigo-100 hover:border-indigo-300 shadow-sm'
+            }`}
+          >
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-50'}`}>
+              <Sparkles size={20} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-medium">探索睡眠人格</h3>
+              <p className={`text-[10px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                8 道题，发现属于你的宇宙归属
+              </p>
+            </div>
+            <ChevronRight size={16} className={isDark ? 'text-gray-600' : 'text-gray-400'} />
+          </button>
         )}
       </div>
 
