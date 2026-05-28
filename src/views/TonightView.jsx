@@ -188,11 +188,8 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
                   {personality.type}
                 </span>
               </div>
-              <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                {personality.desc}
-              </p>
               {/* 标签 */}
-              <div className="flex flex-wrap gap-1.5 mt-2">
+              <div className="flex flex-wrap gap-1.5">
                 {personality.tags.map((tag, idx) => (
                   <span key={idx} className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-indigo-500/15 text-indigo-300' : 'bg-indigo-50 text-indigo-600'}`}>
                     {tag}
