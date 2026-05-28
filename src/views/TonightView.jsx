@@ -1,474 +1,400 @@
 /**
- * TonightView.jsx — 「此刻」综合门户首页（v4.18.0 重写版）
+ * TonightView.jsx — "此刻"板块（v4.36.0 测试卡片+星系入口版）
  *
- * 屏幕从上到下：
- *   1) 顶部区域：大标题「息息·宇宙」+ 应用简介（未测试时显示，有测试结果后隐藏）
- *   2) 人格测试卡片：三种状态（未测试 / 已保存可展开 / 飞入未保存）
- *   3) 星系图谱：有测试结果时才显示，垂直滑动卡片堆叠
- *   4) 星际回音：可折叠，展开后垂直滑动卡片堆叠
- *   5) 底部固定导航：雷达 + 心愿池
- *
- * Props:
- *   isDark, userData, saveUserData, onNavigate
- *
- * 实现注意（v4.23.1）：
- *   ❗ 三个有内部 state 的 Section（QuizSection / GalaxySection / SupernovaSection）
- *   定义在文件顶层（不是 TonightView 内部），否则父级 re-render 会让它们的
- *   identity 改变，触发 unmount → 内部 useState 重置 → 卡片展开态/滚动位置丢失。
+ * 页面结构：
+ *   1) 标题区：品牌名 + 日期问候
+ *   2) 测试卡片：未测试时星空粒子背景 / 已测试时人格图标+进度环
+ *   3) 星际回音：横向滑动卡片
+ *   4) 底部导航：去雷达 / 去心愿池
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Radio, Gift, Compass, Sparkles, ChevronRight, ChevronDown, Users } from 'lucide-react';
-import { COSMIC_PERSONALITIES, MOCK_WHISPERS } from '../constants.js';
+import { useState, useEffect, useRef } from 'react';
+import { Sparkles, ChevronRight, Heart, Send, X, RotateCcw, Compass, Star, Wind } from 'lucide-react';
+import Portal from '../components/Portal.jsx';
 import QuizWidget from '../widgets/QuizWidget.jsx';
+import GalaxyMapView from '../views/GalaxyMapView.jsx';
+import { MOCK_WHISPERS } from '../constants.js';
 
-// 星系 mock 人数数据
-const GALAXY_COUNTS = {
-  'ISTJ': 128, 'ISFJ': 245, 'INFJ': 312, 'INTJ': 198,
-  'ISTP': 156, 'ISFP': 289, 'INFP': 456, 'INTP': 234,
-  'ESTP': 167, 'ESFP': 278, 'ENFP': 389, 'ENTP': 201,
-  'ESTJ': 145, 'ESFJ': 267, 'ENFJ': 298, 'ENTJ': 176,
-};
+export default function TonightView({ isDark, userData, saveUserData, onNavigate }) {
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [showGalaxyMap, setShowGalaxyMap] = useState(false);
+  const [expandedSupernova, setExpandedSupernova] = useState(false);
+  const [flyInResult, setFlyInResult] = useState(null);
+  const [whispers, setWhispers] = useState(MOCK_WHISPERS);
+  const [huggedIds, setHuggedIds] = useState(new Set());
+  const [showWriteWhisper, setShowWriteWhisper] = useState(false);
+  const [whisperDraft, setWhisperDraft] = useState('');
+  const scrollRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
 
-// ============================================================================
-// Section 组件 — 顶层 function 定义，避免父级 re-render 时 identity 变化
-// ============================================================================
+  const personality = userData.personality;
 
-// 2. 探索内宇宙测试 — 简洁卡片
-function QuizSection({
-  isDark,
-  personalityData,
-  setShowQuiz,
-}) {
-  const [showDetail, setShowDetail] = useState(false);
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 10);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 10);
+  };
 
-  if (!personalityData) {
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollWhispers = (dir) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir === 'left' ? -220 : 220, behavior: 'smooth' });
+  };
+
+  const handleQuizComplete = (result) => {
+    setFlyInResult(result);
+    setTimeout(() => setFlyInResult(null), 3000);
+    saveUserData({ ...userData, personality: result });
+    setShowQuiz(false);
+  };
+
+  const handleHug = (id) => {
+    if (huggedIds.has(id)) return;
+    setHuggedIds(new Set([...huggedIds, id]));
+    setWhispers((prev) =>
+      prev.map((w) => (w.id === id ? { ...w, hugCount: (w.hugCount || 0) + 1 } : w))
+    );
+    saveUserData({
+      ...userData,
+      totalHugs: userData.totalHugs + 1,
+      huggedWhispers: [...userData.huggedWhispers, id],
+    });
+  };
+
+  const handlePostWhisper = () => {
+    const text = whisperDraft.trim();
+    if (!text) return;
+    const newWhisper = {
+      id: Date.now(),
+      text,
+      emotion: '心语',
+      isPositive: true,
+      isMine: true,
+      hugCount: 0,
+    };
+    setWhispers([newWhisper, ...whispers]);
+    setWhisperDraft('');
+    setShowWriteWhisper(false);
+    saveUserData({
+      ...userData,
+      myWhispers: [newWhisper, ...userData.myWhispers],
+      dailyPosts: userData.dailyPosts + 1,
+    });
+  };
+
+  // 计算探索度（基于连续天数）
+  const explorationProgress = Math.min((userData.continuousDays || 0) / 30 * 100, 100);
+
+  // 当前日期
+  const today = new Date();
+  const month = today.getMonth() + 1;
+  const date = today.getDate();
+  const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  const weekDay = weekDays[today.getDay()];
+
+  if (showGalaxyMap) {
     return (
-      <section
-        onClick={() => setShowQuiz(true)}
-        className={`p-5 rounded-[24px] cursor-pointer border transition-all hover:scale-[1.01] active:scale-95 ${
-          isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm'
-        }`}
-      >
-        <div className="flex items-center gap-4">
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-100'}`}>
-            <Compass size={24} className={isDark ? 'text-indigo-300' : 'text-indigo-500'} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-base tracking-wide">
-              探索你的宇宙人格
-            </h3>
-            <p className={`text-xs mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-              10 题测试 · 解锁专属星体身份
-            </p>
-          </div>
-          <div className="px-3 py-1.5 bg-indigo-500 text-white text-[10px] rounded-full whitespace-nowrap">
-            开始
-          </div>
-        </div>
-      </section>
+      <GalaxyMapView
+        isDark={isDark}
+        userPersonality={personality}
+        onClose={() => setShowGalaxyMap(false)}
+      />
     );
   }
 
   return (
-    <section
-      className={`p-5 rounded-[24px] border transition-all ${
-        isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm'
-      }`}
-    >
-      <div className="flex items-center gap-4">
-        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-100'}`}>
-          <Sparkles size={24} className={isDark ? 'text-indigo-300' : 'text-indigo-500'} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className={`text-[10px] font-medium tracking-widest ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
-            宇宙睡眠人格
+    <div className="animate-fade-in pb-10 space-y-5">
+      {/* === 1. 标题区 === */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-medium tracking-wide">息息·宇宙</h1>
+          <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+            {month}月{date}日 {weekDay}
           </p>
-          <h3 className="text-lg font-medium tracking-wide">
-            {personalityData.name}
-          </h3>
-          <span className={`text-[10px] px-2 py-0.5 rounded font-mono ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-            {personalityData.type}
-          </span>
         </div>
         <button
-          onClick={() => setShowDetail(!showDetail)}
-          className={`p-2 rounded-full transition-colors ${isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
+          onClick={() => setShowWriteWhisper(true)}
+          className={`p-2.5 rounded-full transition-all active:scale-95 ${isDark ? 'bg-[#171724] text-gray-400' : 'bg-white text-gray-500 shadow-sm'}`}
         >
-          <ChevronDown size={16} className={`transition-transform duration-300 ${showDetail ? 'rotate-180' : ''}`} />
+          <Send size={18} />
         </button>
       </div>
 
-      {/* 展开详情 */}
-      <div className={`grid transition-all duration-300 ease-in-out ${showDetail ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0'}`}>
-        <div className="overflow-hidden">
-          <div className="flex flex-wrap gap-2 mb-3">
-            {personalityData.tags.map((tag, idx) => (
-              <span key={idx} className={`text-[10px] px-2.5 py-1 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-200' : 'bg-indigo-100/80 text-indigo-700'}`}>
-                {tag}
-              </span>
+      {/* === 2. 测试卡片 === */}
+      {!personality ? (
+        /* 未测试：星空粒子背景卡片 */
+        <button
+          onClick={() => setShowQuiz(true)}
+          className={`w-full p-6 rounded-[24px] text-left relative overflow-hidden transition-all active:scale-[0.98] ${
+            isDark
+              ? 'bg-gradient-to-br from-indigo-900/30 to-[#171724] border border-indigo-500/20'
+              : 'bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 shadow-sm'
+          }`}
+        >
+          {/* 星空粒子背景（CSS 动画） */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {Array.from({ length: 20 }).map((_, i) => (
+              <div
+                key={i}
+                className="absolute rounded-full animate-twinkle"
+                style={{
+                  width: `${Math.random() * 3 + 1}px`,
+                  height: `${Math.random() * 3 + 1}px`,
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                  backgroundColor: isDark ? 'rgba(147,197,253,0.6)' : 'rgba(99,102,241,0.4)',
+                  animationDelay: `${Math.random() * 3}s`,
+                  animationDuration: `${Math.random() * 2 + 2}s`,
+                }}
+              />
             ))}
           </div>
-          <p className={`text-xs leading-relaxed font-light ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-            {personalityData.desc}
-          </p>
-          <button
-            onClick={() => setShowQuiz(true)}
-            className={`mt-3 text-[10px] flex items-center gap-1 ${isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-500'}`}
-          >
-            重新探测 <ChevronRight size={10} />
-          </button>
+
+          <div className="relative z-10 flex items-center gap-4">
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-100'}`}>
+              <Sparkles size={28} className={isDark ? 'text-indigo-300' : 'text-indigo-500'} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base font-medium mb-1">探索你的睡眠人格</h3>
+              <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                8 道题，发现属于你的宇宙归属
+              </p>
+            </div>
+            <ChevronRight size={20} className={isDark ? 'text-gray-600' : 'text-gray-400'} />
+          </div>
+        </button>
+      ) : (
+        /* 已测试：人格图标 + 进度环 */
+        <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
+          <div className="flex items-center gap-4">
+            {/* 进度环 */}
+            <div className="relative w-16 h-16 shrink-0">
+              <svg className="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
+                {/* 背景环 */}
+                <circle
+                  cx="32" cy="32" r="28"
+                  fill="none"
+                  stroke={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}
+                  strokeWidth="4"
+                />
+                {/* 进度环 */}
+                <circle
+                  cx="32" cy="32" r="28"
+                  fill="none"
+                  stroke="url(#progressGradient)"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 28}`}
+                  strokeDashoffset={`${2 * Math.PI * 28 * (1 - explorationProgress / 100)}`}
+                  className="transition-all duration-1000"
+                />
+                <defs>
+                  <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor={isDark ? '#818cf8' : '#6366f1'} />
+                    <stop offset="100%" stopColor={isDark ? '#c084fc' : '#a855f7'} />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Sparkles size={20} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+              </div>
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-base font-medium">{personality.name}</h3>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+                  {personality.type}
+                </span>
+              </div>
+              <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                探索度 {Math.round(explorationProgress)}%
+              </p>
+              <div className={`w-full h-1 rounded-full mt-2 ${isDark ? 'bg-gray-800' : 'bg-gray-100'} overflow-hidden`}>
+                <div
+                  className="h-full rounded-full bg-indigo-500 transition-all duration-500"
+                  style={{ width: `${explorationProgress}%` }}
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowGalaxyMap(true)}
+              className={`p-2 rounded-full transition-all active:scale-95 ${isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-50 text-gray-500'}`}
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+
+          {/* 快捷操作 */}
+          <div className="flex gap-2 mt-4 pt-4 border-t border-white/5">
+            <button
+              onClick={() => setShowQuiz(true)}
+              className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all active:scale-95 ${
+                isDark ? 'bg-white/5 text-gray-300 hover:bg-white/10' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              重新测试
+            </button>
+            <button
+              onClick={() => setShowGalaxyMap(true)}
+              className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all active:scale-95 ${
+                isDark ? 'bg-indigo-500/15 text-indigo-300 hover:bg-indigo-500/25' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+              }`}
+            >
+              查看图谱
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* === 3. 星际回音 === */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Star size={16} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
+            <h3 className="text-sm font-medium">星际回音</h3>
+          </div>
+          <div className="flex gap-1">
+            <button
+              onClick={() => scrollWhispers('left')}
+              className={`p-1.5 rounded-full transition-all ${canScrollLeft ? 'opacity-100' : 'opacity-30'} ${isDark ? 'bg-[#171724] text-gray-400' : 'bg-white text-gray-500 shadow-sm'}`}
+            >
+              <ChevronRight size={14} className="rotate-180" />
+            </button>
+            <button
+              onClick={() => scrollWhispers('right')}
+              className={`p-1.5 rounded-full transition-all ${canScrollRight ? 'opacity-100' : 'opacity-30'} ${isDark ? 'bg-[#171724] text-gray-400' : 'bg-white text-gray-500 shadow-sm'}`}
+            >
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+
+        <div
+          ref={scrollRef}
+          className="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-2"
+          style={{ scrollPaddingLeft: '1px' }}
+        >
+          {whispers.map((w) => (
+            <div
+              key={w.id}
+              className={`snap-start shrink-0 w-[260px] p-4 rounded-[20px] border transition-all ${
+                isDark
+                  ? 'bg-[#171724] border-white/5'
+                  : 'bg-white border-gray-100 shadow-sm'
+              }`}
+            >
+              <p className={`text-xs leading-relaxed mb-3 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                {w.text}
+              </p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+                    {w.emotion}
+                  </span>
+                  {w.isMine && (
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-sky-500/10 text-sky-300' : 'bg-sky-50 text-sky-600'}`}>
+                      我的心语
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => handleHug(w.id)}
+                  className={`flex items-center gap-1 text-[10px] transition-all active:scale-95 ${
+                    huggedIds.has(w.id)
+                      ? (isDark ? 'text-pink-400' : 'text-pink-500')
+                      : (isDark ? 'text-gray-500 hover:text-pink-400' : 'text-gray-400 hover:text-pink-500')
+                  }`}
+                >
+                  <Heart size={12} fill={huggedIds.has(w.id) ? 'currentColor' : 'none'} />
+                  {w.hugCount || 0}
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
-    </section>
-  );
-}
 
-// 3. 星系呈现 — 垂直滑动卡片堆叠（含 scrollRef + 初始定位 useEffect）
-function GalaxySection({ isDark, effectiveType, galaxyActiveIndex, setGalaxyActiveIndex }) {
-  const entries = Object.entries(COSMIC_PERSONALITIES);
-  const total = entries.length;
-  const scrollRef = useRef(null);
-  const defaultIndex = entries.findIndex(([type]) => type === effectiveType);
-
-  const scrollToMine = useCallback(() => {
-    if (defaultIndex >= 0 && scrollRef.current) {
-      const cardHeight = 140 + 16;
-      scrollRef.current.scrollTo({ top: defaultIndex * cardHeight, behavior: 'smooth' });
-      setGalaxyActiveIndex(defaultIndex);
-    }
-  }, [defaultIndex, setGalaxyActiveIndex]);
-
-  // 初始定位
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const raf = requestAnimationFrame(() => {
-      const cardHeight = 140 + 16;
-      el.scrollTo({ top: Math.max(0, defaultIndex) * cardHeight, behavior: 'auto' });
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [defaultIndex]);
-
-  if (total === 0 || !effectiveType) return null;
-
-  return (
-    <section className="space-y-2">
-      <div className="flex items-center justify-between px-2">
-        <h3 className="text-sm font-medium flex items-center gap-2">
-          <Users size={16} className="text-indigo-400" />
-          星系图谱
-        </h3>
+      {/* === 4. 底部导航 === */}
+      <div className="grid grid-cols-2 gap-3">
         <button
-          onClick={scrollToMine}
-          className={`text-[10px] px-2.5 py-1 rounded-full transition-all active:scale-95 ${isDark ? 'bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30' : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200'}`}
+          onClick={() => onNavigate('treehole')}
+          className={`p-4 rounded-2xl text-left transition-all active:scale-95 ${
+            isDark
+              ? 'bg-[#171724] border border-white/5 hover:border-white/10'
+              : 'bg-white border border-gray-100 hover:border-gray-200 shadow-sm'
+          }`}
         >
-          你属于 {COSMIC_PERSONALITIES[effectiveType]?.name}
+          <Compass size={18} className={isDark ? 'text-sky-400 mb-2' : 'text-sky-500 mb-2'} />
+          <p className="text-xs font-medium">去雷达</p>
+          <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>星海与明日</p>
+        </button>
+        <button
+          onClick={() => onNavigate('star')}
+          className={`p-4 rounded-2xl text-left transition-all active:scale-95 ${
+            isDark
+              ? 'bg-[#171724] border border-white/5 hover:border-white/10'
+              : 'bg-white border border-gray-100 hover:border-gray-200 shadow-sm'
+          }`}
+        >
+          <Wind size={18} className={isDark ? 'text-sky-400 mb-2' : 'text-sky-500 mb-2'} />
+          <p className="text-xs font-medium">去归星</p>
+          <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>伴眠与心愿</p>
         </button>
       </div>
 
-      {/* 垂直滑动容器 */}
-      <div
-        ref={scrollRef}
-        className="relative h-[220px] overflow-hidden -mx-4 px-4"
-        onScroll={(e) => {
-          const container = e.currentTarget;
-          const scrollTop = container.scrollTop;
-          const cardHeight = 140 + 16;
-          const newIndex = Math.round(scrollTop / cardHeight);
-          if (newIndex !== galaxyActiveIndex && newIndex >= 0 && newIndex < total) {
-            setGalaxyActiveIndex(newIndex);
-          }
-        }}
-        style={{ scrollSnapType: 'y mandatory', overflowY: 'scroll' }}
-      >
-        <div className="py-[40px]">
-          {entries.map(([type, data], index) => {
-            const isMine = type === effectiveType;
-            const count = GALAXY_COUNTS[type] || 0;
-            const isActive = index === galaxyActiveIndex;
-
-            return (
-              <div
-                key={type}
-                className="mb-4"
-                style={{ scrollSnapAlign: 'center' }}
-              >
-                <div
-                  className={`relative h-[140px] p-5 rounded-[24px] border transition-all duration-500 ${
-                    isMine
-                      ? (isDark ? 'bg-indigo-900/20 border-indigo-500/40 shadow-[0_0_20px_rgba(99,102,241,0.12)]' : 'bg-indigo-50 border-indigo-300 shadow-md')
-                      : (isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm')
-                  } ${isActive ? 'scale-100 opacity-100' : 'scale-90 opacity-40 blur-[2px]'}`}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <span className={`text-[10px] font-mono px-2 py-1 rounded-md ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-                      {type}
-                    </span>
-                    {isMine && (
-                      <span className={`text-[9px] px-2 py-0.5 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-600'}`}>
-                        你的归属
-                      </span>
-                    )}
-                  </div>
-
-                  <h4 className={`text-lg font-medium mb-2 ${isMine ? (isDark ? 'text-indigo-300' : 'text-indigo-700') : (isDark ? 'text-gray-200' : 'text-gray-800')}`}>
-                    {data.name}
-                  </h4>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-wrap gap-1.5">
-                      {data.tags.slice(0, 2).map((tag, i) => (
-                        <span key={i} className={`text-[9px] px-2 py-1 rounded-full whitespace-nowrap ${isDark ? 'bg-white/5 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                    <div className={`flex items-center gap-1 text-[10px] shrink-0 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                      <Users size={10} />
-                      <span>{count.toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
+      {/* === 写心语弹窗 === */}
+      {showWriteWhisper && (
+        <Portal>
+          <div className={`fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`}>
+            <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'}`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium">写一条心语</h3>
+                <button onClick={() => setShowWriteWhisper(false)} className="p-2 text-gray-400 hover:text-gray-200">
+                  <X size={20} />
+                </button>
               </div>
-            );
-          })}
-        </div>
-      </div>
-
-    </section>
-  );
-}
-
-// 4. 星际回音 — 折叠 + 垂直滑动卡片堆叠（含内部 activeIndex state + scrollRef）
-function SupernovaSection({ isDark, supernovaExpanded, toggleSupernova }) {
-  const entries = MOCK_WHISPERS;
-  const total = entries.length;
-  const [activeIndex, setActiveIndex] = useState(0);
-  const scrollRef = useRef(null);
-
-  return (
-    <section className="space-y-2">
-      <button
-        onClick={toggleSupernova}
-        className="w-full flex items-center justify-between px-2 py-2 transition-colors rounded-xl"
-      >
-        <h3 className="text-sm font-medium flex items-center gap-2">
-          <Sparkles size={16} className="text-pink-400" />
-          星际回音
-        </h3>
-        <div className="flex items-center gap-2">
-          <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>星际回音精选</span>
-          <ChevronDown
-            size={16}
-            className={`transition-transform duration-300 ${isDark ? 'text-gray-500' : 'text-gray-400'} ${supernovaExpanded ? 'rotate-180' : ''}`}
-          />
-        </div>
-      </button>
-
-      <div className={`grid transition-all duration-500 ease-in-out ${supernovaExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-        <div className="overflow-hidden space-y-2">
-          {/* 垂直滑动容器 */}
-          <div
-            ref={scrollRef}
-            className="relative h-[240px] overflow-hidden -mx-4 px-4"
-            onScroll={(e) => {
-              const container = e.currentTarget;
-              const scrollTop = container.scrollTop;
-              const cardHeight = 160 + 16;
-              const newIndex = Math.round(scrollTop / cardHeight);
-              if (newIndex !== activeIndex && newIndex >= 0 && newIndex < total) {
-                setActiveIndex(newIndex);
-              }
-            }}
-            style={{ scrollSnapType: 'y mandatory', overflowY: 'scroll' }}
-          >
-            <div className="py-[40px]">
-              {entries.map((whisper, index) => {
-                const isActive = index === activeIndex;
-                return (
-                  <div
-                    key={whisper.id}
-                    className="mb-4"
-                    style={{ scrollSnapAlign: 'center' }}
-                  >
-                    <div
-                      className={`relative h-[160px] p-5 rounded-[24px] border overflow-hidden transition-all duration-500 ${
-                        isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm'
-                      } ${isActive ? 'shadow-lg scale-100 opacity-100' : 'shadow-sm scale-90 opacity-40 blur-[2px]'}`}
-                    >
-                      <div className="flex items-center gap-2 mb-3 relative z-10">
-                        <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
-                          {whisper.emotion}
-                        </span>
-                        <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                          <Radio size={10} /> 未知坐标
-                        </span>
-                      </div>
-
-                      <p className={`text-sm leading-relaxed font-light relative z-10 line-clamp-3 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
-                        "{whisper.text}"
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
+              <textarea
+                value={whisperDraft}
+                onChange={(e) => setWhisperDraft(e.target.value)}
+                placeholder="今晚有什么想对宇宙说的..."
+                rows={4}
+                maxLength={200}
+                className={`w-full p-4 rounded-2xl text-sm resize-none outline-none mb-4 ${
+                  isDark
+                    ? 'bg-[#1f1f2e] text-white border border-white/10 focus:border-sky-500/50'
+                    : 'bg-gray-50 text-gray-900 border border-gray-200 focus:border-sky-300'
+                }`}
+              />
+              <div className="flex items-center justify-between">
+                <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                  {whisperDraft.length}/200
+                </span>
+                <button
+                  onClick={handlePostWhisper}
+                  disabled={!whisperDraft.trim()}
+                  className="px-6 py-2.5 rounded-2xl bg-sky-500 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all"
+                >
+                  发送
+                </button>
+              </div>
             </div>
           </div>
+        </Portal>
+      )}
 
-
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ============================================================================
-// 主组件 TonightView
-// ============================================================================
-
-export default function TonightView({ isDark, userData, saveUserData, onNavigate }) {
-  const [showQuiz, setShowQuiz] = useState(false);
-
-  // 星系图谱当前活跃索引（提升到组件顶层，避免子组件重建时重置）
-  const [galaxyActiveIndex, setGalaxyActiveIndex] = useState(() => {
-    const entries = Object.entries(COSMIC_PERSONALITIES);
-    const idx = entries.findIndex(([type]) => type === (userData?.personality?.type || null));
-    return Math.max(0, idx);
-  });
-  // 确保 personality 数据格式正确（兼容旧版本数据）
-  const personalityData = userData?.personality && typeof userData.personality === 'object' && userData.personality.type
-    ? userData.personality
-    : null;
-
-  const effectiveType = personalityData?.type || null;
-
-  // 星际回音展开状态持久化到 localStorage
-  const [supernovaExpanded, setSupernovaExpanded] = useState(() => {
-    try {
-      return localStorage.getItem('xixi_supernova_expanded') === 'true';
-    } catch {
-      return false;
-    }
-  });
-
-  const toggleSupernova = () => {
-    const next = !supernovaExpanded;
-    setSupernovaExpanded(next);
-    try {
-      localStorage.setItem('xixi_supernova_expanded', String(next));
-    } catch {}
-  };
-
-  const handleQuizComplete = (result) => {
-    if (result) {
-      // 测试完成，自动保存到本地
-      const isFirstTest = !userData.personality;
-      const nextData = {
-        ...userData,
-        personality: result,
-      };
-      if (isFirstTest) {
-        nextData.stardust = (userData.stardust || 0) + 30;
-      }
-      saveUserData(nextData);
-      setShowQuiz(false);
-    } else {
-      // 点击关闭，直接关闭弹窗
-      setShowQuiz(false);
-    }
-  };
-
-  // 是否有测试结果
-  const hasTestResult = !!personalityData;
-
-  return (
-    <div className="animate-fade-in flex flex-col h-[calc(100vh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-5rem)] overflow-hidden">
-      {/* 内容区 — 不需要上下滚动，所有内容在一页内 */}
-      <div className="flex-1 flex flex-col space-y-3 overflow-hidden">
-        {/* 未测试且没有飞入结果时显示标题和简介 */}
-        {!hasTestResult && (
-          <>
-            {/* 1. 顶部区域 */}
-            <section className="text-center pt-2 pb-1">
-              <h1 className={`text-4xl font-light tracking-[0.2em] ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                息息·宇宙
-              </h1>
-            </section>
-            {/* 应用简介 */}
-            <section className="text-center px-4">
-              <p className={`text-xs leading-relaxed max-w-[280px] mx-auto ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                一个温柔的睡前陪伴空间<br />记录心情 · 探索自我 · 与宇宙对话
-              </p>
-            </section>
-          </>
-        )}
-
-        <QuizSection
-          isDark={isDark}
-          personalityData={personalityData}
-          setShowQuiz={setShowQuiz}
-        />
-
-        {/* 未测试时：星际回音在上，星系图谱在下；测试后：星系图谱在上，星际回音在下 */}
-        {hasTestResult ? (
-          <>
-            <GalaxySection
-              isDark={isDark}
-              effectiveType={effectiveType}
-              galaxyActiveIndex={galaxyActiveIndex}
-              setGalaxyActiveIndex={setGalaxyActiveIndex}
-            />
-            <SupernovaSection
-              isDark={isDark}
-              supernovaExpanded={supernovaExpanded}
-              toggleSupernova={toggleSupernova}
-            />
-          </>
-        ) : (
-          <>
-            <SupernovaSection
-              isDark={isDark}
-              supernovaExpanded={supernovaExpanded}
-              toggleSupernova={toggleSupernova}
-            />
-            <GalaxySection
-              isDark={isDark}
-              effectiveType={effectiveType}
-              galaxyActiveIndex={galaxyActiveIndex}
-              setGalaxyActiveIndex={setGalaxyActiveIndex}
-            />
-          </>
-        )}
-      </div>
-
-      {/* 5. 跳转引导 — 固定在底部，极简图标风格 */}
-      <section className="shrink-0 px-4 pb-1">
-        <div className="flex items-center justify-center gap-8">
-          <button
-            onClick={() => onNavigate('radar')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all active:scale-95 ${
-              isDark ? 'text-gray-400 hover:text-indigo-300' : 'text-gray-500 hover:text-indigo-500'
-            }`}
-          >
-            <Radio size={18} />
-            <span className="text-xs font-medium">雷达</span>
-          </button>
-
-          <div className={`w-px h-4 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
-
-          <button
-            onClick={() => onNavigate('star')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all active:scale-95 ${
-              isDark ? 'text-gray-400 hover:text-pink-300' : 'text-gray-500 hover:text-pink-500'
-            }`}
-          >
-            <Gift size={18} />
-            <span className="text-xs font-medium">心愿池</span>
-          </button>
-        </div>
-      </section>
-
+      {/* === 测试弹窗 === */}
       {showQuiz && (
         <QuizWidget
           isDark={isDark}
