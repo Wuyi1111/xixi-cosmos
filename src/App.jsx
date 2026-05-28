@@ -28,6 +28,7 @@ import TreeholeView from './views/TreeholeView.jsx';
 import GalaxyView from './views/GalaxyView.jsx';
 import StarView from './views/StarView.jsx';
 import SplashScreen from './components/SplashScreen.jsx';
+import PersonalityTestView from './views/PersonalityTestView.jsx';
 import StarField from './components/StarField.jsx';
 import { INITIAL_USER_DATA } from './constants.js';
 
@@ -42,8 +43,6 @@ export default function App() {
   const [currentDateStr, setCurrentDateStr] = useState(new Date().toDateString());
 
   // 启动页状态：每个浏览器会话只显示一次。
-  // sessionStorage 在标签页关闭后会被清空，所以下次"真正打开 App"还会看到启动页；
-  // 但在同一会话内刷新页面（HMR / pull-to-refresh / 手动 reload）不再重复显示。
   const [showSplash, setShowSplash] = useState(() => {
     try {
       return sessionStorage.getItem('xixi_splash_shown') !== 'true';
@@ -52,11 +51,25 @@ export default function App() {
     }
   });
 
+  // 人格测试状态：首次用户或未测试用户需要完成测试
+  const [showPersonalityTest, setShowPersonalityTest] = useState(false);
+
   const handleSplashComplete = () => {
     try {
       sessionStorage.setItem('xixi_splash_shown', 'true');
     } catch {}
     setShowSplash(false);
+    // 启动页结束后，如果用户还没做过人格测试，自动进入测试
+    if (!userData.personality) {
+      setShowPersonalityTest(true);
+    }
+  };
+
+  const handleTestComplete = (result) => {
+    const newData = { ...userData, personality: result };
+    setUserData(newData);
+    localStorage.setItem('xixi_cosmos_data', JSON.stringify(newData));
+    setShowPersonalityTest(false);
   };
 
   useEffect(() => {
@@ -216,6 +229,14 @@ export default function App() {
         <SplashScreen
           isDark={isDark}
           onComplete={handleSplashComplete}
+        />
+      )}
+
+      {/* 人格测试（首次用户） */}
+      {showPersonalityTest && (
+        <PersonalityTestView
+          isDark={isDark}
+          onComplete={handleTestComplete}
         />
       )}
 

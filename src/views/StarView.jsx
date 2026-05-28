@@ -196,26 +196,58 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
 
   return (
     <div className="animate-fade-in pb-10 space-y-5">
-      {/* === 1. 顶部个人中心入口（简洁） === */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => setShowProfile(true)}
-          className="flex items-center gap-3 flex-1 text-left"
-        >
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${isDark ? 'bg-[#171724] border border-sky-500/20' : 'bg-white shadow-sm border border-sky-100'}`}>
-            {userData.avatarEmoji || '🪐'}
+      {/* === 1. 顶部个人中心入口 + 人格卡片 === */}
+      <div className="space-y-3">
+        {/* 个人信息行 */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setShowProfile(true)}
+            className="flex items-center gap-3 flex-1 text-left"
+          >
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${isDark ? 'bg-[#171724] border border-sky-500/20' : 'bg-white shadow-sm border border-sky-100'}`}>
+              {userData.avatarEmoji || '🪐'}
+            </div>
+            <div className="flex-1">
+              <h2 className="text-base font-medium">{userData.displayName || '星星旅人'}</h2>
+            </div>
+            <ChevronRight size={18} className={isDark ? 'text-gray-600' : 'text-gray-400'} />
+          </button>
+          <button
+            onClick={() => setShowSettings(true)}
+            className={`p-2 rounded-full ${isDark ? 'bg-[#171724] text-gray-400' : 'bg-white text-gray-500 shadow-sm'}`}
+          >
+            <Settings size={18} />
+          </button>
+        </div>
+
+        {/* 人格测试结果卡片 */}
+        {userData.personality && (
+          <div className={`p-4 rounded-[20px] ${isDark ? 'bg-[#171724] border border-indigo-500/20' : 'bg-white border border-indigo-100'} shadow-sm`}>
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-50'}`}>
+                <Sparkles size={20} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-medium">{userData.personality.name}</h3>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+                    {userData.personality.type}
+                  </span>
+                </div>
+                <p className={`text-[10px] line-clamp-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {userData.personality.desc}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {userData.personality.tags.map((tag, idx) => (
+                <span key={idx} className={`text-[9px] px-2 py-0.5 rounded-full ${isDark ? 'bg-indigo-500/15 text-indigo-300' : 'bg-indigo-50 text-indigo-600'}`}>
+                  {tag}
+                </span>
+              ))}
+            </div>
           </div>
-          <div className="flex-1">
-            <h2 className="text-base font-medium">{userData.displayName || '星星旅人'}</h2>
-          </div>
-          <ChevronRight size={18} className={isDark ? 'text-gray-600' : 'text-gray-400'} />
-        </button>
-        <button
-          onClick={() => setShowSettings(true)}
-          className={`p-2 rounded-full ${isDark ? 'bg-[#171724] text-gray-400' : 'bg-white text-gray-500 shadow-sm'}`}
-        >
-          <Settings size={18} />
-        </button>
+        )}
       </div>
 
       {/* === 2. 今日状态卡片（含数据概览） === */}
