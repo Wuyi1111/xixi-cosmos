@@ -175,12 +175,15 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
             </div>
 
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mb-1">
                 <h3 className="text-base font-medium">{personality.name}</h3>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
                   {personality.type}
                 </span>
               </div>
+              <p className={`text-xs line-clamp-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                {personality.desc}
+              </p>
             </div>
 
             <button
