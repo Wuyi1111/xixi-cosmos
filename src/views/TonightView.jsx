@@ -115,19 +115,11 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
   return (
     <div className="animate-fade-in pb-10 space-y-5">
       {/* === 1. 标题区 === */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-medium tracking-wide">息息·宇宙</h1>
-          <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-            {month}月{date}日 {weekDay}
-          </p>
-        </div>
-        <button
-          onClick={() => setShowWriteWhisper(true)}
-          className={`p-2.5 rounded-full transition-all active:scale-95 ${isDark ? 'bg-[#171724] text-gray-400' : 'bg-white text-gray-500 shadow-sm'}`}
-        >
-          <Send size={18} />
-        </button>
+      <div>
+        <h1 className="text-xl font-medium tracking-wide">息息·宇宙</h1>
+        <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+          {month}月{date}日 {weekDay}
+        </p>
       </div>
 
       {/* === 2. 测试卡片 === */}
@@ -211,20 +203,11 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
             </div>
 
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2">
                 <h3 className="text-base font-medium">{personality.name}</h3>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
                   {personality.type}
                 </span>
-              </div>
-              <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                探索度 {Math.round(explorationProgress)}%
-              </p>
-              <div className={`w-full h-1 rounded-full mt-2 ${isDark ? 'bg-gray-800' : 'bg-gray-100'} overflow-hidden`}>
-                <div
-                  className="h-full rounded-full bg-indigo-500 transition-all duration-500"
-                  style={{ width: `${explorationProgress}%` }}
-                />
               </div>
             </div>
 
