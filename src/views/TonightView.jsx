@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { ChevronRight, Moon, CloudRain, Sun, Coffee, Wind, Compass } from 'lucide-react';
+import { ChevronRight, Moon, CloudRain, Sun, Coffee, Wind, Compass, Star } from 'lucide-react';
 
 // 对话流程定义
 const DIALOG_FLOW = {
