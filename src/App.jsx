@@ -91,6 +91,15 @@ export default function App() {
     return () => clearInterval(timer);
   }, [currentDateStr]);
 
+  // 监听从归星界面触发的测试入口点击
+  useEffect(() => {
+    const handleStartTest = () => {
+      setShowPersonalityTest(true);
+    };
+    window.addEventListener('xixi:start-personality-test', handleStartTest);
+    return () => window.removeEventListener('xixi:start-personality-test', handleStartTest);
+  }, []);
+
   // 初始化加载数据 + 字段迁移
   // 策略：先把 parsed 与 INITIAL_USER_DATA 浅合并补齐缺失字段，再针对类型敏感字段做防御
   useEffect(() => {
