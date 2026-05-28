@@ -1,8 +1,8 @@
 /**
- * SplashScreen.jsx — 极简呼吸启动页（v4.38.0）
+ * SplashScreen.jsx — 极简充能呼吸启动页（v4.39.1）
  *
- * 一个渐变圆在屏幕中央呼吸式缩放，中心淡显"息息"文字
- * 持续 5 秒后自动淡出进入主页
+ * 多层同心圆脉冲扩散，营造能量汇聚感
+ * 大圆呼吸缩放，持续 5 秒后自动进入主页
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -30,22 +30,18 @@ export default function SplashScreen({ onComplete, isDark }) {
     timersRef.current.push(t);
   }, [onComplete, clearAllTimers]);
 
-  // 呼吸循环：吸气 2.5s → 呼气 2.5s，循环一次后结束
+  // 呼吸循环
   useEffect(() => {
     const runBreathing = () => {
-      // 吸气
       setBreathPhase('inhale');
       const t1 = setTimeout(() => {
         if (isDoneRef.current) return;
-        // 呼气
         setBreathPhase('exhale');
         const t2 = setTimeout(() => {
           if (isDoneRef.current) return;
-          // 再吸气一次
           setBreathPhase('inhale');
           const t3 = setTimeout(() => {
             if (isDoneRef.current) return;
-            // 再呼气，然后结束
             setBreathPhase('exhale');
             const t4 = setTimeout(() => {
               finish();
@@ -61,7 +57,6 @@ export default function SplashScreen({ onComplete, isDark }) {
 
     runBreathing();
 
-    // 兜底：5秒后强制结束
     const tForce = setTimeout(() => {
       finish();
     }, 5000);
@@ -70,9 +65,9 @@ export default function SplashScreen({ onComplete, isDark }) {
     return () => clearAllTimers();
   }, [finish, clearAllTimers]);
 
-  // 呼吸缩放值
-  const scale = breathPhase === 'inhale' ? 1.15 : 0.88;
-  const textOpacity = breathPhase === 'inhale' ? 0.9 : 0.5;
+  const scale = breathPhase === 'inhale' ? 1.2 : 0.85;
+  const coreOpacity = breathPhase === 'inhale' ? 1 : 0.4;
+  const glowOpacity = breathPhase === 'inhale' ? 0.6 : 0.2;
 
   return (
     <div
@@ -80,50 +75,74 @@ export default function SplashScreen({ onComplete, isDark }) {
         phase === 'fading' || phase === 'done' ? 'opacity-0 pointer-events-none' : 'opacity-100'
       } ${isDark ? 'bg-[#0f0f1a]' : 'bg-[#f8fafc]'}`}
     >
-      {/* 呼吸圆 */}
-      <div
-        className="relative flex items-center justify-center transition-transform duration-[1200ms] ease-in-out"
-        style={{
-          transform: `scale(${scale})`,
-        }}
-      >
-        {/* 渐变圆 */}
+      {/* 能量核心容器 */}
+      <div className="relative flex items-center justify-center">
+        {/* 外层脉冲环 2 */}
         <div
-          className={`w-40 h-40 rounded-full transition-opacity duration-[1200ms] ${
-            isDark
-              ? 'bg-gradient-to-br from-sky-400/20 via-indigo-400/20 to-purple-400/20'
-              : 'bg-gradient-to-br from-sky-300/30 via-indigo-300/30 to-purple-300/30'
-          }`}
+          className="absolute rounded-full transition-all duration-[1200ms] ease-in-out"
           style={{
-            boxShadow: isDark
-              ? '0 0 60px rgba(99,102,241,0.15), 0 0 120px rgba(99,102,241,0.08)'
-              : '0 0 60px rgba(99,102,241,0.12), 0 0 120px rgba(99,102,241,0.06)',
+            width: '320px',
+            height: '320px',
+            transform: `scale(${scale})`,
+            background: isDark
+              ? 'radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 70%)'
+              : 'radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)',
+            opacity: glowOpacity * 0.5,
           }}
         />
 
-        {/* 中心文字 */}
+        {/* 外层脉冲环 1 */}
         <div
-          className="absolute inset-0 flex items-center justify-center transition-opacity duration-[1200ms]"
-          style={{ opacity: textOpacity }}
+          className="absolute rounded-full transition-all duration-[1200ms] ease-in-out"
+          style={{
+            width: '260px',
+            height: '260px',
+            transform: `scale(${scale})`,
+            background: isDark
+              ? 'radial-gradient(circle, rgba(129,140,248,0.08) 0%, transparent 70%)'
+              : 'radial-gradient(circle, rgba(129,140,248,0.1) 0%, transparent 70%)',
+            opacity: glowOpacity * 0.7,
+          }}
+        />
+
+        {/* 主圆 */}
+        <div
+          className="relative flex items-center justify-center transition-transform duration-[1200ms] ease-in-out"
+          style={{ transform: `scale(${scale})` }}
         >
-          <span
-            className={`text-3xl font-light tracking-[0.2em] ${
-              isDark ? 'text-indigo-200/80' : 'text-indigo-600/70'
-            }`}
-          >
-            息息
-          </span>
+          <div
+            className="w-56 h-56 rounded-full"
+            style={{
+              background: isDark
+                ? 'radial-gradient(circle at 40% 40%, rgba(147,197,253,0.25), rgba(99,102,241,0.15) 50%, rgba(99,102,241,0.05) 100%)'
+                : 'radial-gradient(circle at 40% 40%, rgba(147,197,253,0.35), rgba(99,102,241,0.2) 50%, rgba(99,102,241,0.08) 100%)',
+              boxShadow: isDark
+                ? `0 0 80px rgba(99,102,241,${glowOpacity * 0.3}), 0 0 160px rgba(99,102,241,${glowOpacity * 0.15}), inset 0 0 60px rgba(147,197,253,${glowOpacity * 0.1})`
+                : `0 0 80px rgba(99,102,241,${glowOpacity * 0.25}), 0 0 160px rgba(99,102,241,${glowOpacity * 0.12}), inset 0 0 60px rgba(147,197,253,${glowOpacity * 0.08})`,
+            }}
+          />
+
+          {/* 中心亮点 */}
+          <div
+            className="absolute w-3 h-3 rounded-full transition-opacity duration-[1200ms]"
+            style={{
+              background: isDark ? 'rgba(191,219,254,0.9)' : 'rgba(99,102,241,0.8)',
+              boxShadow: isDark
+                ? `0 0 20px rgba(191,219,254,${coreOpacity}), 0 0 40px rgba(191,219,254,${coreOpacity * 0.5})`
+                : `0 0 20px rgba(99,102,241,${coreOpacity}), 0 0 40px rgba(99,102,241,${coreOpacity * 0.5})`,
+              opacity: coreOpacity,
+            }}
+          />
         </div>
       </div>
 
-      {/* 底部小字 */}
+      {/* 底部品牌名 */}
       <div
-        className={`absolute bottom-12 left-0 right-0 text-center transition-opacity duration-1000 ${
-          breathPhase === 'inhale' ? 'opacity-40' : 'opacity-20'
-        }`}
+        className="absolute bottom-16 left-0 right-0 text-center transition-opacity duration-1000"
+        style={{ opacity: breathPhase === 'inhale' ? 0.5 : 0.2 }}
       >
-        <p className={`text-[10px] tracking-[0.3em] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-          宇宙之息
+        <p className={`text-[10px] tracking-[0.4em] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+          息息 · 宇宙
         </p>
       </div>
     </div>
