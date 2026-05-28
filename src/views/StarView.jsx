@@ -196,51 +196,44 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
 
   return (
     <div className="animate-fade-in pb-10 space-y-5">
-      {/* === 1. 顶部个人中心入口 + 人格卡片 === */}
-      <div className="space-y-3">
-        {/* 个人信息行 */}
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => setShowProfile(true)}
-            className="flex items-center gap-3 flex-1 text-left"
-          >
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${isDark ? 'bg-[#171724] border border-sky-500/20' : 'bg-white shadow-sm border border-sky-100'}`}>
-              {userData.avatarEmoji || '🪐'}
-            </div>
-            <div className="flex-1">
-              <h2 className="text-base font-medium">{userData.displayName || '星星旅人'}</h2>
-            </div>
-            <ChevronRight size={18} className={isDark ? 'text-gray-600' : 'text-gray-400'} />
-          </button>
-          <button
-            onClick={() => setShowSettings(true)}
-            className={`p-2 rounded-full ${isDark ? 'bg-[#171724] text-gray-400' : 'bg-white text-gray-500 shadow-sm'}`}
-          >
-            <Settings size={18} />
-          </button>
+      {/* === 1. 统一个人中心入口卡片 === */}
+      <button
+        onClick={() => setShowProfile(true)}
+        className={`w-full text-left rounded-[20px] p-4 transition-all active:scale-[0.98] ${
+          isDark
+            ? 'bg-[#171724] border border-sky-500/20 hover:border-sky-500/40'
+            : 'bg-white border border-sky-100 hover:border-sky-300 shadow-sm'
+        }`}
+      >
+        {/* 上半：个人信息 */}
+        <div className="flex items-center gap-3">
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl shrink-0 ${isDark ? 'bg-[#13131f] border border-sky-500/20' : 'bg-sky-50 border border-sky-100'}`}>
+            {userData.avatarEmoji || '🪐'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-base font-medium">{userData.displayName || '星星旅人'}</h2>
+          </div>
+          <ChevronRight size={18} className={isDark ? 'text-gray-600' : 'text-gray-400'} />
         </div>
 
-        {/* 人格测试结果卡片 / 测试入口 */}
+        {/* 分隔线 */}
+        <div className={`my-3 border-t ${isDark ? 'border-white/5' : 'border-gray-100'}`} />
+
+        {/* 下半：人格信息 / 测试引导 */}
         {userData.personality ? (
-          <div className={`p-4 rounded-[20px] ${isDark ? 'bg-[#171724] border border-indigo-500/20' : 'bg-white border border-indigo-100'} shadow-sm`}>
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-50'}`}>
-                <Sparkles size={20} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-medium">{userData.personality.name}</h3>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-                    {userData.personality.type}
-                  </span>
-                </div>
-                <p className={`text-[10px] line-clamp-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {userData.personality.desc}
-                </p>
-              </div>
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <Sparkles size={14} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+              <span className="text-sm font-medium">{userData.personality.name}</span>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+                {userData.personality.type}
+              </span>
             </div>
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {userData.personality.tags.map((tag, idx) => (
+            <p className={`text-[11px] mb-2 line-clamp-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              {userData.personality.desc}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {userData.personality.tags.slice(0, 3).map((tag, idx) => (
                 <span key={idx} className={`text-[9px] px-2 py-0.5 rounded-full ${isDark ? 'bg-indigo-500/15 text-indigo-300' : 'bg-indigo-50 text-indigo-600'}`}>
                   {tag}
                 </span>
@@ -248,30 +241,17 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
             </div>
           </div>
         ) : (
-          <button
-            onClick={() => {
-              // 触发人格测试 - 通过 App 层处理
-              window.dispatchEvent(new CustomEvent('xixi:start-personality-test'));
-            }}
-            className={`w-full p-4 rounded-[20px] text-left transition-all active:scale-[0.98] flex items-center gap-3 ${
-              isDark
-                ? 'bg-[#171724] border border-indigo-500/20 hover:border-indigo-500/40'
-                : 'bg-white border border-indigo-100 hover:border-indigo-300 shadow-sm'
-            }`}
-          >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-50'}`}>
-              <Sparkles size={20} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-medium">探索睡眠人格</h3>
-              <p className={`text-[10px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                8 道题，发现属于你的宇宙归属
-              </p>
-            </div>
-            <ChevronRight size={16} className={isDark ? 'text-gray-600' : 'text-gray-400'} />
-          </button>
+          <div className="flex items-center gap-2">
+            <Sparkles size={14} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+            <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+              探索睡眠人格
+            </span>
+            <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+              · 8 道题发现你的宇宙归属
+            </span>
+          </div>
         )}
-      </div>
+      </button>
 
       {/* === 2. 今日状态卡片（含数据概览） === */}
       <div className={`p-5 rounded-[24px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border border-sky-500/15' : 'bg-gradient-to-br from-sky-50/70 to-white border border-sky-100'}`}>
