@@ -169,6 +169,12 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
       ) : (
         /* 已测试：人格图标 + 进度环 */
         <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
+          {/* 顶部小标题 */}
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles size={14} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+            <span className={`text-[10px] font-medium ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>你的归属</span>
+          </div>
+
           <div className="flex items-start gap-4">
             {/* 人格图标 */}
             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-100'}`}>
@@ -177,12 +183,12 @@ export default function TonightView({ isDark, userData, saveUserData, onNavigate
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-base font-medium">{personality.name}</h3>
+                <h3 className="text-lg font-medium">{personality.name}</h3>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
                   {personality.type}
                 </span>
               </div>
-              <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              <p className={`text-xs leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                 {personality.desc}
               </p>
               {/* 标签 */}
