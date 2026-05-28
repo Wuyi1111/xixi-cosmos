@@ -227,12 +227,27 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
           {/* 下半：人格信息 / 测试引导 */}
           {userData.personality ? (
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles size={16} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
-                <span className="text-base font-medium">{userData.personality.name}</span>
-                <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-mono ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-                  {userData.personality.type}
-                </span>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles size={16} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
+                  <span className="text-base font-medium">{userData.personality.name}</span>
+                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-mono ${isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+                    {userData.personality.type}
+                  </span>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowGalaxyMap(true);
+                  }}
+                  className={`text-xs px-3 py-1.5 rounded-full transition-colors ${
+                    isDark
+                      ? 'bg-indigo-500/15 text-indigo-300 hover:bg-indigo-500/25'
+                      : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+                  }`}
+                >
+                  星系图谱
+                </button>
               </div>
               <p className={`text-xs mb-3 leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                 {userData.personality.desc}
@@ -280,25 +295,6 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
           <Settings size={22} />
         </button>
       </div>
-
-      {/* === 1.5 星系图谱入口 === */}
-      <button
-        onClick={() => setShowGalaxyMap(true)}
-        className={`w-full p-4 rounded-[20px] text-left transition-all active:scale-[0.98] flex items-center gap-3 ${
-          isDark
-            ? 'bg-[#171724] border border-indigo-500/20 hover:border-indigo-500/40'
-            : 'bg-white border border-indigo-100 hover:border-indigo-300 shadow-sm'
-        }`}
-      >
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-50'}`}>
-          <Orbit size={20} className={isDark ? 'text-indigo-400' : 'text-indigo-500'} />
-        </div>
-        <div className="flex-1">
-          <span className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>星系图谱</span>
-          <span className={`text-xs block ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>探索 16 种宇宙人格</span>
-        </div>
-        <ChevronRight size={16} className={isDark ? 'text-gray-600' : 'text-gray-400'} />
-      </button>
 
       {/* === 2. 今日状态卡片（含数据概览） === */}
       <div className={`p-5 rounded-[24px] relative overflow-hidden ${isDark ? 'bg-gradient-to-br from-[#1a1a2e] to-[#171724] border border-sky-500/15' : 'bg-gradient-to-br from-sky-50/70 to-white border border-sky-100'}`}>
