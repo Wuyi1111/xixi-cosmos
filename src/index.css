@@ -199,121 +199,19 @@ input[type="range"].font-scale-slider::-moz-range-thumb {
 }
 .animate-tap-flash { animation: tap-flash 500ms ease-out forwards; }
 
-/* === 夜声波形（StarView 白噪音卡片下方 5 根条的纵向脉动） === */
-@keyframes sound-wave {
-  0%   { transform: scaleY(0.3); }
-  100% { transform: scaleY(1); }
+/* === 守护者头像呼吸发光动画 === */
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+.animate-breathe {
+  animation: breathe 3s ease-in-out infinite;
 }
 
-/* === 心形粒子上浮 & 淡出（TreeholeView 的"送出温暖"喷溅效果） ===
- * 从原点 (0,0) 漂移到 (--tx, --ty)，同时缩小并淡出。
- * --tx / --ty 必须设在 .animate-particle-float 自身上（CSS 变量只向下级联）。
- */
-@keyframes particle-float {
-  0%   { transform: translate(0, 0) scale(1);                              opacity: 1; }
-  100% { transform: translate(var(--tx, 0), var(--ty, -40px)) scale(0.2);  opacity: 0; }
+@keyframes glow {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(99, 102, 241, 0.3)); }
+  50% { filter: drop-shadow(0 0 12px rgba(99, 102, 241, 0.8)); }
 }
-.animate-particle-float { animation: particle-float 1s ease-out forwards; }
-
-/* === 归星仪式：粒子向中心汇聚 === */
-@keyframes particle-gather {
-  0% {
-    transform: translate(var(--start-x), var(--start-y)) scale(1);
-    opacity: 0.8;
-  }
-  100% {
-    transform: translate(0, 0) scale(0.3);
-    opacity: 0;
-  }
-}
-.animate-particle-gather {
-  animation: particle-gather 2.5s ease-in forwards;
-}
-
-/* === 归星仪式：中央呼吸圆 === */
-@keyframes ritual-breathe {
-  0%, 100% {
-    transform: scale(0.9);
-    opacity: 0.6;
-  }
-  50% {
-    transform: scale(1.15);
-    opacity: 1;
-  }
-}
-.animate-ritual-breathe {
-  animation: ritual-breathe 2.5s ease-in-out forwards;
-}
-
-/* === 归星仪式：完成后星星爆开 === */
-@keyframes star-burst {
-  0% {
-    transform: translate(-50%, -50%) scale(0);
-    opacity: 1;
-  }
-  50% {
-    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.2);
-    opacity: 0.8;
-  }
-  100% {
-    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0);
-    opacity: 0;
-  }
-}
-.animate-star-burst {
-  animation: star-burst 1s ease-out forwards;
-}
-
-/* === 宇宙拥抱：光圈扩散 === */
-@keyframes hug-expand {
-  0% { transform: scale(0.5); opacity: 0; }
-  30% { opacity: 1; }
-  100% { transform: scale(2.5); opacity: 0; }
-}
-.animate-hug-expand {
-  animation: hug-expand 2s ease-out forwards;
-}
-
-@keyframes hug-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.2); }
-}
-.animate-hug-pulse {
-  animation: hug-pulse 1.5s ease-in-out infinite;
-}
-
-/* === 潮汐呼吸：圆环缩放 === */
-@keyframes breathe-ring {
-  0%, 100% { transform: scale(0.8); opacity: 0.3; }
-  50% { transform: scale(1.3); opacity: 0.6; }
-}
-.animate-breathe-ring {
-  animation: breathe-ring 4s ease-in-out infinite;
-}
-
-@keyframes breathe-ring-delay {
-  0%, 100% { transform: scale(0.9); opacity: 0.2; }
-  50% { transform: scale(1.2); opacity: 0.4; }
-}
-.animate-breathe-ring-delay {
-  animation: breathe-ring-delay 4s ease-in-out infinite 0.5s;
-}
-
-/* === 黑洞吸入 === */
-@keyframes blackhole-suck {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(0.6); opacity: 0.8; }
-  100% { transform: scale(0); opacity: 0; }
-}
-.animate-blackhole-suck {
-  animation: blackhole-suck 1.5s ease-in forwards;
-}
-
-/* === 愿望飞走 === */
-@keyframes wish-fly {
-  0% { transform: translateY(0) scale(1); opacity: 1; }
-  100% { transform: translateY(-60px) scale(0.5); opacity: 0; }
-}
-.animate-wish-fly {
-  animation: wish-fly 1.5s ease-out forwards;
+.animate-glow {
+  animation: glow 3s ease-in-out infinite;
 }
