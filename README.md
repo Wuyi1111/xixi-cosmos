@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.46.0** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.46.1** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 ---
 
@@ -61,6 +61,11 @@ GitHub Actions 自动跑，几十秒后线上更新。可在 Actions 标签查�
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.46.1 · 2026-06-13 — 首页月亮图标实心化 + 新增"再说一次"按钮
+
+- 守护者头像月亮图标改为实心填充（Moon fill="currentColor"）
+- 对话结束后显示「再说一次」按钮，点击可重新开始一轮新的对话
 
 ### v4.46.0 · 2026-05-29 — 此刻界面改为守护者 3 轮对话
 

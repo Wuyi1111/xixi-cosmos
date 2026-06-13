@@ -102,6 +102,18 @@ export default function TonightView({ isDark }) {
     }, 300);
   };
 
+  /* 重置对话 */
+  const handleReset = () => {
+    setCurrentNode('greeting');
+    setDisplayText('');
+    setIsFinished(false);
+    setShowOptions(false);
+    setTimeout(() => {
+      setDisplayText(getGreetingText());
+      setShowOptions(true);
+    }, 100);
+  };
+
   return (
     <div className="animate-fade-in pb-10 space-y-5">
       {/* === 标题区 === */}
@@ -123,7 +135,7 @@ export default function TonightView({ isDark }) {
               <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3 ${
                 isDark ? 'bg-indigo-500/10' : 'bg-indigo-50'
               } ${isFinished ? 'animate-breathe' : ''}`}>
-                <Moon size={24} className={`${isDark ? 'text-indigo-400' : 'text-indigo-500'} ${isFinished ? 'animate-glow' : ''}`} />
+                <Moon size={24} fill="currentColor" className={`${isDark ? 'text-indigo-400' : 'text-indigo-500'} ${isFinished ? 'animate-glow' : ''}`} />
               </div>
             </div>
           )}
@@ -134,7 +146,7 @@ export default function TonightView({ isDark }) {
               <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3 animate-breathe ${
                 isDark ? 'bg-indigo-500/10' : 'bg-indigo-50'
               }`}>
-                <Moon size={24} className={`${isDark ? 'text-indigo-400' : 'text-indigo-500'} animate-glow`} />
+                <Moon size={24} fill="currentColor" className={`${isDark ? 'text-indigo-400' : 'text-indigo-500'} animate-glow`} />
               </div>
             </div>
           )}
@@ -158,20 +170,33 @@ export default function TonightView({ isDark }) {
               showOptions ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
             }`}
           >
-            {node?.options?.map((option, idx) => (
+            {isFinished ? (
               <button
-                key={idx}
-                onClick={() => handleOption(option)}
-                disabled={isTransitioning}
-                className={`w-full p-3.5 rounded-2xl text-sm transition-all active:scale-[0.98] disabled:opacity-50 ${
+                onClick={handleReset}
+                className={`w-full p-3.5 rounded-2xl text-sm transition-all active:scale-[0.98] ${
                   isDark
                     ? 'bg-[#1f1f2e] text-gray-300 border border-gray-800 hover:border-indigo-500/30'
                     : 'bg-gray-50 text-gray-700 border border-gray-100 hover:border-indigo-200'
                 }`}
               >
-                {option.text}
+                再说一次
               </button>
-            ))}
+            ) : (
+              node?.options?.map((option, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleOption(option)}
+                  disabled={isTransitioning}
+                  className={`w-full p-3.5 rounded-2xl text-sm transition-all active:scale-[0.98] disabled:opacity-50 ${
+                    isDark
+                      ? 'bg-[#1f1f2e] text-gray-300 border border-gray-800 hover:border-indigo-500/30'
+                      : 'bg-gray-50 text-gray-700 border border-gray-100 hover:border-indigo-200'
+                  }`}
+                >
+                  {option.text}
+                </button>
+              ))
+            )}
           </div>
         </div>
       </div>
