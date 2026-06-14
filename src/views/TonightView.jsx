@@ -16,38 +16,99 @@ import { Moon, Sparkles } from 'lucide-react';
 
 /* ─────────────── 对话树配置 ─────────────── */
 const DIALOG_TREE = {
-  // 第一轮：问候（时段匹配，动态替换）
+  // 第1轮：问候（时段匹配，动态替换）
   greeting: {
-    text: '', // 运行时由 getGreetingText() 填充
+    text: '',
     options: [
-      { text: '有，想说说', next: 'choice_a', color: 'amber' },
-      { text: '没什么，就是来看看', next: 'choice_b', color: 'indigo' },
-      { text: '不太好，但不想说', next: 'choice_c', color: 'slate' },
+      { text: '有点累，不想说话', next: 'tired', color: 'slate' },
+      { text: '有点开心，想分享', next: 'happy', color: 'amber' },
+      { text: '就是有点烦', next: 'annoyed', color: 'indigo' },
     ],
   },
 
-  // 第二轮：收束与安抚（多句递进）
-  choice_a: {
+  // 第2轮：累 → 陪伴
+  tired: {
     lines: [
-      '谢谢你愿意说。',
-      '不过今晚不用告诉我具体发生了什么。',
-      '把它放在心里，然后好好休息。明天的事交给明天的引力。',
+      '不想说话就不说。',
+      '有些疲惫不需要被解释。',
+      '你今天能坚持下来，就已经很了不起了。',
     ],
-    options: null,
-  },
-  choice_b: {
-    lines: [
-      '来看看本身就是一种温柔的举动。',
-      '不需要有什么目的，在这里待一会儿就好。',
-      '星星不会因为没人看就不发光。',
+    options: [
+      { text: '说点别的', next: 'chat_tired', color: 'indigo' },
+      { text: '晚安，谢谢', next: 'ending_warm', color: 'slate' },
     ],
-    options: null,
   },
-  choice_c: {
+
+  // 第2轮：开心 → 发光
+  happy: {
     lines: [
-      '不想说就不说。',
-      '有些感受需要时间才能被翻译。',
-      '今晚先把它们放在枕头下面，让梦去整理。',
+      '开心是值得被记住的 ✨',
+      '这种感觉是今天的小礼物。',
+      '谢谢你愿意把它分享给我。',
+    ],
+    options: [
+      { text: '说点别的', next: 'chat_happy', color: 'amber' },
+      { text: '晚安，谢谢', next: 'ending_warm', color: 'slate' },
+    ],
+  },
+
+  // 第2轮：烦 → 陪伴
+  annoyed: {
+    lines: [
+      '烦躁也是夜晚的一部分。',
+      '没关系，今晚不用急着整理。',
+      '有些情绪不需要被解决，只需要被看见。',
+    ],
+    options: [
+      { text: '说点别的', next: 'chat_annoyed', color: 'indigo' },
+      { text: '晚安，谢谢', next: 'ending_warm', color: 'slate' },
+    ],
+  },
+
+  // 第3轮：闲聊（累分支）
+  chat_tired: {
+    lines: [
+      '那我给你讲一个小秘密。',
+      '今天的月亮其实一直在偷偷看你。',
+      '它说，你辛苦了。',
+    ],
+    options: [
+      { text: '谢谢你', next: 'ending_warm', color: 'amber' },
+      { text: '晚安', next: 'ending_warm', color: 'slate' },
+    ],
+  },
+
+  // 第3轮：闲聊（开心分支）
+  chat_happy: {
+    lines: [
+      '你知道吗。',
+      '星星有一半的时间是被云层挡住的。',
+      '但没关系，它一直都在。',
+    ],
+    options: [
+      { text: '这个比喻不错', next: 'ending_warm', color: 'indigo' },
+      { text: '晚安', next: 'ending_warm', color: 'slate' },
+    ],
+  },
+
+  // 第3轮：闲聊（烦分支）
+  chat_annoyed: {
+    lines: [
+      '我有一个不太科学的理论——',
+      '烦躁的时候，都是宇宙在后台帮你整理内存。',
+      '明天就好了。',
+    ],
+    options: [
+      { text: '这个想法很可爱', next: 'ending_warm', color: 'amber' },
+      { text: '晚安', next: 'ending_warm', color: 'slate' },
+    ],
+  },
+
+  // 结束：温暖收尾
+  ending_warm: {
+    lines: [
+      '那就这样吧。',
+      '今晚也要好好睡觉，明天见。',
     ],
     options: null,
   },
@@ -247,9 +308,10 @@ export default function TonightView({ isDark }) {
 
   // 获取当前情绪颜色
   const getMoodColor = () => {
-    if (currentNode === 'choice_a') return 'amber';
-    if (currentNode === 'choice_b') return 'indigo';
-    if (currentNode === 'choice_c') return 'slate';
+    if (currentNode === 'tired' || currentNode === 'chat_tired') return 'slate';
+    if (currentNode === 'happy' || currentNode === 'chat_happy') return 'amber';
+    if (currentNode === 'annoyed' || currentNode === 'chat_annoyed') return 'indigo';
+    if (currentNode === 'ending_warm') return 'amber';
     return 'indigo';
   };
 
@@ -292,15 +354,7 @@ export default function TonightView({ isDark }) {
                   className={`${colors.text} ${isFinished ? 'animate-glow' : ''}`}
                 />
               </div>
-              {isFinished && (
-                <div className="flex items-center justify-center gap-1.5 mt-2">
-                  <Sparkles size={12} className="text-amber-400/60" />
-                  <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                    对话已结束
-                  </span>
-                  <Sparkles size={12} className="text-amber-400/60" />
-                </div>
-              )}
+
             </div>
           )}
 
