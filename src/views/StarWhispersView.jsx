@@ -1,12 +1,13 @@
 /**
- * StarWhispersView.jsx — "星海"板块（v4.47.4 流畅堆叠滑动版）
+ * StarWhispersView.jsx — "星海"板块（v4.47.9 堆叠滑动版）
  *
- * 积目式卡片滑动（流畅版）：
- *   - 卡片堆叠：当前卡片在上层，下一张在底层预加载
- *   - 滑动时当前卡片透明度渐变 + 缩小，下一张同步放大 + 淡入
- *   - 左滑 → 下一个 + 自动"送温暖"（点赞）
- *   - 右滑 → 下一个（跳过）
- *   - 爱心粒子从卡片中心发散，大范围扩散
+ * 卡片堆叠滑动逻辑：
+ *   - 当前卡片占屏幕宽度的 70%，居中
+ *   - 左右各露出相邻卡片的边缘（约 15%）
+ *   - 左滑 → 卡片向左飞出 + 自动"送温暖"（收藏到"我的温暖"）
+ *   - 右滑 → 卡片向右飞出（跳过）
+ *   - 无论左滑右滑，下一张都从右侧滑入
+ *   - 滑完所有卡片后显示提示文案
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -75,13 +76,13 @@ export default function StarWhispersView({
       saveUserData({ ...userData, ...hugPatch });
     }
 
-    // 发散粒子效果 - 从中心向四周扩散
+    // 发散粒子效果
     const centerX = sourceX || window.innerWidth / 2;
     const centerY = sourceY || window.innerHeight / 2;
     const particleCount = 16;
     const newParticles = Array.from({ length: particleCount }).map((_, i) => {
-      const angle = (i / particleCount) * Math.PI * 2; // 均匀分布 0~360°
-      const distance = 150 + Math.random() * 250; // 150~400px
+      const angle = (i / particleCount) * Math.PI * 2;
+      const distance = 150 + Math.random() * 250;
       const tx = Math.cos(angle) * distance + 'px';
       const ty = Math.sin(angle) * distance + 'px';
       return {
@@ -101,7 +102,6 @@ export default function StarWhispersView({
       return merged.length > 80 ? merged.slice(-80) : merged;
     });
 
-    // 1.5s 后自动消失
     setTimeout(() => {
       setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
     }, 1500);
@@ -112,14 +112,11 @@ export default function StarWhispersView({
   // === 切换到下一个 ===
   const goToNext = useCallback((direction) => {
     if (isAnimating) return;
-
-    // 如果已经是最后一张，仍然允许滑出，显示完成状态
     const isLastCard = currentIndex >= whispers.length - 1;
 
     setIsAnimating(true);
     setSwipeDirection(direction);
 
-    // 如果是左滑且不是最后一张（无内容可点赞），自动送温暖
     if (direction === 'left' && !isLastCard) {
       const whisper = whispers[currentIndex];
       const cardEl = containerRef.current?.querySelector('[data-current-card]');
@@ -215,15 +212,14 @@ export default function StarWhispersView({
   // === 当前卡片样式 ===
   const getCurrentCardStyle = () => {
     const progress = getSwipeProgress();
-    const scale = 1 - progress * 0.08;
-    const opacity = 1 - progress * 0.7;
-    const rotate = dragOffset * 0.02;
+    const scale = 1 - progress * 0.05;
+    const opacity = 1 - progress * 0.5;
+    const rotate = dragOffset * 0.01;
 
     if (swipeDirection && isAnimating) {
-      // 飞出动画
       const flyX = swipeDirection === 'left' ? -window.innerWidth * 1.2 : window.innerWidth * 1.2;
       return {
-        transform: `translateX(${flyX}px) rotate(${swipeDirection === 'left' ? -12 : 12}deg)`,
+        transform: `translateX(${flyX}px) rotate(${swipeDirection === 'left' ? -8 : 8}deg)`,
         opacity: 0,
         transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease',
       };
@@ -233,18 +229,34 @@ export default function StarWhispersView({
       transform: `translateX(${dragOffset}px) rotate(${rotate}deg) scale(${scale})`,
       opacity,
       transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
+      zIndex: 3,
+    };
+  };
+
+  // === 下一张卡片样式（右侧露出）===
+  const getNextCardStyle = () => {
+    const progress = getSwipeProgress();
+    const translateX = 60 - progress * 60;
+    const scale = 0.92 + progress * 0.08;
+    const opacity = 0.5 + progress * 0.5;
+
+    return {
+      transform: `translateX(${translateX}%) scale(${scale})`,
+      opacity,
+      transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
       zIndex: 2,
     };
   };
 
-  // === 下一张卡片样式 ===
-  const getNextCardStyle = () => {
+  // === 上一张卡片样式（左侧露出）===
+  const getPrevCardStyle = () => {
     const progress = getSwipeProgress();
-    const scale = 0.88 + progress * 0.12;
-    const opacity = 0.3 + progress * 0.7;
+    const translateX = -60 + progress * 60;
+    const scale = 0.92 + progress * 0.08;
+    const opacity = 0.5 + progress * 0.5;
 
     return {
-      transform: `scale(${scale})`,
+      transform: `translateX(${translateX}%) scale(${scale})`,
       opacity,
       transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
       zIndex: 1,
@@ -318,6 +330,7 @@ export default function StarWhispersView({
     );
   }
 
+  const prevWhisper = whispers[currentIndex - 1];
   const currentWhisper = whispers[currentIndex];
   const nextWhisper = whispers[currentIndex + 1];
   const isHugged = userData.huggedWhispers.includes(currentWhisper?.id);
@@ -345,7 +358,7 @@ export default function StarWhispersView({
       {/* === 卡片区域 === */}
       <div
         ref={containerRef}
-        className="flex-1 relative flex items-center justify-center px-4"
+        className="flex-1 relative flex items-center justify-center"
         style={{ minHeight: '420px', touchAction: 'none', userSelect: 'none' }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -381,48 +394,71 @@ export default function StarWhispersView({
           </div>
         )}
 
-        {/* 下一张卡片（底层） */}
-        {nextWhisper && currentIndex < whispers.length - 1 && (
+        {/* 上一张卡片（左侧露出） */}
+        {prevWhisper && currentIndex > 0 && (
           <div
-            className="absolute inset-0 flex items-center justify-center px-4 pointer-events-none"
-            style={getNextCardStyle()}
+            className="absolute inset-y-0 left-0 flex items-center justify-start pointer-events-none"
+            style={{
+              ...getPrevCardStyle(),
+              width: '30%',
+              paddingLeft: '4px',
+            }}
           >
             <div
-              className={`w-full rounded-3xl border overflow-hidden ${
+              className={`w-full rounded-2xl border overflow-hidden ${
                 isDark ? 'bg-[#1a1a2e] border-white/5' : 'bg-[#1e1e32] border-white/5'
               }`}
               style={{
-                minHeight: '400px',
-                maxWidth: '360px',
-                boxShadow: '0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03)',
+                minHeight: '360px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
               }}
             >
-              <div className="flex flex-col min-h-[400px] p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <span className={`text-[10px] px-2.5 py-1 rounded-full border ${isDark ? 'bg-white/5 text-gray-400 border-white/10' : 'bg-white/5 text-gray-400 border-white/10'}`}>
-                    {nextWhisper.emotion}
-                  </span>
-                  <span className={`text-[10px] text-gray-600`}>未知坐标</span>
-                </div>
-                <div className="flex-1 flex items-center justify-center py-4">
-                  <p className={`text-base leading-relaxed font-light text-center text-gray-200`}>
-                    "{nextWhisper.text}"
-                  </p>
-                </div>
-                <div className={`w-full h-px my-4 bg-white/5`} />
-                <div className="flex items-center justify-between">
-                  <span className={`text-[10px] text-gray-600`}>来自深空的信</span>
-                </div>
+              <div className="flex flex-col min-h-[360px] p-4 opacity-40">
+                <span className={`text-[10px] px-2 py-0.5 rounded-full border ${isDark ? 'bg-white/5 text-gray-500 border-white/10' : 'bg-white/5 text-gray-500 border-white/10'}`}>
+                  {prevWhisper.emotion}
+                </span>
               </div>
             </div>
           </div>
         )}
 
-        {/* 当前卡片（上层） */}
+        {/* 下一张卡片（右侧露出） */}
+        {nextWhisper && currentIndex < whispers.length - 1 && (
+          <div
+            className="absolute inset-y-0 right-0 flex items-center justify-end pointer-events-none"
+            style={{
+              ...getNextCardStyle(),
+              width: '30%',
+              paddingRight: '4px',
+            }}
+          >
+            <div
+              className={`w-full rounded-2xl border overflow-hidden ${
+                isDark ? 'bg-[#1a1a2e] border-white/5' : 'bg-[#1e1e32] border-white/5'
+              }`}
+              style={{
+                minHeight: '360px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+              }}
+            >
+              <div className="flex flex-col min-h-[360px] p-4 opacity-40">
+                <span className={`text-[10px] px-2 py-0.5 rounded-full border ${isDark ? 'bg-white/5 text-gray-500 border-white/10' : 'bg-white/5 text-gray-500 border-white/10'}`}>
+                  {nextWhisper.emotion}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 当前卡片（中央 70%） */}
         {currentWhisper && currentIndex < whispers.length && (
           <div
-            className="absolute inset-0 flex items-center justify-center px-4"
-            style={getCurrentCardStyle()}
+            className="absolute inset-y-0 flex items-center justify-center"
+            style={{
+              ...getCurrentCardStyle(),
+              left: '15%',
+              right: '15%',
+            }}
             data-current-card
           >
             <div
@@ -431,7 +467,6 @@ export default function StarWhispersView({
               }`}
               style={{
                 minHeight: '400px',
-                maxWidth: '360px',
                 boxShadow: '0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03)',
               }}
             >
