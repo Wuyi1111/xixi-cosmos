@@ -1,14 +1,14 @@
 /**
- * TonightView.jsx — "此刻"板块（v4.47.8 沉浸优化版）
+ * TonightView.jsx — "此刻"板块（v4.47.16 分阶段动画优化版）
  *
- * 全屏沉浸式对话，3 轮固定对话结构。
- * 优化内容：
- *   - 打字机效果逐字显示
- *   - 第二轮多句递进，更有层次
- *   - 月亮图标呼吸动画 + 情绪微光颜色
- *   - 对话结束后安静星空过渡
- *   - 背景极淡星星闪烁
- *   - 界面加长
+ * 全屏沉浸式对话，3 入口 × 3 轮有来有回结构。
+ * 动画优化：
+ *   - 分阶段进入：标题 → 月亮 → 文字 → 按钮依次出现
+ *   - 月亮全程可见，跟随情绪变化颜色
+ *   - 对话切换流畅过渡：fade-out → fade-in
+ *   - 打字机速度微变化，更自然
+ *   - 情绪颜色柔和过渡
+ *   - 背景星星有漂浮感
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -129,8 +129,8 @@ function getGreetingText() {
   return '还没睡吗。今天想聊点什么。';
 }
 
-/* ─────────────── 打字机 hook ─────────────── */
-function useTypewriter(text, speed = 45, enabled = true) {
+/* ─────────────── 打字机 hook（带速度微变化）─────────────── */
+function useTypewriter(text, baseSpeed = 45, enabled = true) {
   const [display, setDisplay] = useState('');
   const [done, setDone] = useState(false);
   const idxRef = useRef(0);
@@ -145,17 +145,23 @@ function useTypewriter(text, speed = 45, enabled = true) {
     setDisplay('');
     setDone(false);
 
-    const timer = setInterval(() => {
+    let timer;
+    const type = () => {
       idxRef.current += 1;
       setDisplay(text.slice(0, idxRef.current));
       if (idxRef.current >= text.length) {
         clearInterval(timer);
         setDone(true);
+      } else {
+        // 打字速度微变化，更自然（40-55ms）
+        const variance = Math.random() * 15 - 5;
+        timer = setTimeout(type, baseSpeed + variance);
       }
-    }, speed);
+    };
 
-    return () => clearInterval(timer);
-  }, [text, speed, enabled]);
+    timer = setTimeout(type, baseSpeed);
+    return () => clearTimeout(timer);
+  }, [text, baseSpeed, enabled]);
 
   return { display, done };
 }
@@ -167,8 +173,11 @@ function BackgroundStars({ isDark }) {
       left: Math.random() * 100,
       top: Math.random() * 100,
       size: 1 + Math.random() * 2,
-      delay: Math.random() * 4,
-      duration: 2 + Math.random() * 3,
+      twinkleDelay: Math.random() * 4,
+      twinkleDuration: 2 + Math.random() * 3,
+      floatX: (Math.random() - 0.5) * 20,
+      floatY: -(Math.random() * 15 + 5),
+      floatDelay: Math.random() * 3,
     }))
   ).current;
 
@@ -177,15 +186,18 @@ function BackgroundStars({ isDark }) {
       {stars.map((s, i) => (
         <div
           key={i}
-          className="absolute rounded-full animate-twinkle"
+          className="absolute animate-twinkle"
           style={{
             left: `${s.left}%`,
             top: `${s.top}%`,
             width: `${s.size}px`,
             height: `${s.size}px`,
             backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(100,100,150,0.1)',
-            animationDelay: `${s.delay}s`,
-            animationDuration: `${s.duration}s`,
+            animationDelay: `${s.twinkleDelay}s`,
+            animationDuration: `${s.twinkleDuration}s`,
+            '--float-x': `${s.floatX}px`,
+            '--float-y': `${s.floatY}px`,
+            animation: `twinkle ${s.twinkleDuration}s ease-in-out ${s.twinkleDelay}s infinite, float-star 6s ease-in-out ${s.floatDelay}s infinite`,
           }}
         />
       ))}
@@ -204,6 +216,16 @@ export default function TonightView({ isDark }) {
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [allLinesDone, setAllLinesDone] = useState(false);
 
+  // 分阶段入场
+  const [entrancePhase, setEntrancePhase] = useState('idle');
+  const [showTitle, setShowTitle] = useState(false);
+  const [showMoon, setShowMoon] = useState(false);
+  const [showText, setShowText] = useState(false);
+  const [showButtons, setShowButtons] = useState(false);
+
+  // 文字切换过渡
+  const [isFadingOut, setIsFadingOut] = useState(false);
+
   const today = new Date();
   const month = today.getMonth() + 1;
   const date = today.getDate();
@@ -217,30 +239,49 @@ export default function TonightView({ isDark }) {
   // 打字机
   const { display: typedText, done: lineDone } = useTypewriter(
     currentLineText,
-    50,
-    displayText !== ''
+    45,
+    displayText !== '' && !isFadingOut
   );
+
+  // 分阶段入场动画
+  useEffect(() => {
+    setEntrancePhase('idle');
+    setShowTitle(false);
+    setShowMoon(false);
+    setShowText(false);
+    setShowButtons(false);
+
+    const t1 = setTimeout(() => setShowTitle(true), 100);
+    const t2 = setTimeout(() => setShowMoon(true), 300);
+    const t3 = setTimeout(() => {
+      setDisplayText(getGreetingText());
+      setShowText(true);
+    }, 600);
+    const t4 = setTimeout(() => {
+      setShowOptions(true);
+      setShowButtons(true);
+    }, 1000);
+
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+  }, []);
 
   // 多句递进逻辑
   useEffect(() => {
-    if (!isMultiLine || !lineDone || allLinesDone) return;
+    if (!isMultiLine || !lineDone || allLinesDone || isFadingOut) return;
 
     if (currentLineIndex < node.lines.length - 1) {
-      // 还有下一句，延迟后继续
       const timer = setTimeout(() => {
         setCurrentLineIndex(prev => prev + 1);
-      }, 800);
+      }, 600);
       return () => clearTimeout(timer);
     } else {
-      // 全部说完
       setAllLinesDone(true);
       setTimeout(() => {
         setIsFinished(true);
-      }, 1500);
+      }, 1200);
     }
-  }, [lineDone, currentLineIndex, isMultiLine, allLinesDone, node?.lines]);
+  }, [lineDone, currentLineIndex, isMultiLine, allLinesDone, node?.lines, isFadingOut]);
 
-  // 对话结束后直接显示"再说一次"
   useEffect(() => {
     if (!isFinished) {
       setShowResetButton(false);
@@ -249,46 +290,47 @@ export default function TonightView({ isDark }) {
     setShowResetButton(true);
   }, [isFinished]);
 
-  /* 初始化开场 */
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDisplayText(getGreetingText());
-      setShowOptions(true);
-    }, 400);
-    return () => clearTimeout(timer);
-  }, []);
-
-  /* 处理选择 */
+  /* 处理选择：fade-out → fade-in 过渡 */
   const handleOption = useCallback((option) => {
-    if (isTransitioning) return;
+    if (isTransitioning || isFadingOut) return;
     setIsTransitioning(true);
     setShowOptions(false);
-    setDisplayText('');
-    setCurrentLineIndex(0);
-    setAllLinesDone(false);
+    setShowButtons(false);
 
+    // fade-out 当前文字
+    setIsFadingOut(true);
     setTimeout(() => {
+      setIsFadingOut(false);
       setCurrentNode(option.next);
+      setCurrentLineIndex(0);
+      setAllLinesDone(false);
 
       setTimeout(() => {
         const nextNode = DIALOG_TREE[option.next];
         if (nextNode.lines) {
-          // 多句模式
           setDisplayText(nextNode.lines[0]);
+          setShowText(true);
+          setTimeout(() => {
+            setShowButtons(true);
+          }, 300);
         } else {
           setDisplayText(nextNode.text);
-          setShowOptions(true);
-          setIsTransitioning(false);
+          setShowText(true);
+          setTimeout(() => {
+            setShowOptions(true);
+            setShowButtons(true);
+            setIsTransitioning(false);
+          }, 300);
 
           if (nextNode.options === null) {
             setTimeout(() => {
               setIsFinished(true);
-            }, 2000);
+            }, 1500);
           }
         }
       }, 200);
-    }, 300);
-  }, [isTransitioning]);
+    }, 250);
+  }, [isTransitioning, isFadingOut]);
 
   /* 重置对话 */
   const handleReset = useCallback(() => {
@@ -300,10 +342,26 @@ export default function TonightView({ isDark }) {
     setCurrentLineIndex(0);
     setAllLinesDone(false);
     setIsTransitioning(false);
-    setTimeout(() => {
+    setIsFadingOut(false);
+
+    // 重新执行入场动画
+    setShowTitle(false);
+    setShowMoon(false);
+    setShowText(false);
+    setShowButtons(false);
+
+    const t1 = setTimeout(() => setShowTitle(true), 100);
+    const t2 = setTimeout(() => setShowMoon(true), 300);
+    const t3 = setTimeout(() => {
       setDisplayText(getGreetingText());
+      setShowText(true);
+    }, 600);
+    const t4 = setTimeout(() => {
       setShowOptions(true);
-    }, 100);
+      setShowButtons(true);
+    }, 1000);
+
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
   }, []);
 
   // 获取当前情绪颜色
@@ -317,18 +375,18 @@ export default function TonightView({ isDark }) {
 
   const moodColor = getMoodColor();
   const colorMap = {
-    amber: { bg: 'bg-amber-500/10', text: 'text-amber-400', glow: 'shadow-amber-500/20' },
-    indigo: { bg: 'bg-indigo-500/10', text: 'text-indigo-400', glow: 'shadow-indigo-500/20' },
-    slate: { bg: 'bg-slate-500/10', text: 'text-slate-400', glow: 'shadow-slate-500/20' },
+    amber: { bg: 'bg-amber-500/10', text: 'text-amber-400', glow: 'shadow-amber-500/20', ring: 'ring-amber-400/30' },
+    indigo: { bg: 'bg-indigo-500/10', text: 'text-indigo-400', glow: 'shadow-indigo-500/20', ring: 'ring-indigo-400/30' },
+    slate: { bg: 'bg-slate-500/10', text: 'text-slate-400', glow: 'shadow-slate-500/20', ring: 'ring-slate-400/30' },
   };
   const colors = colorMap[moodColor];
 
   return (
     <div className="animate-fade-in pb-10 space-y-5">
-      {/* === 标题区 === */}
-      <div>
+      {/* === 标题区（分阶段入场）=== */}
+      <div className={`transition-all duration-500 ${showTitle ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'}`}>
         <h1 className="text-xl font-medium tracking-wide">息息·宇宙</h1>
-        <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+        <p className={`text-[10px] transition-colors duration-500 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
           {month}月{date}日 {weekDay}
         </p>
       </div>
@@ -341,28 +399,33 @@ export default function TonightView({ isDark }) {
         <BackgroundStars isDark={isDark} />
 
         <div className="relative flex flex-col items-center justify-center min-h-[520px] p-6">
-          {/* 月亮图标 */}
-          {(currentNode === 'greeting' || isFinished) && (
-            <div className="text-center mb-8 animate-fade-in">
-              <div
-                className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 animate-breathe ${colors.bg} ${colors.glow}`}
-                style={{ boxShadow: `0 0 30px currentColor` }}
-              >
-                <Moon
-                  size={28}
-                  fill="currentColor"
-                  className={`${colors.text} ${isFinished ? 'animate-glow' : ''}`}
-                />
-              </div>
-
+          {/* 月亮图标（全程可见，跟随情绪颜色过渡）=== */}
+          <div
+            className={`text-center mb-8 transition-all duration-500 ${
+              showMoon ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
+            }`}
+          >
+            <div
+              className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 animate-breathe ${colors.bg} ${colors.glow} transition-all duration-500`}
+              style={{ boxShadow: `0 0 30px currentColor` }}
+            >
+              <Moon
+                size={28}
+                fill="currentColor"
+                className={`${colors.text} transition-colors duration-500 ${isFinished ? 'animate-glow' : ''}`}
+              />
             </div>
-          )}
+          </div>
 
-          {/* 主对话内容 */}
+          {/* 主对话内容（fade-out / fade-in 过渡）=== */}
           <div className="text-center mb-8 flex-1 flex flex-col items-center justify-center w-full max-w-sm">
             <div
               className={`transition-all duration-300 ${
-                displayText ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+                isFadingOut
+                  ? 'animate-fade-out-down'
+                  : showText
+                    ? 'opacity-100 translate-y-0'
+                    : 'opacity-0 translate-y-3'
               }`}
             >
               {/* 多句递进显示 */}
@@ -371,7 +434,6 @@ export default function TonightView({ isDark }) {
                   {node.lines.map((line, idx) => {
                     const isPast = idx < currentLineIndex;
                     const isCurrent = idx === currentLineIndex;
-                    const isFuture = idx > currentLineIndex;
 
                     return (
                       <p
@@ -401,10 +463,12 @@ export default function TonightView({ isDark }) {
             </div>
           </div>
 
-          {/* 选项按钮 */}
+          {/* 选项按钮（分阶段入场 + 过渡）=== */}
           <div
             className={`w-full max-w-sm space-y-2.5 transition-all duration-300 ${
-              showOptions ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
+              showButtons
+                ? 'opacity-100 translate-y-0'
+                : 'opacity-0 translate-y-4'
             }`}
           >
             {showResetButton ? (
@@ -435,7 +499,6 @@ export default function TonightView({ isDark }) {
               ))
             )}
           </div>
-
 
         </div>
       </div>
