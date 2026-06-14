@@ -215,7 +215,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
               e.stopPropagation();
               setShowSettings(true);
             }}
-            className={`absolute top-4 right-4 p-2 rounded-full transition-all active:scale-95 z-10 ${
+            className={`absolute top-3 right-3 p-2 rounded-full transition-all active:scale-95 z-10 ${
               isDark
                 ? 'bg-white/5 text-gray-500 hover:text-gray-300 hover:bg-white/10'
                 : 'bg-gray-50 text-gray-400 hover:text-gray-600 hover:bg-gray-100'
@@ -225,7 +225,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
           </button>
 
           {/* 上半：个人信息 */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 pr-10">
             <div className={`w-14 h-14 rounded-full flex items-center justify-center text-3xl shrink-0 ${isDark ? 'bg-[#13131f] border border-sky-500/20' : 'bg-sky-50 border border-sky-100'}`}>
               {userData.avatarEmoji || '🪐'}
             </div>
