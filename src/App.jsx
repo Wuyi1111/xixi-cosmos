@@ -329,14 +329,15 @@ export default function App() {
         )}
       </main>
 
-      <nav className={`fixed bottom-0 w-full z-50 transition-colors duration-500 ${isDark ? 'bg-[#13131a]/90 border-[#2a2a35]' : 'bg-white/90 border-gray-200'} backdrop-blur-md border-t pb-[env(safe-area-inset-bottom)]`}>
-        <div className="max-w-md mx-auto flex justify-around items-center h-20 px-4">
-          <TabButton id="tonight" icon={Home} label="此刻" active={activeTab === 'tonight'} onClick={() => setActiveTab('tonight')} isDark={isDark} />
-          <TabButton id="radar" icon={Radar} label="雷达" active={activeTab === 'radar'} onClick={() => setActiveTab('radar')} isDark={isDark} />
-          <TabButton id="galaxy" icon={Sparkles} label="星系" active={activeTab === 'galaxy'} onClick={() => setActiveTab('galaxy')} isDark={isDark} />
-          <TabButton id="star" icon={Moon} label="归星" active={activeTab === 'star'} onClick={() => setActiveTab('star')} isDark={isDark} />
-        </div>
-      </nav>
+      {/* 底部导航栏 — 深色胶囊浮岛风格 */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pointer-events-none">
+        <nav className="pointer-events-auto flex items-center gap-1 bg-[#1a1a1a] rounded-full px-3 py-1.5 shadow-lg shadow-black/20">
+          <TabButton icon={Home} active={activeTab === 'tonight'} onClick={() => setActiveTab('tonight')} />
+          <TabButton icon={Radar} active={activeTab === 'radar'} onClick={() => setActiveTab('radar')} />
+          <TabButton icon={Sparkles} active={activeTab === 'galaxy'} onClick={() => setActiveTab('galaxy')} />
+          <TabButton icon={Moon} active={activeTab === 'star'} onClick={() => setActiveTab('star')} />
+        </nav>
+      </div>
     </div>
     </>
   );
