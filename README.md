@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.47.5** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.47.6** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 ---
 
@@ -61,6 +61,14 @@ GitHub Actions 自动跑，几十秒后线上更新。可在 Actions 标签查�
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.47.6 · 2026-06-13 — 修复星海卡片滑动 bug
+
+- 修复最后一张卡片无法滑动的问题（移除 `currentIndex >= whispers.length - 1` 限制）
+- 最后一张卡片滑出后显示"已浏览完所有信件"完成状态
+- 底部按钮移除最后一张限制，始终可点击
+- 修复触摸穿透：`touchAction: 'pan-y'` → `'none'`，添加 `userSelect: 'none'`
+- 修复完成状态显示条件：`currentIndex >= whispers.length`（原先是 `length - 1`）
 
 ### v4.47.5 · 2026-06-13 — 统一子界面排版风格
 

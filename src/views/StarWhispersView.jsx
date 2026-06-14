@@ -111,12 +111,16 @@ export default function StarWhispersView({
 
   // === 切换到下一个 ===
   const goToNext = useCallback((direction) => {
-    if (isAnimating || currentIndex >= whispers.length - 1) return;
+    if (isAnimating) return;
+
+    // 如果已经是最后一张，仍然允许滑出，显示完成状态
+    const isLastCard = currentIndex >= whispers.length - 1;
+
     setIsAnimating(true);
     setSwipeDirection(direction);
 
-    // 如果是左滑，自动送温暖
-    if (direction === 'left') {
+    // 如果是左滑且不是最后一张（无内容可点赞），自动送温暖
+    if (direction === 'left' && !isLastCard) {
       const whisper = whispers[currentIndex];
       const cardEl = containerRef.current?.querySelector('[data-current-card]');
       const rect = cardEl?.getBoundingClientRect();
@@ -126,7 +130,9 @@ export default function StarWhispersView({
     }
 
     setTimeout(() => {
-      setCurrentIndex(prev => prev + 1);
+      if (!isLastCard) {
+        setCurrentIndex(prev => prev + 1);
+      }
       setSwipeDirection(null);
       setDragOffset(0);
       setIsAnimating(false);
@@ -340,7 +346,7 @@ export default function StarWhispersView({
       <div
         ref={containerRef}
         className="flex-1 relative flex items-center justify-center px-4"
-        style={{ minHeight: '420px', touchAction: 'pan-y' }}
+        style={{ minHeight: '420px', touchAction: 'none', userSelect: 'none' }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -378,7 +384,7 @@ export default function StarWhispersView({
         {/* 下一张卡片（底层） */}
         {nextWhisper && currentIndex < whispers.length - 1 && (
           <div
-            className={`absolute inset-0 flex items-center justify-center px-4 pointer-events-none`}
+            className="absolute inset-0 flex items-center justify-center px-4 pointer-events-none"
             style={getNextCardStyle()}
           >
             <div
@@ -413,7 +419,7 @@ export default function StarWhispersView({
         )}
 
         {/* 当前卡片（上层） */}
-        {currentWhisper && (
+        {currentWhisper && currentIndex < whispers.length && (
           <div
             className="absolute inset-0 flex items-center justify-center px-4"
             style={getCurrentCardStyle()}
@@ -465,7 +471,7 @@ export default function StarWhispersView({
         )}
 
         {/* 全部浏览完毕 */}
-        {currentIndex >= whispers.length - 1 && (
+        {currentIndex >= whispers.length && (
           <div className="absolute inset-0 flex items-center justify-center z-10">
             <div className="text-center">
               <div className="w-16 h-16 rounded-full bg-[#1a1a2e] border border-white/5 flex items-center justify-center mx-auto mb-4">
@@ -482,7 +488,7 @@ export default function StarWhispersView({
       <div className="flex items-center justify-center gap-6 mt-6 mb-4">
         <button
           onClick={() => goToNext('right')}
-          disabled={isAnimating || currentIndex >= whispers.length - 1}
+          disabled={isAnimating}
           className={`w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-90 ${
             isDark
               ? 'bg-[#171724] border border-white/10 text-gray-400 hover:bg-[#1f1f2e]'
@@ -494,7 +500,7 @@ export default function StarWhispersView({
 
         <button
           onClick={() => goToNext('left')}
-          disabled={isAnimating || currentIndex >= whispers.length - 1 || isHugged}
+          disabled={isAnimating || isHugged}
           className={`w-16 h-16 rounded-full flex items-center justify-center transition-all active:scale-90 ${
             isHugged
               ? 'bg-pink-500/20 border-2 border-pink-400/40 text-pink-400'
