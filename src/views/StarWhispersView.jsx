@@ -1,14 +1,18 @@
 /**
- * StarWhispersView.jsx — "星海"板块
+ * StarWhispersView.jsx — "星海"板块（v4.47.1 信件卡片版）
  *
- * 从原 TreeholeView 拆分出来的独立视图。
- * 包含：发射信号、我的心语、星际回音（心语列表 + 送出温暖）。
+ * 中央左右滑动信件卡片浏览区：
+ *   - 第1封信：未拆封信封（封口微光），点击展开
+ *   - 后续信：展开的信纸（可见文字）
+ *   - 每张卡片右下角微小光点按钮"送温暖"
+ *   - 右上角星匣子图标 → 我的心语
+ *   - 右下角浮动写信按钮
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Heart, X, BookOpen, Sparkles, Send,
-  Edit3, Radio
+  Edit3, Star, Mail
 } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import MyWhispersView from './MyWhispersView.jsx';
@@ -25,6 +29,20 @@ export default function StarWhispersView({
   const postsToday = isNewDay ? 0 : userData.dailyPosts;
   const postsLeft = Math.max(0, 5 - postsToday);
   const myWhispers = userData.myWhispers;
+
+  // === 信件卡片滑动 state ===
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [openedEnvelopes, setOpenedEnvelopes] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('xixi_opened_envelopes') || '[]');
+    } catch { return []; }
+  });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isExpanding, setIsExpanding] = useState(false);
+  const containerRef = useRef(null);
+  const startX = useRef(0);
+  const currentX = useRef(0);
 
   // === 弹窗 state ===
   const [showEmitModal, setShowEmitModal] = useState(false);
@@ -43,31 +61,86 @@ export default function StarWhispersView({
 
   const textareaRef = useRef(null);
 
+  const whispers = MOCK_WHISPERS;
+
+  // 持久化已拆封信件
   useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    localStorage.setItem('xixi_opened_envelopes', JSON.stringify(openedEnvelopes));
+  }, [openedEnvelopes]);
+
+  // === 滑动逻辑 ===
+  const handleTouchStart = useCallback((e) => {
+    setIsDragging(true);
+    startX.current = e.touches[0].clientX;
+    currentX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchMove = useCallback((e) => {
+    if (!isDragging) return;
+    currentX.current = e.touches[0].clientX;
+    const diff = currentX.current - startX.current;
+    setDragOffset(diff);
+  }, [isDragging]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    const diff = currentX.current - startX.current;
+    const threshold = 60;
+
+    if (Math.abs(diff) > threshold) {
+      if (diff < 0 && currentIndex < whispers.length - 1) {
+        setCurrentIndex(prev => prev + 1);
+      } else if (diff > 0 && currentIndex > 0) {
+        setCurrentIndex(prev => prev - 1);
+      }
     }
-  }, [whisperText, showEmitModal]);
+    setDragOffset(0);
+  }, [isDragging, currentIndex, whispers.length]);
 
-  const handleVisibilityChange = (v) => {
-    if (v === 'private' && visibility !== 'private') {
-      setShowPrivacyModal(true);
-    } else {
-      setVisibility(v);
+  // 鼠标滑动支持
+  const handleMouseDown = useCallback((e) => {
+    setIsDragging(true);
+    startX.current = e.clientX;
+    currentX.current = e.clientX;
+  }, []);
+
+  const handleMouseMove = useCallback((e) => {
+    if (!isDragging) return;
+    currentX.current = e.clientX;
+    const diff = currentX.current - startX.current;
+    setDragOffset(diff);
+  }, [isDragging]);
+
+  const handleMouseUp = useCallback(() => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    const diff = currentX.current - startX.current;
+    const threshold = 60;
+
+    if (Math.abs(diff) > threshold) {
+      if (diff < 0 && currentIndex < whispers.length - 1) {
+        setCurrentIndex(prev => prev + 1);
+      } else if (diff > 0 && currentIndex > 0) {
+        setCurrentIndex(prev => prev - 1);
+      }
     }
+    setDragOffset(0);
+  }, [isDragging, currentIndex, whispers.length]);
+
+  // === 拆封信封 ===
+  const handleOpenEnvelope = (whisperId) => {
+    if (openedEnvelopes.includes(whisperId)) return;
+    setIsExpanding(true);
+    setTimeout(() => {
+      setOpenedEnvelopes(prev => [...prev, whisperId]);
+      setIsExpanding(false);
+    }, 400);
   };
 
-  const confirmPrivacy = () => {
-    setVisibility('private');
-    setShowPrivacyModal(false);
-  };
-
-  const cancelPrivacy = () => {
-    setShowPrivacyModal(false);
-  };
-
+  // === 送温暖 ===
   const handleGiveHug = (whisperId, e) => {
+    e.stopPropagation();
     const huggedList = userData.huggedWhispers;
     if (huggedList.includes(whisperId)) return;
 
@@ -102,6 +175,7 @@ export default function StarWhispersView({
     }, 1200);
   };
 
+  // === 发射心语 ===
   const handleEmit = () => {
     if (!whisperText.trim() || postsLeft <= 0) return;
     const newWhisper = {
@@ -125,6 +199,30 @@ export default function StarWhispersView({
     setShowToast(true);
   };
 
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [whisperText, showEmitModal]);
+
+  const handleVisibilityChange = (v) => {
+    if (v === 'private' && visibility !== 'private') {
+      setShowPrivacyModal(true);
+    } else {
+      setVisibility(v);
+    }
+  };
+
+  const confirmPrivacy = () => {
+    setVisibility('private');
+    setShowPrivacyModal(false);
+  };
+
+  const cancelPrivacy = () => {
+    setShowPrivacyModal(false);
+  };
+
   // === 我的心语子界面 ===
   if (showMyWhispers) {
     return (
@@ -138,102 +236,165 @@ export default function StarWhispersView({
     );
   }
 
+  const currentWhisper = whispers[currentIndex];
+  const isOpened = openedEnvelopes.includes(currentWhisper.id);
+  const isHugged = userData.huggedWhispers.includes(currentWhisper.id);
+
   return (
-    <div className="animate-fade-in pb-10 space-y-5">
-      {/* 左右并排：发射信号 + 我的心语入口 */}
-      <div className="flex gap-3">
-        {/* 左边：向深空发射信号 */}
-        <div
-          onClick={() => setShowEmitModal(true)}
-          className={`flex-1 p-4 rounded-[20px] border cursor-pointer transition-all active:scale-[0.98] ${
-            isDark ? 'bg-[#171724] border-white/5 hover:bg-[#1a1a2e]' : 'bg-white border-gray-100 shadow-sm hover:shadow-md'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isDark ? 'bg-pink-500/15' : 'bg-pink-100'}`}>
-              <Edit3 size={20} className={isDark ? 'text-pink-300' : 'text-pink-500'} />
-            </div>
-            <div className="min-w-0">
-              <p className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
-                {postsLeft > 0 ? '向深空发射信号' : '能量已耗尽'}
-              </p>
-              <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                {postsLeft > 0 ? '倾诉你的心声' : '明日 00:00 恢复'}
-              </p>
-            </div>
-          </div>
+    <div className="animate-fade-in pb-10 relative min-h-[calc(100vh-8rem)]">
+      {/* === 顶部栏：标题 + 星匣子图标 === */}
+      <div className="flex items-center justify-between mb-6 px-1">
+        <div>
+          <h1 className="text-xl font-medium tracking-wide">星海</h1>
+          <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+            {whispers.length} 封来自深空的信
+          </p>
         </div>
-
-        {/* 右边：我的心语入口 */}
-        <div
+        <button
           onClick={() => setShowMyWhispers(true)}
-          className={`w-[80px] rounded-[20px] border cursor-pointer transition-all active:scale-[0.98] flex flex-col items-center justify-center gap-1 ${
-            isDark ? 'bg-[#171724] border-white/5 hover:bg-[#1a1a2e]' : 'bg-white border-gray-100 shadow-sm hover:shadow-md'
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-90 ${
+            isDark ? 'bg-[#171724] border border-white/10 hover:bg-[#1f1f2e]' : 'bg-white border border-gray-200 shadow-sm hover:shadow-md'
           }`}
         >
-          <Radio size={20} className="text-pink-400" />
-          <span className={`text-[10px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>我的心语</span>
-        </div>
+          <Star size={18} className={isDark ? 'text-amber-400' : 'text-amber-500'} />
+        </button>
       </div>
 
-      {/* 星际回音 — 自由上下滑动 */}
-      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Sparkles size={16} className="text-pink-400" />
-            <h3 className="text-sm font-medium">星际回音</h3>
-          </div>
-        </div>
-
+      {/* === 信件卡片滑动区 === */}
+      <div
+        ref={containerRef}
+        className="relative w-full overflow-hidden select-none"
+        style={{ height: '380px', touchAction: 'pan-y' }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
         <div
-          className="relative max-h-[420px] overflow-hidden -mx-5 px-5"
-          style={{ overflowY: 'scroll' }}
+          className="flex items-center h-full transition-transform duration-300 ease-out"
+          style={{
+            transform: `translateX(calc(-${currentIndex * 100}% + ${dragOffset}px))`,
+            transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
         >
-          <div className="py-4">
-            {MOCK_WHISPERS.map((whisper) => {
-              const isHugged = userData.huggedWhispers.includes(whisper.id);
-              return (
+          {whispers.map((whisper, index) => {
+            const opened = openedEnvelopes.includes(whisper.id);
+            const hugged = userData.huggedWhispers.includes(whisper.id);
+            const isCurrent = index === currentIndex;
+            const isAdjacent = Math.abs(index - currentIndex) === 1;
+
+            return (
+              <div
+                key={whisper.id}
+                className="w-full flex-shrink-0 flex items-center justify-center px-4"
+                style={{
+                  opacity: isCurrent ? 1 : isAdjacent ? 0.4 : 0,
+                  transform: `scale(${isCurrent ? 1 : 0.88})`,
+                  transition: 'opacity 0.3s, transform 0.3s',
+                }}
+              >
                 <div
-                  key={whisper.id}
-                  className="mb-3"
+                  className={`relative w-full max-w-[300px] rounded-2xl border overflow-hidden transition-all duration-300 ${
+                    isDark ? 'bg-[#1a1a2e] border-white/5' : 'bg-[#1e1e32] border-white/5'
+                  }`}
+                  style={{
+                    minHeight: '320px',
+                    boxShadow: isCurrent ? '0 8px 32px rgba(0,0,0,0.3)' : 'none',
+                  }}
                 >
-                  <div
-                    className={`relative p-4 rounded-[20px] border overflow-hidden ${
-                      isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-2 relative z-10">
-                      <span className={`text-[10px] px-2.5 py-1 rounded-md border ${isDark ? 'bg-white/[0.03] text-gray-300 border-white/10' : 'bg-white text-gray-600 border-gray-100'}`}>
-                        {whisper.emotion}
-                      </span>
-                      <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                        <Radio size={10} /> 未知坐标
-                      </span>
+                  {/* 未拆封信封样式 */}
+                  {!opened ? (
+                    <div
+                      className="flex flex-col items-center justify-center min-h-[320px] p-6 cursor-pointer active:scale-[0.98] transition-transform"
+                      onClick={() => isCurrent && handleOpenEnvelope(whisper.id)}
+                    >
+                      {/* 信封图标 */}
+                      <div className="relative mb-4">
+                        <Mail size={64} className={`${isDark ? 'text-gray-600' : 'text-gray-500'} opacity-60`} strokeWidth={1} />
+                        {/* 封口微光 */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                          <div className={`w-2 h-2 rounded-full ${isExpanding && isCurrent ? 'animate-ping' : 'animate-pulse'} bg-amber-400/80`}
+                            style={{ boxShadow: '0 0 8px rgba(251, 191, 36, 0.5)' }}
+                          />
+                        </div>
+                      </div>
+                      <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'} mb-1`}>有一封信在等你</p>
+                      <p className={`text-[10px] ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>轻触拆封</p>
                     </div>
-                    <p className={`text-sm leading-relaxed font-light relative z-10 ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
-                      "{whisper.text}"
-                    </p>
-                    <div className="flex justify-end mt-3 relative z-10">
-                      <button
-                        onClick={(e) => handleGiveHug(whisper.id, e)}
-                        disabled={isHugged}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all active:scale-95 ${
-                          isHugged
-                            ? (isDark ? 'bg-pink-500/20 text-pink-300 border border-pink-400/40' : 'bg-pink-100 text-pink-600 border border-pink-300')
-                            : (isDark ? 'bg-white/5 text-pink-400 border border-white/10 hover:bg-white/10' : 'bg-pink-50 text-pink-500 border border-pink-100 hover:bg-pink-100')
-                        }`}
-                      >
-                        <Heart size={12} fill={isHugged ? 'currentColor' : 'none'} />
-                        <span className="text-[11px]">{isHugged ? '已温暖' : '温暖'}</span>
-                      </button>
+                  ) : (
+                    /* 展开信纸样式 */
+                    <div className="flex flex-col min-h-[320px] p-5">
+                      {/* 信纸头部 */}
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full border ${isDark ? 'bg-white/5 text-gray-400 border-white/10' : 'bg-white/5 text-gray-400 border-white/10'}`}>
+                          {whisper.emotion}
+                        </span>
+                        <span className={`text-[10px] ${isDark ? 'text-gray-600' : 'text-gray-500'}`}>
+                          未知坐标
+                        </span>
+                      </div>
+
+                      {/* 信纸内容 */}
+                      <div className="flex-1 flex items-center">
+                        <p className={`text-sm leading-relaxed font-light ${isDark ? 'text-gray-300' : 'text-gray-300'}`}>
+                          "{whisper.text}"
+                        </p>
+                      </div>
+
+                      {/* 底部装饰线 */}
+                      <div className={`w-full h-px my-3 ${isDark ? 'bg-white/5' : 'bg-white/5'}`} />
+
+                      {/* 底部：送温暖按钮 */}
+                      <div className="flex justify-end">
+                        <button
+                          onClick={(e) => handleGiveHug(whisper.id, e)}
+                          disabled={hugged}
+                          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all active:scale-90 ${
+                            hugged
+                              ? 'bg-pink-500/20 border border-pink-400/40'
+                              : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                          }`}
+                        >
+                          <Heart size={12} fill={hugged ? 'currentColor' : 'none'} className={hugged ? 'text-pink-400' : 'text-pink-400/60'} />
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
         </div>
       </div>
+
+      {/* === 分页指示器 === */}
+      <div className="flex justify-center items-center gap-1.5 mt-4">
+        {whispers.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => setCurrentIndex(index)}
+            className={`rounded-full transition-all ${
+              index === currentIndex
+                ? 'w-4 h-1.5 bg-amber-400/80'
+                : 'w-1.5 h-1.5 bg-gray-600/50'
+            }`}
+          />
+        ))}
+      </div>
+
+      {/* === 浮动写信按钮 === */}
+      <button
+        onClick={() => setShowEmitModal(true)}
+        className="fixed bottom-24 right-4 z-40 w-12 h-12 rounded-full flex items-center justify-center shadow-lg shadow-pink-500/20 active:scale-90 transition-transform"
+        style={{
+          background: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)',
+        }}
+      >
+        <Edit3 size={20} className="text-white" />
+      </button>
 
       {/* === 粒子效果 === */}
       {particles.map(p => (

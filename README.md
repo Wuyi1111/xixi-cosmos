@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.47.0** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.47.1** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 ---
 
@@ -61,6 +61,18 @@ GitHub Actions 自动跑，几十秒后线上更新。可在 Actions 标签查�
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.47.1 · 2026-06-13 — 星海页面重构为信件卡片浏览
+
+- 中央左右滑动信件卡片浏览区（touch + mouse 拖拽支持）
+- 未拆封信封：Mail 图标 + 封口微光闪烁（`animate-pulse`）
+- 点击拆封 → 400ms 展开动画 → 显示信纸内容
+- 展开信纸：情绪标签 + 心语文字 + 底部装饰线 + 送温暖按钮
+- 送温暖按钮：右下角微小圆形光点按钮（Heart 图标）
+- 分页指示器：底部小圆点，当前页 amber 高亮
+- 右上角星匣子图标（Star）→ 进入"我的心语"
+- 右下角浮动写信按钮（粉色渐变圆形）
+- 已拆封信件持久化到 localStorage
 
 ### v4.47.0 · 2026-06-13 — 雷达拆分为星海 + 明日两个独立 tab
 
