@@ -1,12 +1,12 @@
 /**
- * StarWhispersView.jsx — "星海"板块（v4.47.3 积目式滑动版）
+ * StarWhispersView.jsx — "星海"板块（v4.47.4 流畅堆叠滑动版）
  *
- * 积目式卡片滑动：
- *   - 卡片占满屏幕中央，直接显示信纸内容
+ * 积目式卡片滑动（流畅版）：
+ *   - 卡片堆叠：当前卡片在上层，下一张在底层预加载
+ *   - 滑动时当前卡片透明度渐变 + 缩小，下一张同步放大 + 淡入
  *   - 左滑 → 下一个 + 自动"送温暖"（点赞）
  *   - 右滑 → 下一个（跳过）
- *   - 滑动时显示视觉反馈（粉色❤️ / 灰色✕）
- *   - 底部辅助按钮：❤️ 和 ✕
+ *   - 爱心粒子从卡片中心发散，大范围扩散
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -34,7 +34,7 @@ export default function StarWhispersView({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
-  const [swipeDirection, setSwipeDirection] = useState(null); // 'left' | 'right' | null
+  const [swipeDirection, setSwipeDirection] = useState(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const containerRef = useRef(null);
   const startX = useRef(0);
@@ -59,7 +59,7 @@ export default function StarWhispersView({
 
   const whispers = MOCK_WHISPERS;
 
-  // === 送温暖 ===
+  // === 送温暖 + 发散粒子 ===
   const handleGiveHug = useCallback((whisperId, sourceX, sourceY) => {
     const huggedList = userData.huggedWhispers;
     if (huggedList.includes(whisperId)) return false;
@@ -75,26 +75,36 @@ export default function StarWhispersView({
       saveUserData({ ...userData, ...hugPatch });
     }
 
-    // 粒子效果
-    const x = sourceX || window.innerWidth / 2;
-    const y = sourceY || window.innerHeight / 2;
-    const newParticles = Array.from({ length: 12 }).map((_, i) => ({
-      id: Date.now() + i,
-      x: x + (Math.random() - 0.5) * 40,
-      y: y + (Math.random() - 0.5) * 40,
-      tx: (Math.random() - 0.5) * 150 + 'px',
-      ty: -(Math.random() * 80 + 30) + 'px',
-      scale: 0.6 + Math.random() * 0.8,
-      delay: Math.random() * 0.2,
-    }));
-    const MAX_PARTICLES = 50;
+    // 发散粒子效果 - 从中心向四周扩散
+    const centerX = sourceX || window.innerWidth / 2;
+    const centerY = sourceY || window.innerHeight / 2;
+    const particleCount = 16;
+    const newParticles = Array.from({ length: particleCount }).map((_, i) => {
+      const angle = (i / particleCount) * Math.PI * 2; // 均匀分布 0~360°
+      const distance = 150 + Math.random() * 250; // 150~400px
+      const tx = Math.cos(angle) * distance + 'px';
+      const ty = Math.sin(angle) * distance + 'px';
+      return {
+        id: Date.now() + i,
+        x: centerX,
+        y: centerY,
+        tx,
+        ty,
+        scale: 0.4 + Math.random() * 0.8,
+        delay: Math.random() * 0.1,
+        rotation: Math.random() * 360,
+      };
+    });
+
     setParticles(prev => {
       const merged = [...prev, ...newParticles];
-      return merged.length > MAX_PARTICLES ? merged.slice(-MAX_PARTICLES) : merged;
+      return merged.length > 80 ? merged.slice(-80) : merged;
     });
+
+    // 1.5s 后自动消失
     setTimeout(() => {
       setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
-    }, 1200);
+    }, 1500);
 
     return true;
   }, [userData, onGiveHug, saveUserData]);
@@ -108,7 +118,11 @@ export default function StarWhispersView({
     // 如果是左滑，自动送温暖
     if (direction === 'left') {
       const whisper = whispers[currentIndex];
-      handleGiveHug(whisper.id, window.innerWidth * 0.3, window.innerHeight * 0.5);
+      const cardEl = containerRef.current?.querySelector('[data-current-card]');
+      const rect = cardEl?.getBoundingClientRect();
+      const centerX = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
+      const centerY = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
+      handleGiveHug(whisper.id, centerX, centerY);
     }
 
     setTimeout(() => {
@@ -116,7 +130,7 @@ export default function StarWhispersView({
       setSwipeDirection(null);
       setDragOffset(0);
       setIsAnimating(false);
-    }, 300);
+    }, 350);
   }, [isAnimating, currentIndex, whispers, handleGiveHug]);
 
   // === 触摸滑动逻辑 ===
@@ -133,7 +147,6 @@ export default function StarWhispersView({
     const diff = currentX.current - startX.current;
     setDragOffset(diff);
 
-    // 判断滑动方向
     if (diff < -30) setSwipeDirection('left');
     else if (diff > 30) setSwipeDirection('right');
     else setSwipeDirection(null);
@@ -143,12 +156,11 @@ export default function StarWhispersView({
     if (!isDragging) return;
     setIsDragging(false);
     const diff = currentX.current - startX.current;
-    const threshold = window.innerWidth * 0.15; // 15% 屏幕宽度阈值
+    const threshold = window.innerWidth * 0.2;
 
     if (Math.abs(diff) > threshold) {
       goToNext(diff < 0 ? 'left' : 'right');
     } else {
-      // 回弹
       setDragOffset(0);
       setSwipeDirection(null);
     }
@@ -177,7 +189,7 @@ export default function StarWhispersView({
     if (!isDragging) return;
     setIsDragging(false);
     const diff = currentX.current - startX.current;
-    const threshold = window.innerWidth * 0.15;
+    const threshold = window.innerWidth * 0.2;
 
     if (Math.abs(diff) > threshold) {
       goToNext(diff < 0 ? 'left' : 'right');
@@ -186,6 +198,58 @@ export default function StarWhispersView({
       setSwipeDirection(null);
     }
   }, [isDragging, goToNext]);
+
+  // === 计算滑动进度 ===
+  const getSwipeProgress = () => {
+    const absOffset = Math.abs(dragOffset);
+    const maxOffset = window.innerWidth * 0.5;
+    return Math.min(absOffset / maxOffset, 1);
+  };
+
+  // === 当前卡片样式 ===
+  const getCurrentCardStyle = () => {
+    const progress = getSwipeProgress();
+    const scale = 1 - progress * 0.08;
+    const opacity = 1 - progress * 0.7;
+    const rotate = dragOffset * 0.02;
+
+    if (swipeDirection && isAnimating) {
+      // 飞出动画
+      const flyX = swipeDirection === 'left' ? -window.innerWidth * 1.2 : window.innerWidth * 1.2;
+      return {
+        transform: `translateX(${flyX}px) rotate(${swipeDirection === 'left' ? -12 : 12}deg)`,
+        opacity: 0,
+        transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease',
+      };
+    }
+
+    return {
+      transform: `translateX(${dragOffset}px) rotate(${rotate}deg) scale(${scale})`,
+      opacity,
+      transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
+      zIndex: 2,
+    };
+  };
+
+  // === 下一张卡片样式 ===
+  const getNextCardStyle = () => {
+    const progress = getSwipeProgress();
+    const scale = 0.88 + progress * 0.12;
+    const opacity = 0.3 + progress * 0.7;
+
+    return {
+      transform: `scale(${scale})`,
+      opacity,
+      transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
+      zIndex: 1,
+    };
+  };
+
+  // === 视觉反馈透明度 ===
+  const getFeedbackOpacity = () => {
+    const progress = getSwipeProgress();
+    return Math.max(0, (progress - 0.2) / 0.8);
+  };
 
   // === 发射心语 ===
   const handleEmit = () => {
@@ -249,34 +313,17 @@ export default function StarWhispersView({
   }
 
   const currentWhisper = whispers[currentIndex];
+  const nextWhisper = whispers[currentIndex + 1];
   const isHugged = userData.huggedWhispers.includes(currentWhisper?.id);
-
-  // 计算卡片变换
-  const getCardTransform = () => {
-    if (swipeDirection === 'left' && isAnimating) {
-      return `translateX(-120%) rotate(-8deg)`;
-    }
-    if (swipeDirection === 'right' && isAnimating) {
-      return `translateX(120%) rotate(8deg)`;
-    }
-    return `translateX(${dragOffset}px) rotate(${dragOffset * 0.03}deg)`;
-  };
-
-  // 计算视觉反馈透明度
-  const getFeedbackOpacity = () => {
-    const absOffset = Math.abs(dragOffset);
-    const maxOffset = window.innerWidth * 0.3;
-    return Math.min(absOffset / maxOffset, 1);
-  };
 
   return (
     <div className="animate-fade-in pb-10 relative min-h-[calc(100vh-8rem)] flex flex-col">
-      {/* === 顶部栏：标题 + 星匣子图标 === */}
+      {/* === 顶部栏 === */}
       <div className="flex items-center justify-between mb-4 px-1">
         <div>
           <h1 className="text-xl font-medium tracking-wide">星海</h1>
           <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-            {currentIndex + 1} / {whispers.length}
+            {Math.min(currentIndex + 1, whispers.length)} / {whispers.length}
           </p>
         </div>
         <button
@@ -302,48 +349,86 @@ export default function StarWhispersView({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
-        {currentWhisper && (
-          <>
-            {/* 滑动视觉反馈 - 左滑 ❤️ */}
-            {swipeDirection === 'left' && (
-              <div
-                className="absolute left-8 top-1/2 -translate-y-1/2 z-20 pointer-events-none"
-                style={{ opacity: getFeedbackOpacity() }}
-              >
-                <div className="w-16 h-16 rounded-full bg-pink-500/20 border-2 border-pink-400/50 flex items-center justify-center">
-                  <Heart size={32} fill="currentColor" className="text-pink-400" />
-                </div>
-                <p className="text-center text-pink-400 text-xs mt-2 font-medium">送温暖</p>
-              </div>
-            )}
+        {/* 滑动视觉反馈 - 左滑 ❤️ */}
+        {swipeDirection === 'left' && (
+          <div
+            className="absolute left-6 top-1/2 -translate-y-1/2 z-30 pointer-events-none"
+            style={{ opacity: getFeedbackOpacity() }}
+          >
+            <div className="w-20 h-20 rounded-full bg-pink-500/20 border-2 border-pink-400/50 flex items-center justify-center">
+              <Heart size={40} fill="currentColor" className="text-pink-400" />
+            </div>
+            <p className="text-center text-pink-400 text-xs mt-2 font-medium">送温暖</p>
+          </div>
+        )}
 
-            {/* 滑动视觉反馈 - 右滑 ✕ */}
-            {swipeDirection === 'right' && (
-              <div
-                className="absolute right-8 top-1/2 -translate-y-1/2 z-20 pointer-events-none"
-                style={{ opacity: getFeedbackOpacity() }}
-              >
-                <div className="w-16 h-16 rounded-full bg-gray-500/20 border-2 border-gray-400/50 flex items-center justify-center">
-                  <X size={32} className="text-gray-400" />
-                </div>
-                <p className="text-center text-gray-400 text-xs mt-2 font-medium">跳过</p>
-              </div>
-            )}
+        {/* 滑动视觉反馈 - 右滑 ✕ */}
+        {swipeDirection === 'right' && (
+          <div
+            className="absolute right-6 top-1/2 -translate-y-1/2 z-30 pointer-events-none"
+            style={{ opacity: getFeedbackOpacity() }}
+          >
+            <div className="w-20 h-20 rounded-full bg-gray-500/20 border-2 border-gray-400/50 flex items-center justify-center">
+              <X size={40} className="text-gray-400" />
+            </div>
+            <p className="text-center text-gray-400 text-xs mt-2 font-medium">跳过</p>
+          </div>
+        )}
 
-            {/* 主卡片 */}
+        {/* 下一张卡片（底层） */}
+        {nextWhisper && currentIndex < whispers.length - 1 && (
+          <div
+            className={`absolute inset-0 flex items-center justify-center px-4 pointer-events-none`}
+            style={getNextCardStyle()}
+          >
             <div
-              className={`relative w-full rounded-3xl border overflow-hidden transition-all duration-300 select-none ${
+              className={`w-full rounded-3xl border overflow-hidden ${
                 isDark ? 'bg-[#1a1a2e] border-white/5' : 'bg-[#1e1e32] border-white/5'
               }`}
               style={{
                 minHeight: '400px',
                 maxWidth: '360px',
-                transform: getCardTransform(),
-                transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 boxShadow: '0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03)',
               }}
             >
-              {/* 卡片内容 - 直接显示信纸 */}
+              <div className="flex flex-col min-h-[400px] p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <span className={`text-[10px] px-2.5 py-1 rounded-full border ${isDark ? 'bg-white/5 text-gray-400 border-white/10' : 'bg-white/5 text-gray-400 border-white/10'}`}>
+                    {nextWhisper.emotion}
+                  </span>
+                  <span className={`text-[10px] text-gray-600`}>未知坐标</span>
+                </div>
+                <div className="flex-1 flex items-center justify-center py-4">
+                  <p className={`text-base leading-relaxed font-light text-center text-gray-200`}>
+                    "{nextWhisper.text}"
+                  </p>
+                </div>
+                <div className={`w-full h-px my-4 bg-white/5`} />
+                <div className="flex items-center justify-between">
+                  <span className={`text-[10px] text-gray-600`}>来自深空的信</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 当前卡片（上层） */}
+        {currentWhisper && (
+          <div
+            className="absolute inset-0 flex items-center justify-center px-4"
+            style={getCurrentCardStyle()}
+            data-current-card
+          >
+            <div
+              className={`relative w-full rounded-3xl border overflow-hidden select-none ${
+                isDark ? 'bg-[#1a1a2e] border-white/5' : 'bg-[#1e1e32] border-white/5'
+              }`}
+              style={{
+                minHeight: '400px',
+                maxWidth: '360px',
+                boxShadow: '0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03)',
+              }}
+            >
               <div className="flex flex-col min-h-[400px] p-6">
                 {/* 头部 */}
                 <div className="flex items-center justify-between mb-4">
@@ -352,35 +437,31 @@ export default function StarWhispersView({
                       {currentWhisper.emotion}
                     </span>
                   </div>
-                  <span className={`text-[10px] ${isDark ? 'text-gray-600' : 'text-gray-500'}`}>
-                    未知坐标
-                  </span>
+                  <span className={`text-[10px] text-gray-600`}>未知坐标</span>
                 </div>
 
-                {/* 内容区域 - 占满空间 */}
+                {/* 内容区域 */}
                 <div className="flex-1 flex items-center justify-center py-4">
-                  <p className={`text-base leading-relaxed font-light text-center ${isDark ? 'text-gray-200' : 'text-gray-200'}`}>
+                  <p className={`text-base leading-relaxed font-light text-center text-gray-200`}>
                     "{currentWhisper.text}"
                   </p>
                 </div>
 
                 {/* 底部装饰线 */}
-                <div className={`w-full h-px my-4 ${isDark ? 'bg-white/5' : 'bg-white/5'}`} />
+                <div className={`w-full h-px my-4 bg-white/5`} />
 
                 {/* 底部信息 */}
                 <div className="flex items-center justify-between">
-                  <span className={`text-[10px] ${isDark ? 'text-gray-600' : 'text-gray-500'}`}>
-                    来自深空的信
-                  </span>
+                  <span className={`text-[10px] text-gray-600`}>来自深空的信</span>
                   {isHugged && (
-                    <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-pink-400' : 'text-pink-400'}`}>
+                    <span className={`text-[10px] flex items-center gap-1 text-pink-400`}>
                       <Heart size={10} fill="currentColor" /> 已温暖
                     </span>
                   )}
                 </div>
               </div>
             </div>
-          </>
+          </div>
         )}
 
         {/* 全部浏览完毕 */}
@@ -390,8 +471,8 @@ export default function StarWhispersView({
               <div className="w-16 h-16 rounded-full bg-[#1a1a2e] border border-white/5 flex items-center justify-center mx-auto mb-4">
                 <Sparkles size={28} className="text-amber-400/60" />
               </div>
-              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-400'}`}>已浏览完所有信件</p>
-              <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-600' : 'text-gray-500'}`}>明天会有新的信飘来</p>
+              <p className={`text-sm text-gray-400`}>已浏览完所有信件</p>
+              <p className={`text-[10px] mt-1 text-gray-600`}>明天会有新的信飘来</p>
             </div>
           </div>
         )}
@@ -399,7 +480,6 @@ export default function StarWhispersView({
 
       {/* === 底部操作区 === */}
       <div className="flex items-center justify-center gap-6 mt-6 mb-4">
-        {/* 跳过按钮 */}
         <button
           onClick={() => goToNext('right')}
           disabled={isAnimating || currentIndex >= whispers.length - 1}
@@ -412,7 +492,6 @@ export default function StarWhispersView({
           <X size={24} />
         </button>
 
-        {/* 送温暖按钮 */}
         <button
           onClick={() => goToNext('left')}
           disabled={isAnimating || currentIndex >= whispers.length - 1 || isHugged}
@@ -437,20 +516,32 @@ export default function StarWhispersView({
         <Edit3 size={20} className="text-white" />
       </button>
 
-      {/* === 粒子效果 === */}
+      {/* === 发散粒子效果 === */}
       {particles.map(p => (
         <div
           key={p.id}
-          className="fixed pointer-events-none z-50 animate-particle-float"
+          className="fixed pointer-events-none z-50"
           style={{
             left: p.x,
             top: p.y,
             animationDelay: `${p.delay}s`,
-            '--tx': p.tx,
-            '--ty': p.ty,
           }}
         >
-          <Heart size={20} fill="currentColor" className="text-pink-500" style={{ transform: `scale(${p.scale})` }} />
+          <div
+            className="animate-particle-burst"
+            style={{
+              '--tx': p.tx,
+              '--ty': p.ty,
+              '--rotation': p.rotation + 'deg',
+            }}
+          >
+            <Heart
+              size={20}
+              fill="currentColor"
+              className="text-pink-500"
+              style={{ transform: `scale(${p.scale})` }}
+            />
+          </div>
         </div>
       ))}
 

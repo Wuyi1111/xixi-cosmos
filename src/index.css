@@ -230,3 +230,18 @@ input[type="range"].font-scale-slider::-moz-range-thumb {
 .animate-particle-rise > div {
   animation: particle-rise 4s ease-in-out infinite;
 }
+
+/* === 爱心粒子发散动画 === */
+@keyframes particle-burst {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) rotate(var(--rotation)) scale(0.2);
+    opacity: 0;
+  }
+}
+.animate-particle-burst {
+  animation: particle-burst 1.5s ease-out forwards;
+}
