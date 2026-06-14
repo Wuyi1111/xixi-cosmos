@@ -329,9 +329,13 @@ export default function App() {
         )}
       </main>
 
-      {/* 底部导航栏 — 深色胶囊浮岛风格 */}
+      {/* 底部导航栏 — 毛玻璃胶囊浮岛风格 */}
       <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pointer-events-none">
-        <nav className="pointer-events-auto flex items-center gap-1 bg-[#1a1a1a] rounded-full px-3 py-1.5 shadow-lg shadow-black/20">
+        <nav className={`pointer-events-auto flex items-center gap-3 rounded-full px-6 py-2 backdrop-blur-xl border transition-colors duration-500 ${
+          isDark
+            ? 'bg-white/10 border-white/10 shadow-lg shadow-black/30'
+            : 'bg-black/70 border-white/10 shadow-lg shadow-black/20'
+        }`}>
           <TabButton icon={Home} active={activeTab === 'tonight'} onClick={() => setActiveTab('tonight')} />
           <TabButton icon={Radar} active={activeTab === 'radar'} onClick={() => setActiveTab('radar')} />
           <TabButton icon={Sparkles} active={activeTab === 'galaxy'} onClick={() => setActiveTab('galaxy')} />

@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.46.2** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.46.3** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 ---
 
@@ -61,6 +61,15 @@ GitHub Actions 自动跑，几十秒后线上更新。可在 Actions 标签查�
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.46.3 · 2026-06-13 — 导航栏毛玻璃质感 + 主题适配
+
+- 胶囊加长：`px-6` + `gap-3`，更舒展
+- 毛玻璃效果：`backdrop-blur-xl` + 半透明背景 + `border-white/10`
+- 主题适配：
+  - 暗色模式：`bg-white/10`（微微泛白，融入暗底）
+  - 亮色模式：`bg-black/70`（深色胶囊，对比明显）
+- TabButton 微调：`w-10 h-10` + 未选中 `text-gray-400`
 
 ### v4.46.2 · 2026-06-13 — 底部导航栏改为深色胶囊浮岛风格
 
