@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.46.3** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.47.0** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 ---
 
@@ -61,6 +61,14 @@ GitHub Actions 自动跑，几十秒后线上更新。可在 Actions 标签查�
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.47.0 · 2026-06-13 — 雷达拆分为星海 + 明日两个独立 tab
+
+- 移除「雷达」和「星系」tab
+- 新增「星海」tab（第 2 个）：发射信号、我的心语、星际回音（送出温暖）
+- 新增「明日」tab（第 3 个）：添加明日约定、今日清单、热门约定、星际足迹
+- 从 TreeholeView 拆分出 `StarWhispersView.jsx` 和 `TomorrowView.jsx`
+- 导航栏图标更新：Home / Radio / Sparkles / Moon
 
 ### v4.46.3 · 2026-06-13 — 导航栏毛玻璃质感 + 主题适配
 

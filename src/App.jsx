@@ -20,12 +20,12 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Home, Radar, Sparkles, Moon } from 'lucide-react';
+import { Home, Radio, Sparkles, Moon } from 'lucide-react';
 
 import TabButton from './components/TabButton.jsx';
 import TonightView from './views/TonightView.jsx';
-import TreeholeView from './views/TreeholeView.jsx';
-import GalaxyView from './views/GalaxyView.jsx';
+import StarWhispersView from './views/StarWhispersView.jsx';
+import TomorrowView from './views/TomorrowView.jsx';
 import StarView from './views/StarView.jsx';
 import SplashScreen from './components/SplashScreen.jsx';
 import PersonalityTestView from './views/PersonalityTestView.jsx';
@@ -295,22 +295,23 @@ export default function App() {
             onNavigate={(tab) => setActiveTab(tab)}
           />
         )}
-        {activeTab === 'radar' && (
-          <TreeholeView
+        {activeTab === 'starsea' && (
+          <StarWhispersView
             isDark={isDark}
             userData={userData}
             saveUserData={saveUserData}
             currentDateStr={currentDateStr}
             onGiveHug={(whisperId, patch) => handleInteractionCheckIn('hug', whisperId, patch)}
-            onFollow={(suggestionId, patch) => handleInteractionCheckIn('follow', suggestionId, patch)}
           />
         )}
 
-        {activeTab === 'galaxy' && (
-          <GalaxyView
+        {activeTab === 'tomorrow' && (
+          <TomorrowView
             isDark={isDark}
             userData={userData}
+            saveUserData={saveUserData}
             currentDateStr={currentDateStr}
+            onFollow={(suggestionId, patch) => handleInteractionCheckIn('follow', suggestionId, patch)}
           />
         )}
         {activeTab === 'star' && (
@@ -337,8 +338,8 @@ export default function App() {
             : 'bg-black/70 border-white/10 shadow-lg shadow-black/20'
         }`}>
           <TabButton icon={Home} active={activeTab === 'tonight'} onClick={() => setActiveTab('tonight')} />
-          <TabButton icon={Radar} active={activeTab === 'radar'} onClick={() => setActiveTab('radar')} />
-          <TabButton icon={Sparkles} active={activeTab === 'galaxy'} onClick={() => setActiveTab('galaxy')} />
+          <TabButton icon={Radio} active={activeTab === 'starsea'} onClick={() => setActiveTab('starsea')} />
+          <TabButton icon={Sparkles} active={activeTab === 'tomorrow'} onClick={() => setActiveTab('tomorrow')} />
           <TabButton icon={Moon} active={activeTab === 'star'} onClick={() => setActiveTab('star')} />
         </nav>
       </div>
