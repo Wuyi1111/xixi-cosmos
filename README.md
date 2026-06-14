@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.47.10** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.47.11** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 ---
 
@@ -61,6 +61,13 @@ GitHub Actions 自动跑，几十秒后线上更新。可在 Actions 标签查�
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.47.11 · 2026-06-14 — 暂时移除伴眠夜声功能
+
+- 移除「伴眠夜声」整个功能模块（卡片 + 播放器 + 选择器弹窗）
+- 清理相关状态：selectedSound、isPlaying、showSoundPicker
+- 清理相关导入：Play、Pause、Wind、Music
+- 清理 NIGHT_SOUNDS 常量
 
 ### v4.47.10 · 2026-06-14 — 归星页设置按钮整合到卡片内
 

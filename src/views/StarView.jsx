@@ -4,13 +4,12 @@
  * 页面结构：
  *   1) 顶部个人中心入口：头像 + 名字 + 右箭头
  *   2) 今日状态卡片：今晚归星状态 / 连续天数 / 心情
- *   3) 伴眠夜声：独立声音播放卡片
- *   4) 开始归星：点击后显示随机温暖话术，完成归星
- *   5) 底部：心愿池独立入口
+ *   3) 开始归星：点击后显示随机温暖话术，完成归星
+ *   4) 底部：心愿池独立入口
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Settings, Sparkles, Moon, Heart, Users, Play, Pause, Wind, ChevronRight, X, CheckCircle2, Award, Flame, Music, Quote, Orbit } from 'lucide-react';
+import { Settings, Sparkles, Moon, Heart, ChevronRight, X, CheckCircle2, Flame, Quote } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import SettingsPanel from './SettingsPanel.jsx';
 import WishPoolView from './WishPoolView.jsx';
@@ -18,17 +17,6 @@ import ProfileView from './ProfileView.jsx';
 import GalaxyMapView from './GalaxyMapView.jsx';
 import { INITIAL_USER_DATA } from '../constants.js';
 import { computeStreakInfo } from '../utils.js';
-
-const NIGHT_SOUNDS = [
-  { id: 'rain', name: '星河雨声', desc: '柔和雨声，适合放松入眠' },
-  { id: 'wind', name: '深空风声', desc: '低频风声，适合安静沉淀' },
-  { id: 'wave', name: '月海潮汐', desc: '海浪声，适合缓慢呼吸' },
-  { id: 'cloud', name: '云层轻响', desc: '轻柔环境声，适合浅睡前放松' },
-  { id: 'fire', name: '篝火星光', desc: '微弱火焰声，适合安全感场景' },
-  { id: 'forest', name: '森林夜航', desc: '夜晚虫鸣和森林环境声' },
-  { id: 'cabin', name: '舱内白噪', desc: '稳定低频白噪音，适合屏蔽干扰' },
-  { id: 'silent', name: '静默星空', desc: '近乎无声，只保留极轻环境底噪' },
-];
 
 // 温暖话术库 — 每次归星随机显示一条
 const WARM_MESSAGES = [
@@ -60,11 +48,6 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
   const [showProfile, setShowProfile] = useState(false);
   const [showGalaxyMap, setShowGalaxyMap] = useState(false);
 
-  // 夜声状态
-  const [selectedSound, setSelectedSound] = useState(NIGHT_SOUNDS[0]);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [showSoundPicker, setShowSoundPicker] = useState(false);
-
   // 归星状态
   const [showRitual, setShowRitual] = useState(false);
   const [ritualPhase, setRitualPhase] = useState('message');
@@ -79,9 +62,6 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
   // 连续夜晚显示
   const { lastCheckInDate, hasCheckedInToday, displayContinuousDays } =
     computeStreakInfo(userData, currentDateStr);
-
-  // 夜声播放（模拟）
-  const togglePlay = () => setIsPlaying(!isPlaying);
 
   // 随机获取一条温暖话术
   const getRandomMessage = useCallback(() => {
@@ -389,66 +369,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
         </button>
       </div>
 
-      {/* === 4. 伴眠夜声（独立卡片） === */}
-      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Music size={16} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
-            <h3 className="text-sm font-medium">伴眠夜声</h3>
-          </div>
-          <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-sky-500/10 text-sky-300' : 'bg-sky-50 text-sky-600'}`}>
-            {selectedSound.name}
-          </span>
-        </div>
-
-        <div className={`flex items-center gap-3 p-3 rounded-xl mb-4 ${isDark ? 'bg-[#1f1f2e]' : 'bg-gray-50'}`}>
-          <div className="flex-1 min-w-0">
-            <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>当前播放</p>
-            <p className="text-xs font-medium">{selectedSound.name}</p>
-            <p className={`text-[10px] ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{selectedSound.desc}</p>
-          </div>
-          <button
-            onClick={togglePlay}
-            className={`p-2.5 rounded-full transition-all active:scale-95 ${
-              isPlaying
-                ? (isDark ? 'bg-sky-500/20 text-sky-300' : 'bg-sky-100 text-sky-600')
-                : (isDark ? 'bg-white/5 text-gray-400' : 'bg-white text-gray-500 shadow-sm')
-            }`}
-          >
-            {isPlaying ? <Pause size={18} /> : <Play size={18} />}
-          </button>
-          <button
-            onClick={() => setShowSoundPicker(true)}
-            className={`p-2.5 rounded-full transition-all active:scale-95 ${isDark ? 'bg-white/5 text-gray-400' : 'bg-white text-gray-500 shadow-sm'}`}
-          >
-            <Wind size={18} />
-          </button>
-        </div>
-
-        {/* 快捷声音选择 */}
-        <div className="grid grid-cols-4 gap-2">
-          {NIGHT_SOUNDS.slice(0, 4).map((sound) => (
-            <button
-              key={sound.id}
-              onClick={() => {
-                setSelectedSound(sound);
-                setIsPlaying(false);
-              }}
-              className={`p-2 rounded-xl text-center transition-all active:scale-95 ${
-                selectedSound.id === sound.id
-                  ? (isDark ? 'bg-sky-500/15 border border-sky-500/30' : 'bg-sky-50 border border-sky-200')
-                  : (isDark ? 'bg-[#1f1f2e] border border-transparent' : 'bg-gray-50 border border-transparent')
-              }`}
-            >
-              <p className={`text-[10px] font-medium ${selectedSound.id === sound.id ? (isDark ? 'text-sky-300' : 'text-sky-600') : (isDark ? 'text-gray-400' : 'text-gray-500')}`}>
-                {sound.name}
-              </p>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* === 5. 底部心愿池入口 === */}
+      {/* === 4. 底部心愿池入口 === */}
       <button
         onClick={() => setShowWishPool(true)}
         className={`w-full py-4 rounded-2xl text-sm font-medium transition-all active:scale-95 flex items-center justify-center gap-2 ${
@@ -461,47 +382,6 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
         进入心愿池
         <ChevronRight size={14} />
       </button>
-
-      {/* === 夜声选择器弹窗 === */}
-      {showSoundPicker && (
-        <Portal>
-          <div className={`fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 ${isDark ? 'bg-[#0f0f1a]/80' : 'bg-[#f8fafc]/80'} backdrop-blur-sm animate-fade-in`} onClick={() => setShowSoundPicker(false)}>
-            <div className={`w-full max-w-sm p-6 rounded-[28px] ${isDark ? 'bg-[#171724]' : 'bg-white shadow-xl'} relative`} onClick={e => e.stopPropagation()}>
-              <button onClick={() => setShowSoundPicker(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-200">
-                <X size={20} />
-              </button>
-              <h3 className="text-lg font-medium mb-5 text-center">选择夜声</h3>
-
-              <div className="space-y-2 max-h-64 overflow-y-auto no-scrollbar">
-                {NIGHT_SOUNDS.map((sound) => (
-                  <button
-                    key={sound.id}
-                    onClick={() => {
-                      setSelectedSound(sound);
-                      setShowSoundPicker(false);
-                      setIsPlaying(false);
-                    }}
-                    className={`w-full p-3 rounded-xl text-left transition-all flex items-center gap-3 ${
-                      selectedSound.id === sound.id
-                        ? (isDark ? 'bg-sky-500/15 border border-sky-500/30' : 'bg-sky-50 border border-sky-200')
-                        : (isDark ? 'bg-[#1f1f2e] hover:bg-white/5' : 'bg-gray-50 hover:bg-white')
-                    }`}
-                  >
-                    <Wind size={16} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
-                    <div>
-                      <p className="text-xs font-medium">{sound.name}</p>
-                      <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{sound.desc}</p>
-                    </div>
-                    {selectedSound.id === sound.id && (
-                      <CheckCircle2 size={16} className={`ml-auto ${isDark ? 'text-sky-400' : 'text-sky-500'}`} />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </Portal>
-      )}
 
       {/* === 星系图谱子界面 === */}
       {showGalaxyMap && (
