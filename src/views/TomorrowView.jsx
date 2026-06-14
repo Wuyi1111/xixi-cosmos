@@ -151,21 +151,22 @@ export default function TomorrowView({
 
   return (
     <div className="animate-fade-in pb-10 relative min-h-[calc(100vh-8rem)]">
-      {/* === 顶部极小标题 === */}
-      <div className="flex items-center justify-between mb-6 px-1">
+      {/* === 顶部栏 === */}
+      <div className="flex items-center justify-between mb-4 px-1">
         <div>
-          <p className={`text-[10px] tracking-[0.3em] uppercase ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-            明日
+          <h1 className="text-xl font-medium tracking-wide">明日</h1>
+          <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+            {todayTasks.length} 个今日约定
           </p>
         </div>
         {/* 星际足迹入口 */}
         <button
           onClick={() => setShowStarTrail(true)}
-          className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90 ${
-            isDark ? 'bg-[#171724]/50 border border-white/5 hover:bg-[#1f1f2e]' : 'bg-white/50 border border-gray-100'
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-90 ${
+            isDark ? 'bg-[#171724] border border-white/10 hover:bg-[#1f1f2e]' : 'bg-white border border-gray-200 shadow-sm hover:shadow-md'
           }`}
         >
-          <Footprints size={14} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
+          <Footprints size={18} className={isDark ? 'text-sky-400' : 'text-sky-500'} />
         </button>
       </div>
 

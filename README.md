@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.47.12** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.47.13** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 ---
 
@@ -61,6 +61,14 @@ GitHub Actions 自动跑，几十秒后线上更新。可在 Actions 标签查�
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.47.13 · 2026-06-14 — 明日页面顶部栏统一为星海格式
+
+- 标题放大：`text-[10px]` → `text-xl font-medium tracking-wide`
+- 新增副标题：显示「X 个今日约定」
+- 右侧图标按钮放大：`w-8 h-8` → `w-10 h-10`，图标 `size={14}` → `size={18}`
+- 按钮样式统一为星海同款：暗色 `bg-[#171724] border border-white/10`，亮色 `bg-white border border-gray-200 shadow-sm`
+- 图标颜色统一为 sky 色系
 
 ### v4.47.12 · 2026-06-14 — 首页去掉安静过渡环节
 
