@@ -40,6 +40,10 @@ export default function StarWhispersView({
   const containerRef = useRef(null);
   const startX = useRef(0);
   const currentX = useRef(0);
+  const startTime = useRef(0);
+  const rafId = useRef(null);
+  const dragOffsetRef = useRef(0);
+  const swipeDirRef = useRef(null);
 
   // === 弹窗 state ===
   const [showEmitModal, setShowEmitModal] = useState(false);
@@ -116,6 +120,7 @@ export default function StarWhispersView({
 
     setIsAnimating(true);
     setSwipeDirection(direction);
+    swipeDirRef.current = direction;
 
     if (direction === 'left' && !isLastCard) {
       const whisper = whispers[currentIndex];
@@ -131,10 +136,42 @@ export default function StarWhispersView({
         setCurrentIndex(prev => prev + 1);
       }
       setSwipeDirection(null);
+      swipeDirRef.current = null;
       setDragOffset(0);
+      dragOffsetRef.current = 0;
       setIsAnimating(false);
-    }, 350);
+    }, 250);
   }, [isAnimating, currentIndex, whispers, handleGiveHug]);
+
+  // === RAF 更新样式（避免每帧 setState）===
+  const updateCardStyle = useCallback(() => {
+    const diff = dragOffsetRef.current;
+    const cardEl = containerRef.current?.querySelector('[data-current-card]');
+    const nextEl = containerRef.current?.querySelector('[data-next-card]');
+
+    if (cardEl) {
+      const progress = Math.min(Math.abs(diff) / (window.innerWidth * 0.5), 1);
+      const scale = 1 - progress * 0.05;
+      const opacity = 1 - progress * 0.5;
+      const rotate = diff * 0.01;
+      cardEl.style.transform = `translateX(${diff}px) rotate(${rotate}deg) scale(${scale})`;
+      cardEl.style.opacity = opacity;
+    }
+
+    if (nextEl) {
+      const progress = Math.min(Math.abs(diff) / (window.innerWidth * 0.5), 1);
+      const translateX = 60 - progress * 60;
+      const scale = 0.92 + progress * 0.08;
+      const opacity = 0.5 + progress * 0.5;
+      nextEl.style.transform = `translateX(${translateX}%) scale(${scale})`;
+      nextEl.style.opacity = opacity;
+    }
+  }, []);
+
+  const scheduleUpdate = useCallback(() => {
+    if (rafId.current) cancelAnimationFrame(rafId.current);
+    rafId.current = requestAnimationFrame(updateCardStyle);
+  }, [updateCardStyle]);
 
   // === 触摸滑动逻辑 ===
   const handleTouchStart = useCallback((e) => {
@@ -142,30 +179,64 @@ export default function StarWhispersView({
     setIsDragging(true);
     startX.current = e.touches[0].clientX;
     currentX.current = e.touches[0].clientX;
+    startTime.current = Date.now();
+    dragOffsetRef.current = 0;
   }, [isAnimating]);
 
   const handleTouchMove = useCallback((e) => {
     if (!isDragging || isAnimating) return;
     currentX.current = e.touches[0].clientX;
     const diff = currentX.current - startX.current;
-    setDragOffset(diff);
+    dragOffsetRef.current = diff;
 
-    if (diff < -30) setSwipeDirection('left');
-    else if (diff > 30) setSwipeDirection('right');
-    else setSwipeDirection(null);
-  }, [isDragging, isAnimating]);
+    // 方向判断（用 ref 避免频繁 setState）
+    const newDir = diff < -30 ? 'left' : diff > 30 ? 'right' : null;
+    if (newDir !== swipeDirRef.current) {
+      swipeDirRef.current = newDir;
+      setSwipeDirection(newDir);
+    }
+
+    // 低频率更新 state（用于反馈透明度计算）
+    if (Math.abs(diff - dragOffset) > 5) {
+      setDragOffset(diff);
+    }
+
+    scheduleUpdate();
+  }, [isDragging, isAnimating, dragOffset, scheduleUpdate]);
 
   const handleTouchEnd = useCallback(() => {
     if (!isDragging) return;
     setIsDragging(false);
     const diff = currentX.current - startX.current;
-    const threshold = window.innerWidth * 0.2;
+    const elapsed = Date.now() - startTime.current;
+    const velocity = Math.abs(diff) / (elapsed || 1);
+    const threshold = window.innerWidth * 0.12;
+    const fastSwipe = velocity > 0.5;
 
-    if (Math.abs(diff) > threshold) {
+    if (Math.abs(diff) > threshold || fastSwipe) {
       goToNext(diff < 0 ? 'left' : 'right');
     } else {
+      // 回弹动画
+      const cardEl = containerRef.current?.querySelector('[data-current-card]');
+      const nextEl = containerRef.current?.querySelector('[data-next-card]');
+      if (cardEl) {
+        cardEl.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.25s ease';
+        cardEl.style.transform = 'translateX(0) rotate(0deg) scale(1)';
+        cardEl.style.opacity = '1';
+      }
+      if (nextEl) {
+        nextEl.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.25s ease';
+        nextEl.style.transform = 'translateX(60%) scale(0.92)';
+        nextEl.style.opacity = '0.5';
+      }
+      setTimeout(() => {
+        if (cardEl) cardEl.style.transition = '';
+        if (nextEl) nextEl.style.transition = '';
+      }, 250);
       setDragOffset(0);
+      dragOffsetRef.current = 0;
       setSwipeDirection(null);
+      swipeDirRef.current = null;
     }
   }, [isDragging, goToNext]);
 
@@ -175,30 +246,61 @@ export default function StarWhispersView({
     setIsDragging(true);
     startX.current = e.clientX;
     currentX.current = e.clientX;
+    startTime.current = Date.now();
+    dragOffsetRef.current = 0;
   }, [isAnimating]);
 
   const handleMouseMove = useCallback((e) => {
     if (!isDragging || isAnimating) return;
     currentX.current = e.clientX;
     const diff = currentX.current - startX.current;
-    setDragOffset(diff);
+    dragOffsetRef.current = diff;
 
-    if (diff < -30) setSwipeDirection('left');
-    else if (diff > 30) setSwipeDirection('right');
-    else setSwipeDirection(null);
-  }, [isDragging, isAnimating]);
+    const newDir = diff < -30 ? 'left' : diff > 30 ? 'right' : null;
+    if (newDir !== swipeDirRef.current) {
+      swipeDirRef.current = newDir;
+      setSwipeDirection(newDir);
+    }
+
+    if (Math.abs(diff - dragOffset) > 5) {
+      setDragOffset(diff);
+    }
+
+    scheduleUpdate();
+  }, [isDragging, isAnimating, dragOffset, scheduleUpdate]);
 
   const handleMouseUp = useCallback(() => {
     if (!isDragging) return;
     setIsDragging(false);
     const diff = currentX.current - startX.current;
-    const threshold = window.innerWidth * 0.2;
+    const elapsed = Date.now() - startTime.current;
+    const velocity = Math.abs(diff) / (elapsed || 1);
+    const threshold = window.innerWidth * 0.12;
+    const fastSwipe = velocity > 0.5;
 
-    if (Math.abs(diff) > threshold) {
+    if (Math.abs(diff) > threshold || fastSwipe) {
       goToNext(diff < 0 ? 'left' : 'right');
     } else {
+      const cardEl = containerRef.current?.querySelector('[data-current-card]');
+      const nextEl = containerRef.current?.querySelector('[data-next-card]');
+      if (cardEl) {
+        cardEl.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.25s ease';
+        cardEl.style.transform = 'translateX(0) rotate(0deg) scale(1)';
+        cardEl.style.opacity = '1';
+      }
+      if (nextEl) {
+        nextEl.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.25s ease';
+        nextEl.style.transform = 'translateX(60%) scale(0.92)';
+        nextEl.style.opacity = '0.5';
+      }
+      setTimeout(() => {
+        if (cardEl) cardEl.style.transition = '';
+        if (nextEl) nextEl.style.transition = '';
+      }, 250);
       setDragOffset(0);
+      dragOffsetRef.current = 0;
       setSwipeDirection(null);
+      swipeDirRef.current = null;
     }
   }, [isDragging, goToNext]);
 
@@ -209,26 +311,32 @@ export default function StarWhispersView({
     return Math.min(absOffset / maxOffset, 1);
   };
 
-  // === 当前卡片样式 ===
+  // === 当前卡片样式（飞出动画）===
   const getCurrentCardStyle = () => {
-    const progress = getSwipeProgress();
-    const scale = 1 - progress * 0.05;
-    const opacity = 1 - progress * 0.5;
-    const rotate = dragOffset * 0.01;
-
     if (swipeDirection && isAnimating) {
       const flyX = swipeDirection === 'left' ? -window.innerWidth * 1.2 : window.innerWidth * 1.2;
       return {
         transform: `translateX(${flyX}px) rotate(${swipeDirection === 'left' ? -8 : 8}deg)`,
         opacity: 0,
-        transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease',
+        transition: 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.25s ease',
+      };
+    }
+
+    // 拖拽期间用 inline style（RAF 更新），静止时恢复
+    if (isDragging) {
+      return {
+        transform: `translateX(${dragOffset}px) rotate(${dragOffset * 0.01}deg) scale(${1 - getSwipeProgress() * 0.05})`,
+        opacity: 1 - getSwipeProgress() * 0.5,
+        transition: 'none',
+        willChange: 'transform, opacity',
       };
     }
 
     return {
-      transform: `translateX(${dragOffset}px) rotate(${rotate}deg) scale(${scale})`,
-      opacity,
-      transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
+      transform: 'translateX(0) rotate(0deg) scale(1)',
+      opacity: 1,
+      transition: 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.25s ease',
+      willChange: 'auto',
       zIndex: 3,
     };
   };
@@ -243,23 +351,9 @@ export default function StarWhispersView({
     return {
       transform: `translateX(${translateX}%) scale(${scale})`,
       opacity,
-      transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
+      transition: isDragging ? 'none' : 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.25s ease',
+      willChange: isDragging ? 'transform, opacity' : 'auto',
       zIndex: 2,
-    };
-  };
-
-  // === 上一张卡片样式（左侧露出）===
-  const getPrevCardStyle = () => {
-    const progress = getSwipeProgress();
-    const translateX = -60 + progress * 60;
-    const scale = 0.92 + progress * 0.08;
-    const opacity = 0.5 + progress * 0.5;
-
-    return {
-      transform: `translateX(${translateX}%) scale(${scale})`,
-      opacity,
-      transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
-      zIndex: 1,
     };
   };
 
@@ -330,7 +424,6 @@ export default function StarWhispersView({
     );
   }
 
-  const prevWhisper = whispers[currentIndex - 1];
   const currentWhisper = whispers[currentIndex];
   const nextWhisper = whispers[currentIndex + 1];
   const isHugged = userData.huggedWhispers.includes(currentWhisper?.id);
@@ -394,38 +487,11 @@ export default function StarWhispersView({
           </div>
         )}
 
-        {/* 上一张卡片（左侧露出） */}
-        {prevWhisper && currentIndex > 0 && (
-          <div
-            className="absolute inset-y-0 left-0 flex items-center justify-start pointer-events-none"
-            style={{
-              ...getPrevCardStyle(),
-              width: '30%',
-              paddingLeft: '4px',
-            }}
-          >
-            <div
-              className={`w-full rounded-2xl border overflow-hidden ${
-                isDark ? 'bg-[#1a1a2e] border-white/5' : 'bg-[#1e1e32] border-white/5'
-              }`}
-              style={{
-                minHeight: '360px',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-              }}
-            >
-              <div className="flex flex-col min-h-[360px] p-4 opacity-40">
-                <span className={`text-[10px] px-2 py-0.5 rounded-full border ${isDark ? 'bg-white/5 text-gray-500 border-white/10' : 'bg-white/5 text-gray-500 border-white/10'}`}>
-                  {prevWhisper.emotion}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* 下一张卡片（右侧露出） */}
         {nextWhisper && currentIndex < whispers.length - 1 && (
           <div
             className="absolute inset-y-0 right-0 flex items-center justify-end pointer-events-none"
+            data-next-card
             style={{
               ...getNextCardStyle(),
               width: '30%',

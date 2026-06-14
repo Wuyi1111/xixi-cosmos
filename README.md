@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.47.13** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.47.14** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 ---
 
@@ -61,6 +61,15 @@ GitHub Actions 自动跑，几十秒后线上更新。可在 Actions 标签查�
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.47.14 · 2026-06-14 — 星海卡片滑动流畅度优化
+
+- 滑动阈值降低：20% → 12%，更易触发
+- 增加速度判断：滑动速度 > 0.5px/ms 时快速轻滑也能切换
+- RAF 优化拖拽：拖拽期间用 requestAnimationFrame 直接操作 DOM，避免每帧 setState
+- 简化卡片层级：移除左侧上一张卡片，只保留当前 + 下一张
+- 动画加速：飞出/回弹动画 350ms → 250ms，曲线更轻快
+- 添加 will-change 提示浏览器优化渲染
 
 ### v4.47.13 · 2026-06-14 — 明日页面顶部栏统一为星海格式
 
