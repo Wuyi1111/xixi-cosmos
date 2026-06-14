@@ -198,17 +198,32 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
 
   return (
     <div className="animate-fade-in pb-10 space-y-5">
-      {/* === 1. 统一个人中心入口卡片 + 设置按钮 === */}
-      <div className="flex items-start gap-3">
+      {/* === 1. 统一个人中心入口卡片（含设置按钮） === */}
+      <div className="relative">
         {/* 个人中心卡片 */}
         <button
           onClick={() => setShowProfile(true)}
-          className={`flex-1 text-left rounded-[24px] p-5 transition-all active:scale-[0.98] ${
+          className={`w-full text-left rounded-[24px] p-5 transition-all active:scale-[0.98] ${
             isDark
               ? 'bg-[#171724] border border-sky-500/20 hover:border-sky-500/40'
               : 'bg-white border border-sky-100 hover:border-sky-300 shadow-sm'
           }`}
         >
+          {/* 设置按钮 — 放在卡片内部右上角 */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowSettings(true);
+            }}
+            className={`absolute top-4 right-4 p-2 rounded-full transition-all active:scale-95 z-10 ${
+              isDark
+                ? 'bg-white/5 text-gray-500 hover:text-gray-300 hover:bg-white/10'
+                : 'bg-gray-50 text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <Settings size={18} />
+          </button>
+
           {/* 上半：个人信息 */}
           <div className="flex items-center gap-4">
             <div className={`w-14 h-14 rounded-full flex items-center justify-center text-3xl shrink-0 ${isDark ? 'bg-[#13131f] border border-sky-500/20' : 'bg-sky-50 border border-sky-100'}`}>
@@ -281,18 +296,6 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
               </div>
             </div>
           )}
-        </button>
-
-        {/* 设置按钮 */}
-        <button
-          onClick={() => setShowSettings(true)}
-          className={`p-4 rounded-[24px] shrink-0 transition-all active:scale-95 ${
-            isDark
-              ? 'bg-[#171724] border border-sky-500/20 text-gray-400 hover:text-gray-300'
-              : 'bg-white border border-sky-100 text-gray-500 shadow-sm hover:text-gray-700'
-          }`}
-        >
-          <Settings size={22} />
         </button>
       </div>
 
