@@ -1,13 +1,17 @@
 /**
- * TomorrowView.jsx — "明日"板块
+ * TomorrowView.jsx — "明日"板块（v4.47.2 日记本摊开版）
  *
- * 从原 TreeholeView 拆分出来的独立视图。
- * 包含：添加明日约定、今日清单、热门约定、星际足迹。
+ * 中央是一本摊开的日记本，悬浮在星空中：
+ *   - 左页：昨天的便条（微微发光的小纸条）
+ *   - 右页：今天的空白页，等待贴上新的便条
+ *   - 两页之间：极细微光粒子带
+ *   - 边缘凸出小标签
+ *   - 底部"写一张"按钮
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
-  X, Star, BookOpen, Sparkles, Plus, CheckCircle2,
+  X, BookOpen, Sparkles, Plus, CheckCircle2,
   Send, Flame, Footprints
 } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
@@ -34,6 +38,13 @@ export default function TomorrowView({
 }) {
   const myTasks = userData.myTomorrowTasks;
   const todayTasks = myTasks.filter(t => t.date === currentDateStr);
+
+  // 昨天的任务
+  const yesterday = new Date(currentDateStr);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toDateString();
+  const yesterdayTasks = myTasks.filter(t => t.date === yesterdayStr);
+
   const taskFootprints = userData.taskFootprints;
   const followedList = userData.followedSuggestions;
   const userChallenges = userData.userChallenges;
@@ -47,16 +58,8 @@ export default function TomorrowView({
   const [tomorrowVisibility, setTomorrowVisibility] = useState('public');
   const [showTomorrowToast, setShowTomorrowToast] = useState(false);
 
-  // === 热门任务 state ===
-  const [displayedSuggestions, setDisplayedSuggestions] = useState(() =>
-    TOMORROW_SUGGESTIONS.map(s => ({ ...s, _instanceId: Math.random().toString(36).slice(2) }))
-  );
-
   // === 星际足迹 ===
   const [showStarTrail, setShowStarTrail] = useState(false);
-
-  const [hotIndex, setHotIndex] = useState(0);
-  const hotScrollRef = useRef(null);
 
   const handlePublishTomorrow = () => {
     if (!tomorrowText.trim()) return;
@@ -135,79 +138,6 @@ export default function TomorrowView({
     });
   };
 
-  const handleFollowTask = (challenge) => {
-    const taskId = challenge.id;
-    if (todayTasks.find(t => t.taskId === taskId)) return;
-
-    const newTask = {
-      taskId,
-      date: currentDateStr,
-      completed: false,
-      emoji: challenge.emoji,
-      main: challenge.main,
-      sub: challenge.sub,
-      source: 'system',
-    };
-
-    const followPatch = {
-      totalFollows: userData.totalFollows + 1,
-      followedSuggestions: [...followedList, taskId],
-      myTomorrowTasks: [...myTasks, newTask],
-    };
-
-    if (onFollow) {
-      onFollow(taskId, followPatch);
-    } else {
-      saveUserData({ ...userData, ...followPatch });
-    }
-  };
-
-  const isFollowed = (challengeId) => {
-    return todayTasks.some(t => t.taskId === challengeId);
-  };
-
-  const getStableFollowCount = (id) => {
-    let hash = 0;
-    for (let i = 0; i < id.length; i++) {
-      hash = ((hash << 5) - hash) + id.charCodeAt(i);
-      hash |= 0;
-    }
-    return (Math.abs(hash) % 80) + 20;
-  };
-
-  const myChallengeTasks = userChallenges.map(c => ({
-    _instanceId: c.id,
-    id: c.id,
-    emoji: c.emoji,
-    main: c.main,
-    sub: c.sub,
-    source: 'user',
-    isMyChallenge: true,
-    followCount: (c.followers || []).length,
-    date: c.date,
-  }));
-
-  const systemTasks = displayedSuggestions.map(s => ({
-    ...s,
-    source: 'system',
-    isMyChallenge: false,
-    followCount: getStableFollowCount(s.id),
-  }));
-
-  const hotTasks = [...myChallengeTasks, ...systemTasks];
-
-  const handleRefreshOne = (instanceId) => {
-    const currentIds = displayedSuggestions
-      .filter(d => d._instanceId !== instanceId)
-      .map(d => d.id);
-    const available = TOMORROW_SUGGESTIONS.filter(s => !currentIds.includes(s.id));
-    const pool = available.length > 0 ? available : TOMORROW_SUGGESTIONS;
-    const random = pool[Math.floor(Math.random() * pool.length)];
-    setDisplayedSuggestions(prev =>
-      prev.map(d => d._instanceId === instanceId ? { ...random, _instanceId: instanceId } : d)
-    );
-  };
-
   // === 星际足迹子界面 ===
   if (showStarTrail) {
     return (
@@ -220,180 +150,242 @@ export default function TomorrowView({
   }
 
   return (
-    <div className="animate-fade-in pb-10 space-y-5">
-      {/* 左右并排：添加明日约定 + 星际足迹 */}
-      <div className="flex gap-3">
-        {/* 左边：添加明日约定 */}
-        <div
-          onClick={() => setShowTomorrowModal(true)}
-          className={`flex-1 p-4 rounded-[20px] border cursor-pointer transition-all active:scale-[0.98] ${
-            isDark ? 'bg-[#171724] border-white/5 hover:bg-[#1a1a2e]' : 'bg-white border-gray-100 shadow-sm hover:shadow-md'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-100'}`}>
-              <Plus size={20} className={isDark ? 'text-emerald-300' : 'text-emerald-500'} />
-            </div>
-            <div className="min-w-0">
-              <p className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>添加明日约定</p>
-              <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>给自己定一个小目标</p>
-            </div>
-          </div>
-        </div>
-
-        {/* 右边：星际足迹入口 */}
-        <div
-          onClick={() => setShowStarTrail(true)}
-          className={`w-[80px] rounded-[20px] border cursor-pointer transition-all active:scale-[0.98] flex flex-col items-center justify-center gap-1 ${
-            isDark ? 'bg-[#171724] border-white/5 hover:bg-[#1a1a2e]' : 'bg-white border-gray-100 shadow-sm hover:shadow-md'
-          }`}
-        >
-          <Footprints size={20} className={isDark ? 'text-emerald-300' : 'text-emerald-500'} />
-          <span className={`text-[10px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>星际足迹</span>
-        </div>
-      </div>
-
-      {/* 我的今日清单 */}
-      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 size={16} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
-            <h3 className="text-sm font-medium">今日清单</h3>
-          </div>
-          {todayTasks.length > 0 && (
-            <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
-              {todayTasks.filter(t => t.completed).length}/{todayTasks.length}
-            </span>
-          )}
-        </div>
-
-        {todayTasks.length > 0 ? (
-          <div
-            className="relative max-h-[220px] overflow-hidden -mx-5 px-5"
-            style={{ overflowY: 'scroll' }}
-          >
-            <div className="py-4 space-y-2">
-              {todayTasks.map((task) => (
-                <div
-                  key={task.taskId}
-                  className={`p-3 rounded-[16px] border flex items-center gap-3 ${
-                    task.completed
-                      ? (isDark ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50/30 border-emerald-200/50')
-                      : (isDark ? 'bg-[#1f1f2e] border-white/5' : 'bg-gray-50 border-gray-100')
-                  }`}
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-xs ${task.completed ? (isDark ? 'text-emerald-300 line-through opacity-60' : 'text-emerald-600 line-through opacity-60') : (isDark ? 'text-gray-200' : 'text-gray-700')}`}>
-                      {task.main}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => handleToggleComplete(task.taskId)}
-                    className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all shrink-0 ${
-                      task.completed
-                        ? (isDark ? 'bg-emerald-500 border-emerald-500' : 'bg-emerald-500 border-emerald-500')
-                        : (isDark ? 'border-gray-600 hover:border-emerald-500' : 'border-gray-300 hover:border-emerald-400')
-                    }`}
-                  >
-                    {task.completed && <CheckCircle2 size={14} className="text-white" />}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <p className={`text-xs text-center py-4 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-            还没有今日约定，点击上方添加
+    <div className="animate-fade-in pb-10 relative min-h-[calc(100vh-8rem)]">
+      {/* === 顶部极小标题 === */}
+      <div className="flex items-center justify-between mb-6 px-1">
+        <div>
+          <p className={`text-[10px] tracking-[0.3em] uppercase ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+            明日
           </p>
-        )}
-      </div>
-
-      {/* 热门约定 — 垂直滑动卡片堆叠 */}
-      <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Flame size={16} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
-            <h3 className="text-sm font-medium">热门约定</h3>
-          </div>
         </div>
-
-        <div
-          ref={hotScrollRef}
-          className="relative max-h-[420px] overflow-hidden -mx-5 px-5"
-          onScroll={(e) => {
-            const container = e.currentTarget;
-            const scrollTop = container.scrollTop;
-            const cardHeight = 160 + 16;
-            const newIndex = Math.round(scrollTop / cardHeight);
-            if (newIndex !== hotIndex && newIndex >= 0 && newIndex < hotTasks.length) {
-              setHotIndex(newIndex);
-            }
-          }}
-          style={{ overflowY: 'scroll' }}
+        {/* 星际足迹入口 */}
+        <button
+          onClick={() => setShowStarTrail(true)}
+          className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90 ${
+            isDark ? 'bg-[#171724]/50 border border-white/5 hover:bg-[#1f1f2e]' : 'bg-white/50 border border-gray-100'
+          }`}
         >
-          <div className="py-4">
-            {hotTasks.map((challenge, index) => {
-              const isActive = index === hotIndex;
-              const followed = isFollowed(challenge.id);
-              const isMine = challenge.isMyChallenge;
-              return (
+          <Footprints size={14} className={isDark ? 'text-gray-500' : 'text-gray-400'} />
+        </button>
+      </div>
+
+      {/* === 日记本主体 === */}
+      <div className="relative mx-auto" style={{ maxWidth: '340px' }}>
+        {/* 日记本封面/容器 */}
+        <div
+          className={`relative rounded-2xl overflow-hidden ${
+            isDark ? 'bg-[#161622]' : 'bg-[#1a1a2e]'
+          }`}
+          style={{
+            boxShadow: '0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03)',
+          }}
+        >
+          {/* 日记本内页区域 */}
+          <div className="flex relative" style={{ minHeight: '420px' }}>
+            {/* === 左页：昨天的便条 === */}
+            <div className="flex-1 p-4 relative">
+              {/* 页面纹理 - 淡淡的横线 */}
+              <div
+                className="absolute inset-0 opacity-30"
+                style={{
+                  backgroundImage: 'linear-gradient(transparent 23px, rgba(255,255,255,0.02) 24px)',
+                  backgroundSize: '100% 24px',
+                }}
+              />
+
+              {/* 左页标签 */}
+              <div className="absolute -left-2 top-8">
                 <div
-                  key={challenge._instanceId}
-                  className="mb-3"
+                  className={`px-2 py-1 rounded-r-md text-[9px] ${
+                    isDark ? 'bg-[#252538] text-gray-500' : 'bg-[#252538] text-gray-500'
+                  }`}
+                  style={{ writingMode: 'vertical-rl' }}
                 >
-                  <div
-                    className={`relative p-4 rounded-[20px] border overflow-hidden transition-all duration-500 ${
-                      isDark ? 'bg-[#171724]/70 border-white/5' : 'bg-white border-gray-100 shadow-sm'
-                    } ${isActive ? 'shadow-lg scale-100 opacity-100' : 'shadow-sm scale-95 opacity-50'}`}
-                  >
-                    <div className="flex items-start gap-3 mb-3 relative z-10">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${isDark ? 'bg-[#171724]' : 'bg-white'} shadow-sm shrink-0`}>
-                        {challenge.emoji}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-xs font-medium ${isDark ? 'text-gray-100' : 'text-gray-800'}`}>
-                          {challenge.main}
-                        </p>
-                        <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                          {challenge.sub}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between relative z-10">
-                      <span className={`text-[10px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                        <Flame size={10} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} /> {challenge.followCount} 人跟随
-                      </span>
-                      {isMine ? (
-                        <span className={`text-[10px] px-2 py-1 rounded-full ${isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-600'}`}>
-                          你发布的
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => followed ? null : handleFollowTask(challenge)}
-                          disabled={followed}
-                          className={`px-3 py-1 rounded-full text-[10px] font-medium transition-all active:scale-95 ${
-                            followed
-                              ? (isDark ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border border-emerald-200')
-                              : (isDark ? 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50')
-                          }`}
-                        >
-                          {followed ? '已跟随' : '跟随'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                  昨天
                 </div>
-              );
-            })}
+              </div>
+
+              {/* 左页内容 */}
+              <div className="relative z-10">
+                <p className={`text-[10px] mb-3 ${isDark ? 'text-gray-600' : 'text-gray-500'}`}>
+                  {yesterday.getMonth() + 1}月{yesterday.getDate()}日
+                </p>
+
+                {yesterdayTasks.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {yesterdayTasks.map((task) => (
+                      <div
+                        key={task.taskId}
+                        className={`relative p-2.5 rounded-lg transition-all ${
+                          task.completed
+                            ? 'bg-[#1e1e30] border-l-2 border-emerald-500/30'
+                            : 'bg-[#1e1e30] border-l-2 border-amber-400/20'
+                        }`}
+                        style={{
+                          transform: `rotate(${-1 + Math.random() * 2}deg)`,
+                          boxShadow: task.completed
+                            ? '0 0 12px rgba(16, 185, 129, 0.08)'
+                            : '0 0 12px rgba(251, 191, 36, 0.05)',
+                        }}
+                      >
+                        <div className="flex items-start gap-2">
+                          <span className="text-xs shrink-0">{task.emoji}</span>
+                          <p className={`text-[11px] leading-relaxed ${
+                            task.completed
+                              ? 'text-gray-500 line-through'
+                              : 'text-gray-400'
+                          }`}>
+                            {task.main}
+                          </p>
+                        </div>
+                        {task.completed && (
+                          <div className="absolute -top-1 -right-1">
+                            <div className="w-4 h-4 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                              <CheckCircle2 size={10} className="text-emerald-400" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 opacity-30">
+                    <div className="w-12 h-px bg-gray-600 mb-2" />
+                    <p className="text-[10px] text-gray-600">昨天没有留下便条</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* === 中央微光粒子带 === */}
+            <div className="relative w-px flex-shrink-0">
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: 'linear-gradient(to bottom, transparent, rgba(251,191,36,0.15) 20%, rgba(251,191,36,0.1) 50%, rgba(251,191,36,0.15) 80%, transparent)',
+                }}
+              />
+              {/* 缓慢上升的光点 */}
+              <div className="absolute inset-0 overflow-hidden">
+                <div className="animate-particle-rise w-full h-full relative">
+                  <div className="absolute w-0.5 h-0.5 rounded-full bg-amber-400/60" style={{ left: '50%', top: '80%', animationDelay: '0s' }} />
+                  <div className="absolute w-0.5 h-0.5 rounded-full bg-amber-400/40" style={{ left: '30%', top: '60%', animationDelay: '1.5s' }} />
+                  <div className="absolute w-0.5 h-0.5 rounded-full bg-amber-400/50" style={{ left: '70%', top: '40%', animationDelay: '3s' }} />
+                </div>
+              </div>
+            </div>
+
+            {/* === 右页：今天的空白页 === */}
+            <div className="flex-1 p-4 relative">
+              {/* 页面纹理 */}
+              <div
+                className="absolute inset-0 opacity-30"
+                style={{
+                  backgroundImage: 'linear-gradient(transparent 23px, rgba(255,255,255,0.02) 24px)',
+                  backgroundSize: '100% 24px',
+                }}
+              />
+
+              {/* 右页标签 */}
+              <div className="absolute -right-2 top-8">
+                <div
+                  className={`px-2 py-1 rounded-l-md text-[9px] ${
+                    isDark ? 'bg-[#1e1e30] text-amber-400/60' : 'bg-[#1e1e30] text-amber-400/60'
+                  }`}
+                  style={{ writingMode: 'vertical-rl' }}
+                >
+                  今天
+                </div>
+              </div>
+
+              {/* 右页内容 */}
+              <div className="relative z-10">
+                <p className={`text-[10px] mb-3 ${isDark ? 'text-gray-600' : 'text-gray-500'}`}>
+                  {new Date().getMonth() + 1}月{new Date().getDate()}日
+                </p>
+
+                {todayTasks.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {todayTasks.map((task) => (
+                      <div
+                        key={task.taskId}
+                        className={`relative p-2.5 rounded-lg cursor-pointer transition-all active:scale-[0.98] ${
+                          task.completed
+                            ? 'bg-[#1e1e30] border-l-2 border-emerald-500/30'
+                            : 'bg-[#1e1e30] border-l-2 border-white/5 hover:border-amber-400/20'
+                        }`}
+                        style={{
+                          transform: `rotate(${-0.5 + Math.random() * 1}deg)`,
+                          boxShadow: task.completed
+                            ? '0 0 12px rgba(16, 185, 129, 0.08)'
+                            : '0 0 8px rgba(255,255,255,0.02)',
+                        }}
+                        onClick={() => handleToggleComplete(task.taskId)}
+                      >
+                        <div className="flex items-start gap-2">
+                          <span className="text-xs shrink-0">{task.emoji}</span>
+                          <p className={`text-[11px] leading-relaxed ${
+                            task.completed
+                              ? 'text-gray-500 line-through'
+                              : 'text-gray-300'
+                          }`}>
+                            {task.main}
+                          </p>
+                        </div>
+                        {task.completed && (
+                          <div className="absolute -top-1 -right-1">
+                            <div className="w-4 h-4 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                              <CheckCircle2 size={10} className="text-emerald-400" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    {/* 空白页提示 */}
+                    <div className="relative">
+                      <div className="w-16 h-px bg-gray-700/50 mb-3" />
+                      <div className="w-12 h-px bg-gray-700/30 mb-3 ml-2" />
+                      <div className="w-14 h-px bg-gray-700/40 mb-6 ml-1" />
+                    </div>
+                    <p className="text-[10px] text-gray-600 mb-1">今天还是空白页</p>
+                    <p className="text-[10px] text-gray-700">贴一张便条吧</p>
+                    {/* 闪烁光标 */}
+                    <div className="mt-4 w-0.5 h-3 bg-amber-400/40 animate-pulse" />
+                  </div>
+                )}
+
+                {/* 添加便条占位区 */}
+                {todayTasks.length > 0 && todayTasks.length < 5 && (
+                  <button
+                    onClick={() => setShowTomorrowModal(true)}
+                    className="w-full mt-3 py-3 rounded-lg border border-dashed border-white/5 flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] hover:border-white/10"
+                  >
+                    <Plus size={12} className="text-gray-600" />
+                    <span className="text-[10px] text-gray-600">再贴一张</span>
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 底部温馨语句 */}
-      <div className={`p-4 rounded-2xl text-center ${isDark ? 'bg-[#171724]/50 border border-white/5' : 'bg-emerald-50/30 border border-emerald-100/50'}`}>
-        <p className={`text-[11px] leading-relaxed ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-          明天醒来时，记得只是先睁开眼，剩下的慢慢来。
-        </p>
+      {/* === 底部"写一张"按钮 === */}
+      <div className="flex justify-center mt-8">
+        <button
+          onClick={() => setShowTomorrowModal(true)}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs transition-all active:scale-95 ${
+            isDark
+              ? 'bg-[#1e1e30] border border-white/5 text-gray-400 hover:bg-[#252538] hover:text-gray-300'
+              : 'bg-[#1e1e30] border border-white/5 text-gray-400 hover:bg-[#252538]'
+          }`}
+        >
+          <Plus size={14} />
+          <span>写一张</span>
+        </button>
       </div>
 
       {/* === 明日发布成功 Toast === */}
@@ -402,7 +394,7 @@ export default function TomorrowView({
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 animate-fade-in" onClick={() => setShowTomorrowToast(false)}>
             <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl border ${isDark ? 'bg-[#171724] border-emerald-500/30 shadow-lg shadow-emerald-500/10' : 'bg-white border-emerald-200 shadow-xl'}`} onClick={e => e.stopPropagation()}>
               <CheckCircle2 size={18} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
-              <span className={`text-sm font-medium ${isDark ? 'text-emerald-300' : 'text-emerald-600'}`}>明日约定已立下</span>
+              <span className={`text-sm font-medium ${isDark ? 'text-emerald-300' : 'text-emerald-600'}`}>便条已贴上</span>
             </div>
           </div>
         </Portal>
@@ -417,7 +409,7 @@ export default function TomorrowView({
                 <div className={`w-10 h-1 rounded-full ${isDark ? 'bg-gray-700' : 'bg-gray-300'}`}></div>
               </div>
               <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-lg font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>明日约定</h3>
+                <h3 className={`text-lg font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>写一张便条</h3>
                 <button onClick={() => setShowTomorrowModal(false)} className={`p-1 rounded-full ${isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}>
                   <X size={20} />
                 </button>
@@ -427,7 +419,7 @@ export default function TomorrowView({
                   className={`w-full p-4 rounded-2xl resize-none min-h-[100px] text-sm focus:outline-none transition-all ${
                     isDark ? 'bg-[#1f1f2e] text-gray-200 placeholder-gray-600 focus:ring-2 focus:ring-emerald-500/30' : 'bg-gray-50 text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-emerald-400/30'
                   }`}
-                  placeholder="写下明天想做的一件小事..."
+                  placeholder="写下今天想做的一件小事..."
                   value={tomorrowText}
                   onChange={e => setTomorrowText(e.target.value)}
                 ></textarea>
@@ -475,7 +467,7 @@ export default function TomorrowView({
                     : (isDark ? 'bg-[#1f1f2e] text-gray-600 cursor-not-allowed' : 'bg-gray-100 text-gray-400 cursor-not-allowed')
                 }`}
               >
-                <Send size={18} className={tomorrowText.trim() ? 'animate-pulse' : ''} />发布
+                <Send size={18} className={tomorrowText.trim() ? 'animate-pulse' : ''} />贴上便条
               </button>
             </div>
           </div>
@@ -491,8 +483,8 @@ export default function TomorrowView({
                 <BookOpen size={24} />
               </div>
               <h3 className={`text-lg font-medium mb-2 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>仅自己可见</h3>
-              <p className={`text-xs mb-2 leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>选择「仅自己可见」后，这个任务将仅保留在你的设备上。</p>
-              <p className={`text-xs mb-6 leading-relaxed ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>它不会进入公开任务池，也不会被他人看到。</p>
+              <p className={`text-xs mb-2 leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>选择「仅自己可见」后，这个便条将仅保留在你的设备上。</p>
+              <p className={`text-xs mb-6 leading-relaxed ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>它不会进入公开便条池，也不会被他人看到。</p>
               <div className="flex gap-3">
                 <button onClick={() => setShowTomorrowPrivacyModal(false)} className={`flex-1 py-3 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-[#1f1f2e] hover:bg-[#262638] text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}>取消</button>
                 <button onClick={() => { setTomorrowVisibility('private'); setShowTomorrowPrivacyModal(false); }} className={`flex-1 py-3 rounded-xl text-sm font-medium bg-emerald-500 hover:bg-emerald-600 text-white transition-colors shadow-lg shadow-emerald-500/20 active:scale-95`}>确认</button>

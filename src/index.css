@@ -215,3 +215,18 @@ input[type="range"].font-scale-slider::-moz-range-thumb {
 .animate-glow {
   animation: glow 3s ease-in-out infinite;
 }
+
+/* === 微光粒子上升动画 === */
+@keyframes particle-rise {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-200px) scale(0.3);
+    opacity: 0;
+  }
+}
+.animate-particle-rise > div {
+  animation: particle-rise 4s ease-in-out infinite;
+}
