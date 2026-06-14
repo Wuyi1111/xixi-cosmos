@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.47.7** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.47.8** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 ---
 
@@ -61,6 +61,21 @@ GitHub Actions 自动跑，几十秒后线上更新。可在 Actions 标签查�
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.47.8 · 2026-06-13 — 首页沉浸体验优化
+
+- 打字机效果：守护者的话逐字显示（50ms/字），带闪烁光标
+- 第二轮多句递进：每个情绪选项 3 句话，逐句显示，有 800ms 间隔
+- 情绪微光颜色：
+  - "有，想说说" → amber（琥珀色）
+  - "没什么，就是来看看" → indigo（靛蓝色）
+  - "不太好，但不想说" → slate（灰蓝色）
+- 月亮图标呼吸动画 + 情绪色光晕（boxShadow）
+- 对话结束后安静过渡：3 秒星空安静画面，再显示"再说一次"按钮
+- 背景星星闪烁：20 颗随机位置星星，`animate-twinkle` 动画
+- 界面加长：`min-h-[420px]` → `min-h-[520px]`
+- 新增 `useTypewriter` hook、`BackgroundStars` 组件
+- 新增 `animate-twinkle` CSS 动画
 
 ### v4.47.7 · 2026-06-13 — 明日界面内容放大优化
 
