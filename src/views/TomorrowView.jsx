@@ -170,18 +170,18 @@ export default function TomorrowView({
       </div>
 
       {/* === 日记本主体 === */}
-      <div className="relative mx-auto" style={{ maxWidth: '340px' }}>
+      <div className="relative mx-auto px-2">
         {/* 日记本封面/容器 */}
         <div
-          className={`relative rounded-2xl overflow-hidden ${
+          className={`relative rounded-3xl overflow-hidden ${
             isDark ? 'bg-[#161622]' : 'bg-[#1a1a2e]'
           }`}
           style={{
-            boxShadow: '0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03)',
+            boxShadow: '0 4px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)',
           }}
         >
           {/* 日记本内页区域 */}
-          <div className="flex relative" style={{ minHeight: '420px' }}>
+          <div className="flex relative" style={{ minHeight: '480px' }}>
             {/* === 左页：昨天的便条 === */}
             <div className="flex-1 p-4 relative">
               {/* 页面纹理 - 淡淡的横线 */}
@@ -194,9 +194,9 @@ export default function TomorrowView({
               />
 
               {/* 左页标签 */}
-              <div className="absolute -left-2 top-8">
+              <div className="absolute -left-2.5 top-10">
                 <div
-                  className={`px-2 py-1 rounded-r-md text-[9px] ${
+                  className={`px-2.5 py-2 rounded-r-lg text-[10px] ${
                     isDark ? 'bg-[#252538] text-gray-500' : 'bg-[#252538] text-gray-500'
                   }`}
                   style={{ writingMode: 'vertical-rl' }}
@@ -212,25 +212,25 @@ export default function TomorrowView({
                 </p>
 
                 {yesterdayTasks.length > 0 ? (
-                  <div className="space-y-2.5">
+                  <div className="space-y-3">
                     {yesterdayTasks.map((task) => (
                       <div
                         key={task.taskId}
-                        className={`relative p-2.5 rounded-lg transition-all ${
+                        className={`relative p-3.5 rounded-xl transition-all ${
                           task.completed
-                            ? 'bg-[#1e1e30] border-l-2 border-emerald-500/30'
-                            : 'bg-[#1e1e30] border-l-2 border-amber-400/20'
+                            ? 'bg-[#1e1e30] border-l-[3px] border-emerald-500/30'
+                            : 'bg-[#1e1e30] border-l-[3px] border-amber-400/20'
                         }`}
                         style={{
                           transform: `rotate(${-1 + Math.random() * 2}deg)`,
                           boxShadow: task.completed
-                            ? '0 0 12px rgba(16, 185, 129, 0.08)'
-                            : '0 0 12px rgba(251, 191, 36, 0.05)',
+                            ? '0 0 16px rgba(16, 185, 129, 0.1)'
+                            : '0 0 16px rgba(251, 191, 36, 0.06)',
                         }}
                       >
-                        <div className="flex items-start gap-2">
-                          <span className="text-xs shrink-0">{task.emoji}</span>
-                          <p className={`text-[11px] leading-relaxed ${
+                        <div className="flex items-start gap-2.5">
+                          <span className="text-sm shrink-0">{task.emoji}</span>
+                          <p className={`text-xs leading-relaxed ${
                             task.completed
                               ? 'text-gray-500 line-through'
                               : 'text-gray-400'
@@ -239,9 +239,9 @@ export default function TomorrowView({
                           </p>
                         </div>
                         {task.completed && (
-                          <div className="absolute -top-1 -right-1">
-                            <div className="w-4 h-4 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                              <CheckCircle2 size={10} className="text-emerald-400" />
+                          <div className="absolute -top-1.5 -right-1.5">
+                            <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                              <CheckCircle2 size={12} className="text-emerald-400" />
                             </div>
                           </div>
                         )}
@@ -249,9 +249,9 @@ export default function TomorrowView({
                     ))}
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-8 opacity-30">
-                    <div className="w-12 h-px bg-gray-600 mb-2" />
-                    <p className="text-[10px] text-gray-600">昨天没有留下便条</p>
+                  <div className="flex flex-col items-center justify-center py-10 opacity-30">
+                    <div className="w-16 h-px bg-gray-600 mb-3" />
+                    <p className="text-xs text-gray-600">昨天没有留下便条</p>
                   </div>
                 )}
               </div>
@@ -287,9 +287,9 @@ export default function TomorrowView({
               />
 
               {/* 右页标签 */}
-              <div className="absolute -right-2 top-8">
+              <div className="absolute -right-2.5 top-10">
                 <div
-                  className={`px-2 py-1 rounded-l-md text-[9px] ${
+                  className={`px-2.5 py-2 rounded-l-lg text-[10px] ${
                     isDark ? 'bg-[#1e1e30] text-amber-400/60' : 'bg-[#1e1e30] text-amber-400/60'
                   }`}
                   style={{ writingMode: 'vertical-rl' }}
@@ -305,26 +305,26 @@ export default function TomorrowView({
                 </p>
 
                 {todayTasks.length > 0 ? (
-                  <div className="space-y-2.5">
+                  <div className="space-y-3">
                     {todayTasks.map((task) => (
                       <div
                         key={task.taskId}
-                        className={`relative p-2.5 rounded-lg cursor-pointer transition-all active:scale-[0.98] ${
+                        className={`relative p-3.5 rounded-xl cursor-pointer transition-all active:scale-[0.98] ${
                           task.completed
-                            ? 'bg-[#1e1e30] border-l-2 border-emerald-500/30'
-                            : 'bg-[#1e1e30] border-l-2 border-white/5 hover:border-amber-400/20'
+                            ? 'bg-[#1e1e30] border-l-[3px] border-emerald-500/30'
+                            : 'bg-[#1e1e30] border-l-[3px] border-white/5 hover:border-amber-400/20'
                         }`}
                         style={{
                           transform: `rotate(${-0.5 + Math.random() * 1}deg)`,
                           boxShadow: task.completed
-                            ? '0 0 12px rgba(16, 185, 129, 0.08)'
-                            : '0 0 8px rgba(255,255,255,0.02)',
+                            ? '0 0 16px rgba(16, 185, 129, 0.1)'
+                            : '0 0 12px rgba(255,255,255,0.03)',
                         }}
                         onClick={() => handleToggleComplete(task.taskId)}
                       >
-                        <div className="flex items-start gap-2">
-                          <span className="text-xs shrink-0">{task.emoji}</span>
-                          <p className={`text-[11px] leading-relaxed ${
+                        <div className="flex items-start gap-2.5">
+                          <span className="text-sm shrink-0">{task.emoji}</span>
+                          <p className={`text-xs leading-relaxed ${
                             task.completed
                               ? 'text-gray-500 line-through'
                               : 'text-gray-300'
@@ -333,9 +333,9 @@ export default function TomorrowView({
                           </p>
                         </div>
                         {task.completed && (
-                          <div className="absolute -top-1 -right-1">
-                            <div className="w-4 h-4 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                              <CheckCircle2 size={10} className="text-emerald-400" />
+                          <div className="absolute -top-1.5 -right-1.5">
+                            <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                              <CheckCircle2 size={12} className="text-emerald-400" />
                             </div>
                           </div>
                         )}
@@ -343,17 +343,17 @@ export default function TomorrowView({
                     ))}
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-12">
+                  <div className="flex flex-col items-center justify-center py-14">
                     {/* 空白页提示 */}
                     <div className="relative">
-                      <div className="w-16 h-px bg-gray-700/50 mb-3" />
-                      <div className="w-12 h-px bg-gray-700/30 mb-3 ml-2" />
-                      <div className="w-14 h-px bg-gray-700/40 mb-6 ml-1" />
+                      <div className="w-20 h-px bg-gray-700/50 mb-3" />
+                      <div className="w-14 h-px bg-gray-700/30 mb-3 ml-3" />
+                      <div className="w-18 h-px bg-gray-700/40 mb-8 ml-1" />
                     </div>
-                    <p className="text-[10px] text-gray-600 mb-1">今天还是空白页</p>
-                    <p className="text-[10px] text-gray-700">贴一张便条吧</p>
+                    <p className="text-xs text-gray-600 mb-1">今天还是空白页</p>
+                    <p className="text-xs text-gray-700">贴一张便条吧</p>
                     {/* 闪烁光标 */}
-                    <div className="mt-4 w-0.5 h-3 bg-amber-400/40 animate-pulse" />
+                    <div className="mt-5 w-0.5 h-4 bg-amber-400/40 animate-pulse" />
                   </div>
                 )}
 
@@ -361,10 +361,10 @@ export default function TomorrowView({
                 {todayTasks.length > 0 && todayTasks.length < 5 && (
                   <button
                     onClick={() => setShowTomorrowModal(true)}
-                    className="w-full mt-3 py-3 rounded-lg border border-dashed border-white/5 flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] hover:border-white/10"
+                    className="w-full mt-4 py-3.5 rounded-xl border border-dashed border-white/5 flex items-center justify-center gap-2 transition-all active:scale-[0.98] hover:border-white/10"
                   >
-                    <Plus size={12} className="text-gray-600" />
-                    <span className="text-[10px] text-gray-600">再贴一张</span>
+                    <Plus size={14} className="text-gray-600" />
+                    <span className="text-xs text-gray-600">再贴一张</span>
                   </button>
                 )}
               </div>
@@ -374,16 +374,16 @@ export default function TomorrowView({
       </div>
 
       {/* === 底部"写一张"按钮 === */}
-      <div className="flex justify-center mt-8">
+      <div className="flex justify-center mt-10">
         <button
           onClick={() => setShowTomorrowModal(true)}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs transition-all active:scale-95 ${
+          className={`flex items-center gap-2.5 px-6 py-3 rounded-full text-sm transition-all active:scale-95 ${
             isDark
               ? 'bg-[#1e1e30] border border-white/5 text-gray-400 hover:bg-[#252538] hover:text-gray-300'
               : 'bg-[#1e1e30] border border-white/5 text-gray-400 hover:bg-[#252538]'
           }`}
         >
-          <Plus size={14} />
+          <Plus size={16} />
           <span>写一张</span>
         </button>
       </div>

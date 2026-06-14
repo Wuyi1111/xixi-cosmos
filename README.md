@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.47.6** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.47.7** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 ---
 
@@ -61,6 +61,20 @@ GitHub Actions 自动跑，几十秒后线上更新。可在 Actions 标签查�
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.47.7 · 2026-06-13 — 明日界面内容放大优化
+
+- 日记本宽度：移除 `maxWidth: 340px` 限制，占满屏幕（左右留 8px 边距）
+- 日记本高度：`420px` → `480px`
+- 圆角：`rounded-2xl` → `rounded-3xl`
+- 便条内边距：`p-2.5` → `p-3.5`
+- 便条圆角：`rounded-lg` → `rounded-xl`
+- 便条文字：`text-[11px]` → `text-xs`
+- emoji 尺寸：`text-xs` → `text-sm`
+- 便条间距：`space-y-2.5` → `space-y-3`
+- 边框宽度：`border-l-2` → `border-l-[3px]`
+- 标签尺寸放大：`px-2 py-1` → `px-2.5 py-2`，`text-[9px]` → `text-[10px]`
+- 底部按钮：`px-5 py-2.5 text-xs` → `px-6 py-3 text-sm`
 
 ### v4.47.6 · 2026-06-13 — 修复星海卡片滑动 bug
 
