@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.47.4** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.47.5** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 ---
 
@@ -61,6 +61,15 @@ GitHub Actions 自动跑，几十秒后线上更新。可在 Actions 标签查�
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.47.5 · 2026-06-13 — 统一子界面排版风格
+
+- 重写 MyWhispersView（我的心语），统一为 StarTrailView（星际足迹）风格
+- 去掉外层 Portal 嵌套，修复操作 bug
+- 删除确认弹窗改为单层固定定位，不再嵌套 Portal
+- 心语列表改为按日期分组 + 可展开折叠（与星际足迹一致）
+- 统一顶部导航、统计卡片、列表标题样式
+- 统一空状态提示样式
 
 ### v4.47.4 · 2026-06-13 — 星海滑动流畅度优化 + 粒子发散效果
 
