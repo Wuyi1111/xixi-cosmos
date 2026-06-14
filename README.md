@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.47.11** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.47.12** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 ---
 
@@ -61,6 +61,12 @@ GitHub Actions 自动跑，几十秒后线上更新。可在 Actions 标签查�
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.47.12 · 2026-06-14 — 首页去掉安静过渡环节
+
+- 移除对话结束后「安静一下」的 3 秒星空过渡画面
+- 对话结束后直接显示「再说一次」按钮，无需等待
+- 清理安静过渡相关的 UI 代码
 
 ### v4.47.11 · 2026-06-14 — 暂时移除伴眠夜声功能
 

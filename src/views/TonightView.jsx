@@ -179,16 +179,13 @@ export default function TonightView({ isDark }) {
     }
   }, [lineDone, currentLineIndex, isMultiLine, allLinesDone, node?.lines]);
 
-  // 安静过渡后显示"再说一次"
+  // 对话结束后直接显示"再说一次"
   useEffect(() => {
     if (!isFinished) {
       setShowResetButton(false);
       return;
     }
-    const timer = setTimeout(() => {
-      setShowResetButton(true);
-    }, 3000);
-    return () => clearTimeout(timer);
+    setShowResetButton(true);
   }, [isFinished]);
 
   /* 初始化开场 */
@@ -385,17 +382,7 @@ export default function TonightView({ isDark }) {
             )}
           </div>
 
-          {/* 安静过渡提示 */}
-          {isFinished && !showResetButton && (
-            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-              <div className="text-center animate-fade-in">
-                <div className="w-20 h-20 rounded-full bg-indigo-500/5 flex items-center justify-center mx-auto mb-4 animate-breathe">
-                  <Moon size={32} fill="currentColor" className="text-indigo-400/30" />
-                </div>
-                <p className={`text-sm ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>安静一下</p>
-              </div>
-            </div>
-          )}
+
         </div>
       </div>
     </div>
