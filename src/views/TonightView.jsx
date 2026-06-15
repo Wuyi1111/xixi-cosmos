@@ -279,24 +279,44 @@ export default function TonightView({ isDark }) {
     if (!isMultiLine || !lineDone || allLinesDone || isFadingOut) return;
 
     if (currentLineIndex < node.lines.length - 1) {
+      // 还有下一句，继续递进
       const timer = setTimeout(() => {
         setCurrentLineIndex(prev => prev + 1);
       }, 600);
       return () => clearTimeout(timer);
     } else {
+      // 所有句子都说完了
       setAllLinesDone(true);
-      setTimeout(() => {
-        setIsFinished(true);
-      }, 1200);
     }
   }, [lineDone, currentLineIndex, isMultiLine, allLinesDone, node?.lines, isFadingOut]);
 
+  // 全部句子打完后，显示选项按钮
+  useEffect(() => {
+    if (!allLinesDone || isFadingOut) return;
+
+    // 如果是 ending_warm（没有选项），等一会儿显示「再说一次」
+    if (node?.options === null) {
+      const timer = setTimeout(() => {
+        setIsFinished(true);
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+
+    // 如果有选项，显示选项按钮
+    if (node?.options && node.options.length > 0) {
+      setShowButtons(true);
+      setShowOptions(true);
+    }
+  }, [allLinesDone, node?.options, isFadingOut]);
+
+  // isFinished 变化时控制「再说一次」按钮
   useEffect(() => {
     if (!isFinished) {
       setShowResetButton(false);
       return;
     }
     setShowResetButton(true);
+    setShowButtons(true);
   }, [isFinished]);
 
   /* 处理选择：fade-out → fade-in 过渡 */
@@ -317,13 +337,13 @@ export default function TonightView({ isDark }) {
       setTimeout(() => {
         const nextNode = DIALOG_TREE[option.next];
         if (nextNode.lines) {
+          // lines 模式：不立即显示按钮，等打字完成后再显示
           setDisplayText(nextNode.lines[0]);
           setShowText(true);
           setIsTransitioning(false);
-          setTimeout(() => {
-            setShowButtons(true);
-          }, 300);
+          // 不在这里设置 showButtons，等 allLinesDone 后再显示
         } else {
+          // 单句模式：直接显示文字和按钮
           setDisplayText(nextNode.text);
           setShowText(true);
           setTimeout(() => {
