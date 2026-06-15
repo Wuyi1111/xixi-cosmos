@@ -330,17 +330,17 @@ export default function App() {
         )}
       </main>
 
-      {/* 底部导航栏 — 毛玻璃胶囊浮岛风格 */}
+      {/* 底部导航栏 — 浮岛胶囊形毛玻璃风格 */}
       <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pointer-events-none">
-        <nav className={`pointer-events-auto flex items-center gap-3 rounded-full px-6 py-2 backdrop-blur-xl border transition-colors duration-500 ${
+        <nav className={`pointer-events-auto flex items-center gap-1 rounded-[28px] px-3 py-2 backdrop-blur-xl border transition-colors duration-500 ${
           isDark
-            ? 'bg-white/10 border-white/10 shadow-lg shadow-black/30'
-            : 'bg-black/70 border-white/10 shadow-lg shadow-black/20'
+            ? 'bg-[#1a1a2e]/85 border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]'
+            : 'bg-white/85 border-gray-200/50 shadow-[0_8px_32px_rgba(0,0,0,0.12)]'
         }`}>
-          <TabButton icon={Home} active={activeTab === 'tonight'} onClick={() => setActiveTab('tonight')} />
-          <TabButton icon={Radio} active={activeTab === 'starsea'} onClick={() => setActiveTab('starsea')} />
-          <TabButton icon={Sparkles} active={activeTab === 'tomorrow'} onClick={() => setActiveTab('tomorrow')} />
-          <TabButton icon={Moon} active={activeTab === 'star'} onClick={() => setActiveTab('star')} />
+          <TabButton icon={Home} label="此刻" active={activeTab === 'tonight'} onClick={() => setActiveTab('tonight')} />
+          <TabButton icon={Radio} label="星海" active={activeTab === 'starsea'} onClick={() => setActiveTab('starsea')} />
+          <TabButton icon={Sparkles} label="明日" active={activeTab === 'tomorrow'} onClick={() => setActiveTab('tomorrow')} />
+          <TabButton icon={Moon} label="归星" active={activeTab === 'star'} onClick={() => setActiveTab('star')} />
         </nav>
       </div>
     </div>

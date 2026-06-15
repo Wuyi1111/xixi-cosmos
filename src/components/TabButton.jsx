@@ -1,28 +1,33 @@
 /**
  * TabButton.jsx — 底部导航的单个 tab 按钮。
  *
- * 毛玻璃胶囊风格：无文字标签，选中态白色 + 下方小圆点指示器。
+ * 浮岛胶囊风格：图标+文字，选中态有药丸形高亮背景。
  */
 
-export default function TabButton({ icon: Icon, active, onClick }) {
+export default function TabButton({ icon: Icon, label, active, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="relative flex items-center justify-center w-10 h-10 transition-transform active:scale-90"
+      className={`relative flex flex-col items-center justify-center gap-0.5 px-4 py-2 rounded-2xl transition-all duration-300 active:scale-90 ${
+        active
+          ? 'bg-white/15'
+          : 'bg-transparent hover:bg-white/5'
+      }`}
     >
       <Icon
-        size={22}
-        className={`transition-colors duration-200 ${
+        size={20}
+        className={`transition-colors duration-300 ${
           active ? 'text-white' : 'text-gray-400'
         }`}
         strokeWidth={active ? 2.5 : 2}
       />
-      {/* 选中指示器小圆点 */}
       <span
-        className={`absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full transition-all duration-200 ${
-          active ? 'bg-white opacity-100' : 'bg-transparent opacity-0'
+        className={`text-[10px] transition-colors duration-300 ${
+          active ? 'text-white font-medium' : 'text-gray-500'
         }`}
-      />
+      >
+        {label}
+      </span>
     </button>
   );
 }
