@@ -292,3 +292,18 @@ input[type="range"].font-scale-slider::-moz-range-thumb {
   animation: twinkle var(--duration, 3s) ease-in-out infinite;
   animation-delay: var(--delay, 0s);
 }
+
+/* === 庆祝粒子雨：从顶部飘落 === */
+@keyframes celebration-fall {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--end-x, 0), var(--end-y, 300px)) rotate(360deg) scale(0.3);
+    opacity: 0;
+  }
+}
+.animate-celebration-fall {
+  animation: celebration-fall var(--duration, 3s) ease-in forwards;
+}
