@@ -350,7 +350,7 @@ export default function StarWhispersView({
     if (isFlying) {
       // 当前飞出，下一张弹入
       return {
-        transform: 'translateX(0) scale(1)',
+        transform: 'translateX(0px) scale(1)',
         opacity: 1,
         transition: 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.05s, opacity 0.35s ease 0.05s',
         zIndex: 2,
@@ -359,8 +359,10 @@ export default function StarWhispersView({
 
     if (offsetX !== 0) {
       const { progress } = getParams(offsetX);
+      // 从右侧 60px 位置向中央移动
+      const tx = 60 - progress * 60;
       return {
-        transform: `translateX(${25 - progress * 25}%) scale(${0.85 + progress * 0.15})`,
+        transform: `translateX(${tx}px) scale(${0.85 + progress * 0.15})`,
         opacity: 0.4 + progress * 0.6,
         transition: 'none',
         zIndex: 2,
@@ -368,7 +370,7 @@ export default function StarWhispersView({
     }
 
     return {
-      transform: 'translateX(25%) scale(0.85)',
+      transform: 'translateX(60px) scale(0.85)',
       opacity: 0.4,
       transition: isDragging ? 'none' : 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease',
       zIndex: 2,
@@ -379,7 +381,7 @@ export default function StarWhispersView({
   const getThirdStyle = () => {
     if (isFlying) {
       return {
-        transform: 'translateX(25%) scale(0.85)',
+        transform: 'translateX(60px) scale(0.85)',
         opacity: 0.4,
         transition: 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s, opacity 0.35s ease 0.1s',
         zIndex: 1,
@@ -388,8 +390,10 @@ export default function StarWhispersView({
 
     if (offsetX !== 0) {
       const { progress } = getParams(offsetX);
+      // 从右侧 120px 位置向 60px 移动
+      const tx = 120 - progress * 60;
       return {
-        transform: `translateX(${40 - progress * 15}%) scale(${0.75 + progress * 0.1})`,
+        transform: `translateX(${tx}px) scale(${0.75 + progress * 0.1})`,
         opacity: 0.2 + progress * 0.3,
         transition: 'none',
         zIndex: 1,
@@ -397,7 +401,7 @@ export default function StarWhispersView({
     }
 
     return {
-      transform: 'translateX(40%) scale(0.75)',
+      transform: 'translateX(120px) scale(0.75)',
       opacity: 0.2,
       transition: isDragging ? 'none' : 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease',
       zIndex: 1,
@@ -580,8 +584,8 @@ export default function StarWhispersView({
       {/* === 卡片区域 === */}
       <div
         ref={containerRef}
-        className="flex-1 relative flex items-center justify-center overflow-hidden"
-        style={{ minHeight: '440px', touchAction: 'none', userSelect: 'none' }}
+        className="flex-1 relative flex items-center justify-center"
+        style={{ minHeight: '440px', touchAction: 'none', userSelect: 'none', overflow: 'visible' }}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
