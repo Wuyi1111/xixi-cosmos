@@ -2,7 +2,7 @@
 
 > 一个温柔的睡前情绪陪伴 App。React + Vite + Tailwind CSS，部署在 GitHub Pages。
 
-**当前版本：v4.47.17** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
+**当前版本：v4.47.18** · [在线访问 →](https://wuyi1111.github.io/xixi-cosmos/)
 
 ---
 
@@ -61,6 +61,12 @@ GitHub Actions 自动跑，几十秒后线上更新。可在 Actions 标签查�
 ## 版本日志
 
 时间为 commit 日期（GMT+1）。每次升版本号 = 走一次 GitHub Actions 部署。
+
+### v4.47.18 · 2026-06-14 — 修复首页对话 3 个 bug
+
+- 修复：打字机结束清理写错（clearInterval → clearTimeout）
+- 修复：快速切换时文字错乱（现在会清理所有旧的打字定时器）
+- 修复：点完按钮后按钮变灰无法点击（补上了 isTransitioning(false)）
 
 ### v4.47.17 · 2026-06-14 — 启动页极简化为「息息·宇宙」四字
 

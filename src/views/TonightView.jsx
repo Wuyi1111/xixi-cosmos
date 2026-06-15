@@ -134,8 +134,13 @@ function useTypewriter(text, baseSpeed = 45, enabled = true) {
   const [display, setDisplay] = useState('');
   const [done, setDone] = useState(false);
   const idxRef = useRef(0);
+  const timersRef = useRef([]);
 
   useEffect(() => {
+    // 清理所有旧的定时器
+    timersRef.current.forEach(t => clearTimeout(t));
+    timersRef.current = [];
+
     if (!enabled || !text) {
       setDisplay(text || '');
       setDone(true);
@@ -145,22 +150,26 @@ function useTypewriter(text, baseSpeed = 45, enabled = true) {
     setDisplay('');
     setDone(false);
 
-    let timer;
     const type = () => {
       idxRef.current += 1;
       setDisplay(text.slice(0, idxRef.current));
       if (idxRef.current >= text.length) {
-        clearInterval(timer);
         setDone(true);
       } else {
         // 打字速度微变化，更自然（40-55ms）
         const variance = Math.random() * 15 - 5;
-        timer = setTimeout(type, baseSpeed + variance);
+        const t = setTimeout(type, baseSpeed + variance);
+        timersRef.current.push(t);
       }
     };
 
-    timer = setTimeout(type, baseSpeed);
-    return () => clearTimeout(timer);
+    const initialTimer = setTimeout(type, baseSpeed);
+    timersRef.current.push(initialTimer);
+
+    return () => {
+      timersRef.current.forEach(t => clearTimeout(t));
+      timersRef.current = [];
+    };
   }, [text, baseSpeed, enabled]);
 
   return { display, done };
@@ -310,6 +319,7 @@ export default function TonightView({ isDark }) {
         if (nextNode.lines) {
           setDisplayText(nextNode.lines[0]);
           setShowText(true);
+          setIsTransitioning(false);
           setTimeout(() => {
             setShowButtons(true);
           }, 300);
