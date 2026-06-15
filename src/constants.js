@@ -65,21 +65,21 @@ export const PRESET_TAGS = {
 };
 
 export const MOCK_WHISPERS = [
-  { id: 1, text: '今天吃了超好吃的拉面！', emotion: '小确幸', isPositive: true },
-  { id: 2, text: '今天下班路上看到了一场很美的晚霞，想分享给不知道在哪里的你。', emotion: '小确幸', isPositive: true },
-  { id: 3, text: '面试又失败了，感觉自己好没用。但是今晚的星星很亮。', emotion: '失落', isPositive: false },
-  { id: 4, text: '买到了最后一块草莓蛋糕，开心！', emotion: '治愈', isPositive: true },
-  { id: 5, text: '突然觉得，平平淡淡的日子才是最难得的。', emotion: '平静', isPositive: true },
-  { id: 6, text: '想家了，不敢给爸妈打电话怕哭出来。', emotion: '孤独', isPositive: false },
-  { id: 7, text: '今天被陌生人让了座位，心里暖暖的。', emotion: '温暖', isPositive: true },
-  { id: 8, text: '加班到很晚，但看到窗外的月亮，觉得一切都没那么糟了。', emotion: '坚持', isPositive: true },
-  { id: 9, text: '和好朋友聊了一晚上，感觉被理解了，真好。', emotion: '陪伴', isPositive: true },
-  { id: 10, text: '今天什么也没做成，有点沮丧，但明天又是新的一天。', emotion: '释然', isPositive: true },
-  { id: 11, text: '路过花店买了一束向日葵，放在床头，希望梦也是金色的。', emotion: '浪漫', isPositive: true },
-  { id: 12, text: '今天跟很久没见的朋友见了面，聊了很多以前的事。时间真的过得好快，但有些东西好像从来没变。希望下次见面不会隔太久，毕竟我们都已经不年轻了。', emotion: '感慨', isPositive: true },
-  { id: 13, text: '雨。', emotion: '安静', isPositive: true },
-  { id: 14, text: '终于完成了拖延很久的报告，虽然不知道结果会怎样，但至少我做到了。这种小小的成就感，在平凡的日子里显得特别珍贵。', emotion: '成就', isPositive: true },
-  { id: 15, text: '有时候觉得自己像一颗漂浮在宇宙里的小行星，没有方向，也没有归属。但也许，漂浮本身就是一种自由。', emotion: '自由', isPositive: true }
+  { id: 1, text: '今天吃了超好吃的拉面！', emotion: '小确幸', isPositive: true, author: '拉面星人', hugs: 42, time: '2小时前' },
+  { id: 2, text: '今天下班路上看到了一场很美的晚霞，想分享给不知道在哪里的你。', emotion: '小确幸', isPositive: true, author: '晚霞收集者', hugs: 128, time: '5小时前' },
+  { id: 3, text: '面试又失败了，感觉自己好没用。但是今晚的星星很亮。', emotion: '失落', isPositive: false, author: '正在充电的电池', hugs: 89, time: '1小时前' },
+  { id: 4, text: '买到了最后一块草莓蛋糕，开心！', emotion: '治愈', isPositive: true, author: '草莓味宇宙', hugs: 67, time: '3小时前' },
+  { id: 5, text: '突然觉得，平平淡淡的日子才是最难得的。', emotion: '平静', isPositive: true, author: '白开水哲学家', hugs: 156, time: '8小时前' },
+  { id: 6, text: '想家了，不敢给爸妈打电话怕哭出来。', emotion: '孤独', isPositive: false, author: '异乡漂泊者', hugs: 203, time: '30分钟前' },
+  { id: 7, text: '今天被陌生人让了座位，心里暖暖的。', emotion: '温暖', isPositive: true, author: '被世界温柔以待', hugs: 94, time: '4小时前' },
+  { id: 8, text: '加班到很晚，但看到窗外的月亮，觉得一切都没那么糟了。', emotion: '坚持', isPositive: true, author: '月亮观测员', hugs: 112, time: '6小时前' },
+  { id: 9, text: '和好朋友聊了一晚上，感觉被理解了，真好。', emotion: '陪伴', isPositive: true, author: '话痨星人', hugs: 78, time: '2小时前' },
+  { id: 10, text: '今天什么也没做成，有点沮丧，但明天又是新的一天。', emotion: '释然', isPositive: true, author: '明日复明日', hugs: 145, time: '7小时前' },
+  { id: 11, text: '路过花店买了一束向日葵，放在床头，希望梦也是金色的。', emotion: '浪漫', isPositive: true, author: '向日葵信徒', hugs: 56, time: '1小时前' },
+  { id: 12, text: '今天跟很久没见的朋友见了面，聊了很多以前的事。时间真的过得好快，但有些东西好像从来没变。', emotion: '感慨', isPositive: true, author: '时光旅人', hugs: 188, time: '9小时前' },
+  { id: 13, text: '雨。', emotion: '安静', isPositive: true, author: '听雨的人', hugs: 234, time: '10小时前' },
+  { id: 14, text: '终于完成了拖延很久的报告，虽然不知道结果会怎样，但至少我做到了。', emotion: '成就', isPositive: true, author: '拖延症晚期', hugs: 91, time: '3小时前' },
+  { id: 15, text: '有时候觉得自己像一颗漂浮在宇宙里的小行星，没有方向，也没有归属。但也许，漂浮本身就是一种自由。', emotion: '自由', isPositive: true, author: '星际漂流瓶', hugs: 267, time: '12小时前' }
 ];
 
 // 16种宇宙睡眠人格图谱
