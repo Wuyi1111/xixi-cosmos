@@ -199,48 +199,73 @@ export default function StarWhispersView({
     hapticDoneRef.current = false;
   }, []);
 
-  // === 触摸事件 ===
-  const onTouchStart = useCallback((e) => {
-    if (isFlying || currentIndex >= whispers.length) return;
-    if (e.touches.length > 1) return;
-    setIsDragging(true);
-    startXRef.current = e.touches[0].clientX;
-    currentXRef.current = e.touches[0].clientX;
-    startTimeRef.current = Date.now();
-    hapticDoneRef.current = false;
-  }, [isFlying, currentIndex, whispers.length]);
+  // === 触摸事件（使用 useEffect + addEventListener 以支持 passive: false）===
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
 
-  const onTouchMove = useCallback((e) => {
-    if (!isDragging || isFlying) return;
-    e.preventDefault();
-    currentXRef.current = e.touches[0].clientX;
-    const dx = currentXRef.current - startXRef.current;
-    setOffsetX(dx);
+    let dragging = false;
+    let startX = 0;
+    let currentX = 0;
+    let startTime = 0;
+    let hapticDone = false;
 
-    const { progress } = getParams(dx);
-    const dir = dx < -30 ? 'left' : dx > 30 ? 'right' : null;
-    setSwipeDir(dir);
+    const handleStart = (e) => {
+      if (isFlying || currentIndex >= whispers.length) return;
+      if (e.touches.length > 1) return;
+      dragging = true;
+      startX = e.touches[0].clientX;
+      currentX = e.touches[0].clientX;
+      startTime = Date.now();
+      hapticDone = false;
+      setIsDragging(true);
+    };
 
-    if (progress > 0.5 && !hapticDoneRef.current) {
-      haptic('light');
-      hapticDoneRef.current = true;
-    }
-  }, [isDragging, isFlying]);
+    const handleMove = (e) => {
+      if (!dragging || isFlying) return;
+      e.preventDefault();
+      currentX = e.touches[0].clientX;
+      const dx = currentX - startX;
+      setOffsetX(dx);
 
-  const onTouchEnd = useCallback(() => {
-    if (!isDragging) return;
-    setIsDragging(false);
-    const dx = currentXRef.current - startXRef.current;
-    const elapsed = Date.now() - startTimeRef.current;
-    const velocity = Math.abs(dx) / (elapsed || 1);
-    const threshold = window.innerWidth * 0.1;
+      const { progress } = getParams(dx);
+      const dir = dx < -30 ? 'left' : dx > 30 ? 'right' : null;
+      setSwipeDir(dir);
 
-    if (Math.abs(dx) > threshold || velocity > 0.8) {
-      flyAway(dx < 0 ? 'left' : 'right');
-    } else {
-      bounceBack();
-    }
-  }, [isDragging, flyAway, bounceBack]);
+      if (progress > 0.5 && !hapticDone) {
+        haptic('light');
+        hapticDone = true;
+      }
+    };
+
+    const handleEnd = () => {
+      if (!dragging) return;
+      dragging = false;
+      setIsDragging(false);
+      const dx = currentX - startX;
+      const elapsed = Date.now() - startTime;
+      const velocity = Math.abs(dx) / (elapsed || 1);
+      const threshold = window.innerWidth * 0.1;
+
+      if (Math.abs(dx) > threshold || velocity > 0.8) {
+        flyAway(dx < 0 ? 'left' : 'right');
+      } else {
+        bounceBack();
+      }
+    };
+
+    el.addEventListener('touchstart', handleStart, { passive: true });
+    el.addEventListener('touchmove', handleMove, { passive: false });
+    el.addEventListener('touchend', handleEnd, { passive: true });
+    el.addEventListener('touchcancel', handleEnd, { passive: true });
+
+    return () => {
+      el.removeEventListener('touchstart', handleStart);
+      el.removeEventListener('touchmove', handleMove);
+      el.removeEventListener('touchend', handleEnd);
+      el.removeEventListener('touchcancel', handleEnd);
+    };
+  }, [isFlying, currentIndex, whispers.length, flyAway, bounceBack]);
 
   // === 鼠标事件 ===
   const onMouseDown = useCallback((e) => {
@@ -573,9 +598,6 @@ export default function StarWhispersView({
         ref={containerRef}
         className="flex-1 relative flex items-center justify-center"
         style={{ minHeight: '440px', touchAction: 'none', userSelect: 'none', overflow: 'visible' }}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
