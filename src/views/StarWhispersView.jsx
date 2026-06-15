@@ -552,24 +552,11 @@ export default function StarWhispersView({
     <div className="animate-fade-in pb-10 relative min-h-[calc(100vh-8rem)] flex flex-col">
       {/* === 顶部栏 === */}
       <div className="flex items-center justify-between mb-4 px-1">
-        <div className="flex items-center gap-3">
-          {currentIndex > 0 && !isAllDone && (
-            <button
-              onClick={goToPrev}
-              disabled={isFlying}
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90 ${
-                isDark ? 'bg-[#171724] border border-white/10 text-gray-400 hover:text-gray-200' : 'bg-white border border-gray-200 text-gray-500 hover:text-gray-700'
-              } disabled:opacity-30`}
-            >
-              <ChevronLeft size={16} />
-            </button>
-          )}
-          <div>
-            <h1 className="text-xl font-medium tracking-wide">星海</h1>
-            <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-              {isAllDone ? '探索完成' : `${Math.min(currentIndex + 1, whispers.length)} / ${whispers.length}`}
-            </p>
-          </div>
+        <div>
+          <h1 className="text-xl font-medium tracking-wide">星海</h1>
+          <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+            {isAllDone ? '探索完成' : `${Math.min(currentIndex + 1, whispers.length)} / ${whispers.length}`}
+          </p>
         </div>
         <button
           onClick={() => setShowMyWhispers(true)}
