@@ -20,60 +20,60 @@ const DIALOG_TREE = {
   greeting: {
     text: '',
     options: [
-      { text: '有点累，不想说话', next: 'tired', color: 'slate' },
-      { text: '有点开心，想分享', next: 'happy', color: 'amber' },
-      { text: '就是有点烦', next: 'annoyed', color: 'indigo' },
+      { text: '累瘫了，电量归零', next: 'tired', color: 'slate' },
+      { text: '今天超开心！', next: 'happy', color: 'amber' },
+      { text: '烦死了，想骂人', next: 'annoyed', color: 'indigo' },
     ],
   },
 
-  // 第2轮：累 → 陪伴
+  // 第2轮：累 → 先共情再调侃
   tired: {
     lines: [
-      '不想说话就不说。',
-      '有些疲惫不需要被解释。',
-      '你今天能坚持下来，就已经很了不起了。',
+      '累就对了，说明今天的你认真活过了。',
+      '不过别指望我帮你写周报，我只能陪你发呆。',
+      '要不要听个秘密？今天的月亮其实一直在偷偷看你。',
     ],
     options: [
-      { text: '说点别的', next: 'chat_tired', color: 'indigo' },
-      { text: '晚安，谢谢', next: 'ending_warm', color: 'slate' },
+      { text: '什么秘密？', next: 'chat_tired', color: 'indigo' },
+      { text: '先让我静静', next: 'ending_warm', color: 'slate' },
     ],
   },
 
-  // 第2轮：开心 → 发光
+  // 第2轮：开心 → 一起嗨
   happy: {
     lines: [
-      '开心是值得被记住的 ✨',
-      '这种感觉是今天的小礼物。',
-      '谢谢你愿意把它分享给我。',
+      '哇，隔着屏幕都能感受到你的开心！',
+      '快说，是不是偷偷吃了好吃的没带我？',
+      '不过没关系，你的开心分我一半就行。',
     ],
     options: [
-      { text: '说点别的', next: 'chat_happy', color: 'amber' },
-      { text: '晚安，谢谢', next: 'ending_warm', color: 'slate' },
+      { text: '分你分你', next: 'chat_happy', color: 'amber' },
+      { text: '晚安啦', next: 'ending_warm', color: 'slate' },
     ],
   },
 
-  // 第2轮：烦 → 陪伴
+  // 第2轮：烦 → 先替你骂
   annoyed: {
     lines: [
-      '烦躁也是夜晚的一部分。',
-      '没关系，今晚不用急着整理。',
-      '有些情绪不需要被解决，只需要被看见。',
+      '烦死了烦死了烦死了——',
+      '好了我替你喊完了，现在是不是好点了？',
+      '我跟你说，烦躁的时候都是宇宙在后台帮你整理内存。',
     ],
     options: [
-      { text: '说点别的', next: 'chat_annoyed', color: 'indigo' },
-      { text: '晚安，谢谢', next: 'ending_warm', color: 'slate' },
+      { text: '真的假的？', next: 'chat_annoyed', color: 'indigo' },
+      { text: '想睡了', next: 'ending_warm', color: 'slate' },
     ],
   },
 
   // 第3轮：闲聊（累分支）
   chat_tired: {
     lines: [
-      '那我给你讲一个小秘密。',
-      '今天的月亮其实一直在偷偷看你。',
-      '它说，你辛苦了。',
+      '月亮说，你今天的步数它都数着呢。',
+      '虽然不知道你忙了什么，但它觉得你超厉害。',
+      '现在，它批准你关机充电了。',
     ],
     options: [
-      { text: '谢谢你', next: 'ending_warm', color: 'amber' },
+      { text: '替我跟月亮说谢谢', next: 'ending_warm', color: 'amber' },
       { text: '晚安', next: 'ending_warm', color: 'slate' },
     ],
   },
@@ -81,12 +81,12 @@ const DIALOG_TREE = {
   // 第3轮：闲聊（开心分支）
   chat_happy: {
     lines: [
-      '你知道吗。',
-      '星星有一半的时间是被云层挡住的。',
-      '但没关系，它一直都在。',
+      '你知道吗，开心是会传染的。',
+      '刚才你点"分你分你"的时候，我这边真的闪了一下。',
+      '可能是某颗星星被你的开心点亮了。',
     ],
     options: [
-      { text: '这个比喻不错', next: 'ending_warm', color: 'indigo' },
+      { text: '那我再开心一点', next: 'ending_warm', color: 'amber' },
       { text: '晚安', next: 'ending_warm', color: 'slate' },
     ],
   },
@@ -94,21 +94,21 @@ const DIALOG_TREE = {
   // 第3轮：闲聊（烦分支）
   chat_annoyed: {
     lines: [
-      '我有一个不太科学的理论——',
-      '烦躁的时候，都是宇宙在后台帮你整理内存。',
-      '明天就好了。',
+      '当然是真的，我从来不骗晚上的人。',
+      '你现在就像一台在自动清理缓存的手机。',
+      '等明早重启，你会发现流畅得不像话。',
     ],
     options: [
-      { text: '这个想法很可爱', next: 'ending_warm', color: 'amber' },
-      { text: '晚安', next: 'ending_warm', color: 'slate' },
+      { text: '希望如此', next: 'ending_warm', color: 'indigo' },
+      { text: '睡了，明天见', next: 'ending_warm', color: 'slate' },
     ],
   },
 
   // 结束：温暖收尾
   ending_warm: {
     lines: [
-      '那就这样吧。',
-      '今晚也要好好睡觉，明天见。',
+      '睡吧，今晚的星星我帮你盯过了，很亮。',
+      '明天见。',
     ],
     options: null,
   },
