@@ -331,8 +331,8 @@ export default function App() {
       </main>
 
       {/* 底部导航栏 — 浮岛胶囊形毛玻璃风格 */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pointer-events-none">
-        <nav className={`pointer-events-auto flex items-center gap-1 rounded-[28px] px-3 py-2 backdrop-blur-xl border transition-colors duration-500 ${
+      <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pointer-events-none">
+        <nav className={`pointer-events-auto flex items-center justify-around gap-1 rounded-[28px] mx-4 px-4 py-2.5 backdrop-blur-xl border w-full max-w-sm transition-colors duration-500 ${
           isDark
             ? 'bg-[#1a1a2e]/85 border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]'
             : 'bg-white/85 border-gray-200/50 shadow-[0_8px_32px_rgba(0,0,0,0.12)]'
