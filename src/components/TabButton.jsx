@@ -19,7 +19,7 @@ export default function TabButton({ icon: Icon, label, active, onClick }) {
         className={`transition-colors duration-300 ${
           active ? 'text-white' : 'text-gray-400'
         }`}
-        strokeWidth={active ? 2.5 : 2}
+        strokeWidth={active ? 2 : 1.5}
       />
       <span
         className={`text-[10px] transition-colors duration-300 ${
