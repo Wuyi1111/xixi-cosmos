@@ -526,8 +526,8 @@ export default function StarWhispersView({
     const hugged = userData.huggedWhispers.includes(whisper.id);
     const ec = getEmotionColor(whisper.emotion);
     return (
-      <div className={`relative w-full rounded-3xl border overflow-hidden select-none ${ec.split(' ')[0]} ${isDark ? 'bg-[#1a1a2e]' : 'bg-[#1e1e32]'}`}
-        style={{ minHeight: '400px', boxShadow: '0 12px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)' }}
+      <div className={`relative w-full rounded-3xl border select-none ${ec.split(' ')[0]} ${isDark ? 'bg-[#1a1a2e]' : 'bg-[#1e1e32]'}`}
+        style={{ minHeight: '400px', boxShadow: '0 12px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)', touchAction: 'none' }}
       >
         {hugged && isCurrent && (
           <div className="absolute top-4 right-4 z-10">
@@ -597,7 +597,7 @@ export default function StarWhispersView({
       <div
         ref={containerRef}
         className="flex-1 relative flex items-center justify-center"
-        style={{ minHeight: '440px', touchAction: 'none', userSelect: 'none', overflow: 'visible' }}
+        style={{ minHeight: '440px', touchAction: 'none', userSelect: 'none' }}
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
@@ -632,10 +632,10 @@ export default function StarWhispersView({
 
         {/* 第三张卡片 */}
         {thirdW && !isAllDone && (
-          <div className="absolute inset-0 flex items-center justify-center px-4" style={getThirdStyle()}>
+          <div className="absolute inset-0 flex items-center justify-center px-4" style={{ ...getThirdStyle(), touchAction: 'none' }}>
             <div className="w-full max-w-sm">
-              <div className="rounded-2xl border overflow-hidden bg-[#1a1a2e] border-white/5 opacity-40"
-                style={{ minHeight: '360px', boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}
+              <div className="rounded-2xl border bg-[#1a1a2e] border-white/5 opacity-40"
+                style={{ minHeight: '360px', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', touchAction: 'none' }}
               >
                 <div className="p-4">
                   <span className="text-[10px] px-2 py-0.5 rounded-full border bg-white/5 text-gray-500 border-white/10">
@@ -649,10 +649,10 @@ export default function StarWhispersView({
 
         {/* 下一张卡片 */}
         {nextW && !isAllDone && (
-          <div className="absolute inset-0 flex items-center justify-center px-4" style={getNextStyle()}>
+          <div className="absolute inset-0 flex items-center justify-center px-4" style={{ ...getNextStyle(), touchAction: 'none' }}>
             <div className="w-full max-w-sm">
-              <div className="rounded-2xl border overflow-hidden bg-[#1a1a2e] border-white/5 opacity-50"
-                style={{ minHeight: '380px', boxShadow: '0 6px 30px rgba(0,0,0,0.35)' }}
+              <div className="rounded-2xl border bg-[#1a1a2e] border-white/5 opacity-50"
+                style={{ minHeight: '380px', boxShadow: '0 6px 30px rgba(0,0,0,0.35)', touchAction: 'none' }}
               >
                 <div className="p-4">
                   <span className="text-[10px] px-2 py-0.5 rounded-full border bg-white/5 text-gray-500 border-white/10">
@@ -666,8 +666,8 @@ export default function StarWhispersView({
 
         {/* 当前卡片 */}
         {currentW && !isAllDone && (
-          <div className="absolute inset-0 flex items-center justify-center px-4" style={getCurrentStyle()}>
-            <div className="w-full max-w-sm">
+          <div className="absolute inset-0 flex items-center justify-center px-4" style={{ ...getCurrentStyle(), touchAction: 'none' }}>
+            <div className="w-full max-w-sm" style={{ touchAction: 'none' }}>
               <CardFace whisper={currentW} isCurrent={true} />
             </div>
           </div>
