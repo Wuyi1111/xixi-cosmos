@@ -16,3 +16,9 @@ pnpm-debug.log*
 !.vscode/extensions.json
 .claude
 public/version.json
+
+# 文档和报告
+审查报告/
+*.pdf
+*.pyc
+__pycache__/
