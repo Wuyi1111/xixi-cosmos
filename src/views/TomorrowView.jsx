@@ -211,13 +211,13 @@ export default function TomorrowView({
                   onClick={() => handleToggleComplete(task.taskId)}
                   className={`relative p-4 rounded-2xl cursor-pointer transition-all active:scale-[0.98] ${
                     task.completed
-                      ? 'bg-[#1e1e30] border border-emerald-500/20'
-                      : 'bg-[#1e1e30] border border-white/5 hover:border-amber-400/20'
+                      ? (isDark ? 'bg-[#1e1e30] border border-emerald-500/20' : 'bg-emerald-50/50 border border-emerald-200/60')
+                      : (isDark ? 'bg-[#1e1e30] border border-white/5 hover:border-amber-400/20' : 'bg-gray-50 border border-gray-100 hover:border-amber-300/40')
                   }`}
                   style={{
                     boxShadow: task.completed
                       ? '0 0 16px rgba(16, 185, 129, 0.08)'
-                      : '0 0 12px rgba(255,255,255,0.02)',
+                      : '0 0 12px rgba(0,0,0,0.03)',
                   }}
                 >
                   <div className="flex items-center gap-3">
@@ -225,15 +225,15 @@ export default function TomorrowView({
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-all ${
                       task.completed
                         ? 'bg-emerald-500/20'
-                        : 'bg-white/5 border border-white/10'
+                        : (isDark ? 'bg-white/5 border border-white/10' : 'bg-white border border-gray-300')
                     }`}>
                       {task.completed && <CheckCircle2 size={14} className="text-emerald-400" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm leading-relaxed ${
                         task.completed
-                          ? 'text-gray-500 line-through'
-                          : 'text-gray-200'
+                          ? (isDark ? 'text-gray-500 line-through' : 'text-gray-400 line-through')
+                          : (isDark ? 'text-gray-200' : 'text-gray-700')
                       }`}>
                         {task.main}
                       </p>
@@ -247,21 +247,23 @@ export default function TomorrowView({
               {todayTasks.length < 5 && (
                 <button
                   onClick={() => setShowTomorrowModal(true)}
-                  className="w-full py-3.5 rounded-2xl border border-dashed border-white/5 flex items-center justify-center gap-2 transition-all active:scale-[0.98] hover:border-white/10"
+                  className={`w-full py-3.5 rounded-2xl border border-dashed flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
+                    isDark ? 'border-white/5 hover:border-white/10' : 'border-gray-200 hover:border-gray-300'
+                  }`}
                 >
-                  <Plus size={14} className="text-gray-600" />
-                  <span className="text-xs text-gray-600">再贴一张</span>
+                  <Plus size={14} className={isDark ? 'text-gray-600' : 'text-gray-400'} />
+                  <span className={`text-xs ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>再贴一张</span>
                 </button>
               )}
             </div>
           ) : (
             /* 空白状态 */
             <div className="flex flex-col items-center justify-center py-12">
-              <div className="w-16 h-16 rounded-full bg-[#1e1e30] flex items-center justify-center mb-4">
-                <Plus size={24} className="text-gray-600" />
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${isDark ? 'bg-[#1e1e30]' : 'bg-gray-100'}`}>
+                <Plus size={24} className={isDark ? 'text-gray-600' : 'text-gray-400'} />
               </div>
-              <p className="text-sm text-gray-400 mb-1">今天还没有约定</p>
-              <p className="text-xs text-gray-600 mb-6">写一张便条，给明天一个期待</p>
+              <p className={`text-sm mb-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>今天还没有约定</p>
+              <p className={`text-xs mb-6 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>写一张便条，给明天一个期待</p>
               <button
                 onClick={() => setShowTomorrowModal(true)}
                 className={`px-6 py-3 rounded-full text-sm transition-all active:scale-95 ${
@@ -289,16 +291,16 @@ export default function TomorrowView({
                 key={task.taskId}
                 className={`p-3 rounded-xl ${
                   task.completed
-                    ? 'bg-[#1e1e30]/50 border border-emerald-500/10'
-                    : 'bg-[#1e1e30]/50 border border-white/5'
+                    ? (isDark ? 'bg-[#1e1e30]/50 border border-emerald-500/10' : 'bg-emerald-50/30 border border-emerald-100/50')
+                    : (isDark ? 'bg-[#1e1e30]/50 border border-white/5' : 'bg-gray-50/60 border border-gray-100')
                 }`}
               >
                 <div className="flex items-center gap-2.5">
                   <span className="text-sm opacity-50">{task.emoji}</span>
                   <p className={`text-xs leading-relaxed ${
                     task.completed
-                      ? 'text-gray-600 line-through'
-                      : 'text-gray-500'
+                      ? (isDark ? 'text-gray-600 line-through' : 'text-gray-400 line-through')
+                      : (isDark ? 'text-gray-500' : 'text-gray-500')
                   }`}>
                     {task.main}
                   </p>

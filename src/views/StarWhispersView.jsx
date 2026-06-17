@@ -526,8 +526,8 @@ export default function StarWhispersView({
     const hugged = userData.huggedWhispers.includes(whisper.id);
     const ec = getEmotionColor(whisper.emotion);
     return (
-      <div className={`relative w-full rounded-3xl border select-none ${ec.split(' ')[0]} ${isDark ? 'bg-[#1a1a2e]' : 'bg-[#1e1e32]'}`}
-        style={{ minHeight: '400px', boxShadow: '0 12px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)', touchAction: 'none' }}
+      <div className={`relative w-full rounded-3xl border select-none ${ec.split(' ')[0]} ${isDark ? 'bg-[#1a1a2e]' : 'bg-white'}`}
+        style={{ minHeight: '400px', boxShadow: isDark ? '0 12px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)' : '0 12px 48px rgba(0,0,0,0.10)', touchAction: 'none' }}
       >
         {hugged && isCurrent && (
           <div className="absolute top-4 right-4 z-10">
@@ -539,31 +539,31 @@ export default function StarWhispersView({
         )}
         <div className="flex flex-col min-h-[400px] p-6">
           <div className="flex items-center justify-between mb-4">
-            <span className={`text-[10px] px-2.5 py-1 rounded-full border ${ec} bg-white/5`}>
+            <span className={`text-[10px] px-2.5 py-1 rounded-full border ${ec} ${isDark ? 'bg-white/5' : 'bg-black/5'}`}>
               {whisper.emotion}
             </span>
-            <span className="text-[10px] text-gray-500">{whisper.time}</span>
+            <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{whisper.time}</span>
           </div>
           <div className="flex-1 flex items-center justify-center py-4">
-            <p className={`text-base leading-relaxed font-light text-center text-gray-200 transition-all duration-700 ${
+            <p className={`text-base leading-relaxed font-light text-center transition-all duration-700 ${
               isCurrent && cardEntering ? 'opacity-0 translate-y-6' : 'opacity-100 translate-y-0'
-            }`}
+            } ${isDark ? 'text-gray-200' : 'text-gray-700'}`}
               style={{ transitionDelay: isCurrent && !cardEntering ? '150ms' : '0ms' }}
             >
               "{whisper.text}"
             </p>
           </div>
-          <div className="w-full h-px my-4 bg-white/5" />
+          <div className={`w-full h-px my-4 ${isDark ? 'bg-white/5' : 'bg-black/5'}`} />
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${isDark ? 'bg-white/5' : 'bg-black/5'}`}>
                 <span className="text-[10px]">👤</span>
               </div>
-              <span className="text-[11px] text-gray-400">{whisper.author}</span>
+              <span className={`text-[11px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{whisper.author}</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Heart size={12} className={hugged ? 'text-pink-400' : 'text-gray-600'} fill={hugged ? 'currentColor' : 'none'} />
-              <span className={`text-[11px] ${hugged ? 'text-pink-400' : 'text-gray-500'}`}>
+              <Heart size={12} className={hugged ? 'text-pink-400' : (isDark ? 'text-gray-600' : 'text-gray-300')} fill={hugged ? 'currentColor' : 'none'} />
+              <span className={`text-[11px] ${hugged ? 'text-pink-400' : (isDark ? 'text-gray-500' : 'text-gray-400')}`}>
                 {whisper.hugs + (hugged ? 1 : 0)}
               </span>
             </div>
@@ -634,11 +634,11 @@ export default function StarWhispersView({
         {thirdW && !isAllDone && (
           <div className="absolute inset-0 flex items-center justify-center px-4" style={{ ...getThirdStyle(), touchAction: 'none' }}>
             <div className="w-full max-w-sm">
-              <div className="rounded-2xl border bg-[#1a1a2e] border-white/5 opacity-40"
-                style={{ minHeight: '360px', boxShadow: '0 4px 20px rgba(0,0,0,0.3)', touchAction: 'none' }}
+              <div className={`rounded-2xl border ${isDark ? 'bg-[#1a1a2e] border-white/5' : 'bg-white border-gray-100'} opacity-40`}
+                style={{ minHeight: '360px', boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 4px 20px rgba(0,0,0,0.06)', touchAction: 'none' }}
               >
                 <div className="p-4">
-                  <span className="text-[10px] px-2 py-0.5 rounded-full border bg-white/5 text-gray-500 border-white/10">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full border ${isDark ? 'bg-white/5 text-gray-500 border-white/10' : 'bg-black/5 text-gray-400 border-gray-200'}`}>
                     {thirdW.emotion}
                   </span>
                 </div>
@@ -651,11 +651,11 @@ export default function StarWhispersView({
         {nextW && !isAllDone && (
           <div className="absolute inset-0 flex items-center justify-center px-4" style={{ ...getNextStyle(), touchAction: 'none' }}>
             <div className="w-full max-w-sm">
-              <div className="rounded-2xl border bg-[#1a1a2e] border-white/5 opacity-50"
-                style={{ minHeight: '380px', boxShadow: '0 6px 30px rgba(0,0,0,0.35)', touchAction: 'none' }}
+              <div className={`rounded-2xl border ${isDark ? 'bg-[#1a1a2e] border-white/5' : 'bg-white border-gray-100'} opacity-50`}
+                style={{ minHeight: '380px', boxShadow: isDark ? '0 6px 30px rgba(0,0,0,0.35)' : '0 6px 30px rgba(0,0,0,0.08)', touchAction: 'none' }}
               >
                 <div className="p-4">
-                  <span className="text-[10px] px-2 py-0.5 rounded-full border bg-white/5 text-gray-500 border-white/10">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full border ${isDark ? 'bg-white/5 text-gray-500 border-white/10' : 'bg-black/5 text-gray-400 border-gray-200'}`}>
                     {nextW.emotion}
                   </span>
                 </div>
@@ -680,8 +680,8 @@ export default function StarWhispersView({
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400/20 to-pink-500/20 border border-amber-400/20 flex items-center justify-center mx-auto mb-4 animate-breathe">
                 <Sparkles size={32} className="text-amber-400" />
               </div>
-              <p className="text-lg text-gray-200 mb-1 font-medium">星海探索完成</p>
-              <p className="text-xs text-gray-500 mb-6">你收集了 {userData.huggedWhispers.length} 份温暖</p>
+              <p className={`text-lg mb-1 font-medium ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>星海探索完成</p>
+              <p className={`text-xs mb-6 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>你收集了 {userData.huggedWhispers.length} 份温暖</p>
               <div className="flex flex-col gap-3">
                 <button
                   onClick={() => setShowEmitModal(true)}
@@ -721,8 +721,8 @@ export default function StarWhispersView({
             <X size={24} />
           </button>
           <div className="text-center">
-            <p className="text-[10px] text-gray-500">左滑收藏</p>
-            <p className="text-[10px] text-gray-500">右滑跳过</p>
+            <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>左滑收藏</p>
+            <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>右滑跳过</p>
           </div>
           <div className="w-14 h-14" />
         </div>
