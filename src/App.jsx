@@ -292,6 +292,7 @@ export default function App() {
             isDark={isDark}
             userData={userData}
             saveUserData={saveUserData}
+            currentDateStr={currentDateStr}
             onNavigate={(tab) => setActiveTab(tab)}
           />
         )}

@@ -12,7 +12,8 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Moon } from 'lucide-react';
+import { Moon, CheckCircle2, Flame, Sparkles, ChevronRight } from 'lucide-react';
+import { computeStreakInfo } from '../utils.js';
 
 /* ─────────────── 对话树配置 ─────────────── */
 const DIALOG_TREE = {
@@ -215,7 +216,11 @@ function BackgroundStars({ isDark }) {
 }
 
 /* ─────────────── 主组件 ─────────────── */
-export default function TonightView({ isDark }) {
+export default function TonightView({ isDark, userData, onNavigate, currentDateStr }) {
+  // 归星状态（用于顶部状态条 + 月亮标记 + 结束引导）
+  const { hasCheckedInToday, displayContinuousDays } = computeStreakInfo(userData, currentDateStr);
+  const stardust = userData.stardust || 0;
+
   const [currentNode, setCurrentNode] = useState('greeting');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
@@ -415,10 +420,39 @@ export default function TonightView({ isDark }) {
     <div className="animate-fade-in pb-10 space-y-5">
       {/* === 标题区（分阶段入场）=== */}
       <div className={`transition-all duration-500 ${showTitle ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'}`}>
-        <h1 className="text-xl font-medium tracking-wide">息息·宇宙</h1>
-        <p className={`text-[10px] transition-colors duration-500 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-          {month}月{date}日 {weekDay}
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-medium tracking-wide">息息·宇宙</h1>
+            <p className={`text-[10px] transition-colors duration-500 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+              {month}月{date}日 {weekDay}
+            </p>
+          </div>
+          {/* 轻量状态条 — 点击跳归星页 */}
+          <button
+            onClick={() => onNavigate && onNavigate('star')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] transition-all active:scale-95 ${
+              isDark ? 'bg-white/5 text-gray-400 hover:bg-white/10' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+            }`}
+          >
+            {hasCheckedInToday ? (
+              <span className="flex items-center gap-0.5">
+                <CheckCircle2 size={10} className="text-emerald-400" /> 已归星
+              </span>
+            ) : (
+              <span className="flex items-center gap-0.5">
+                <Moon size={10} /> 待归星
+              </span>
+            )}
+            <span className={`w-px h-2.5 ${isDark ? 'bg-white/10' : 'bg-gray-300'}`} />
+            <span className="flex items-center gap-0.5">
+              <Flame size={10} className="text-amber-400" /> {displayContinuousDays}
+            </span>
+            <span className={`w-px h-2.5 ${isDark ? 'bg-white/10' : 'bg-gray-300'}`} />
+            <span className="flex items-center gap-0.5">
+              <Sparkles size={10} className="text-indigo-400" /> {stardust}
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* === 沉浸式对话区 === */}
@@ -429,22 +463,36 @@ export default function TonightView({ isDark }) {
         <BackgroundStars isDark={isDark} />
 
         <div className="relative flex flex-col items-center justify-center min-h-[520px] p-6">
-          {/* 月亮图标（全程可见，跟随情绪颜色过渡）=== */}
+          {/* 月亮图标（全程可见，跟随情绪颜色过渡）— 可点击跳归星 === */}
           <div
             className={`text-center mb-8 transition-all duration-500 ${
               showMoon ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
             }`}
           >
-            <div
-              className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 animate-breathe ${colors.bg} ${colors.glow} transition-all duration-500`}
-              style={{ boxShadow: `0 0 30px currentColor` }}
+            <button
+              onClick={() => onNavigate && onNavigate('star')}
+              className="relative active:scale-95 transition-transform"
+              aria-label="去归星"
             >
-              <Moon
-                size={28}
-                fill="currentColor"
-                className={`${colors.text} transition-colors duration-500 ${isFinished ? 'animate-glow' : ''}`}
-              />
-            </div>
+              <div
+                className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 animate-breathe ${colors.bg} ${colors.glow} transition-all duration-500`}
+                style={{ boxShadow: `0 0 30px currentColor` }}
+              >
+                <Moon
+                  size={28}
+                  fill="currentColor"
+                  className={`${colors.text} transition-colors duration-500 ${isFinished ? 'animate-glow' : ''}`}
+                />
+              </div>
+              {/* 已归星标记 */}
+              {hasCheckedInToday && (
+                <div className={`absolute top-0 right-1/2 translate-x-7 w-5 h-5 rounded-full flex items-center justify-center shadow-md ${
+                  isDark ? 'bg-emerald-500' : 'bg-emerald-500'
+                }`}>
+                  <CheckCircle2 size={12} className="text-white" />
+                </div>
+              )}
+            </button>
           </div>
 
           {/* 主对话内容（fade-out / fade-in 过渡）=== */}
@@ -502,16 +550,34 @@ export default function TonightView({ isDark }) {
             }`}
           >
             {showResetButton ? (
-              <button
-                onClick={handleReset}
-                className={`w-full p-3.5 rounded-2xl text-sm transition-all active:scale-[0.98] ${
-                  isDark
-                    ? 'bg-[#1f1f2e] text-gray-300 border border-gray-800 hover:border-indigo-500/30'
-                    : 'bg-gray-50 text-gray-700 border border-gray-100 hover:border-indigo-200'
-                }`}
-              >
-                再说一次
-              </button>
+              <div className="space-y-2.5">
+                {/* 主按钮：引导归星 / 星海 */}
+                <button
+                  onClick={() => onNavigate && onNavigate(hasCheckedInToday ? 'starsea' : 'star')}
+                  className={`w-full p-3.5 rounded-2xl text-sm font-medium transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
+                    hasCheckedInToday
+                      ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg shadow-pink-500/20'
+                      : 'bg-gradient-to-r from-sky-500 to-indigo-500 text-white shadow-lg shadow-sky-500/20'
+                  }`}
+                >
+                  {hasCheckedInToday ? (
+                    <><Sparkles size={16} /> 去星海看看</>
+                  ) : (
+                    <><Moon size={16} /> 今晚归星</>
+                  )}
+                </button>
+                {/* 次按钮：再说一次 */}
+                <button
+                  onClick={handleReset}
+                  className={`w-full p-3.5 rounded-2xl text-sm transition-all active:scale-[0.98] ${
+                    isDark
+                      ? 'bg-[#1f1f2e] text-gray-300 border border-gray-800 hover:border-indigo-500/30'
+                      : 'bg-gray-50 text-gray-700 border border-gray-100 hover:border-indigo-200'
+                  }`}
+                >
+                  再说一次
+                </button>
+              </div>
             ) : (
               node?.options?.map((option, idx) => (
                 <button
