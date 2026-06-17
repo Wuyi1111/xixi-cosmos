@@ -16,7 +16,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import {
-  Heart, X, Star, ChevronDown, Send,
+  Heart, X, Send,
   BookOpen, Sparkles, Plus, CheckCircle2,
   Edit3, Radio, Flame, Footprints
 } from 'lucide-react';
@@ -101,6 +101,19 @@ export default function TreeholeView({
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [whisperText, showEmitModal]);
+
+  // === Toast 自动消失 ===
+  useEffect(() => {
+    if (!showToast) return;
+    const timer = setTimeout(() => setShowToast(false), 2500);
+    return () => clearTimeout(timer);
+  }, [showToast]);
+
+  useEffect(() => {
+    if (!showTomorrowToast) return;
+    const timer = setTimeout(() => setShowTomorrowToast(false), 2500);
+    return () => clearTimeout(timer);
+  }, [showTomorrowToast]);
 
   const handleVisibilityChange = (v) => {
     if (v === 'private' && visibility !== 'private') {
@@ -489,12 +502,12 @@ export default function TreeholeView({
         </div>
       </div>
 
-      {/* 我的今日清单 */}
+      {/* 我的约定清单 */}
       <div className={`p-5 rounded-[24px] ${isDark ? 'bg-[#171724] border border-white/5' : 'bg-white border border-gray-100'} shadow-sm`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <CheckCircle2 size={16} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
-            <h3 className="text-sm font-medium">今日清单</h3>
+            <h3 className="text-sm font-medium">我的约定</h3>
           </div>
           {todayTasks.length > 0 && (
             <span className={`text-[10px] px-2 py-0.5 rounded-full ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-600'}`}>
@@ -664,7 +677,7 @@ export default function TreeholeView({
       {particles.map(p => (
         <div
           key={p.id}
-          className="fixed pointer-events-none z-50 animate-particle-float"
+          className="fixed pointer-events-none z-50 animate-particle-burst"
           style={{
             left: p.x,
             top: p.y,
@@ -680,11 +693,9 @@ export default function TreeholeView({
       {/* === 发射成功 Toast === */}
       {showToast && (
         <Portal>
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 animate-fade-in" onClick={() => setShowToast(false)}>
-            <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl border ${isDark ? 'bg-[#171724] border-pink-500/30 shadow-lg shadow-pink-500/10' : 'bg-white border-pink-200 shadow-xl'}`} onClick={e => e.stopPropagation()}>
-              <Send size={18} className={isDark ? 'text-pink-400' : 'text-pink-500'} />
-              <span className={`text-sm font-medium ${isDark ? 'text-pink-300' : 'text-pink-600'}`}>你的信号已飘向星海</span>
-            </div>
+          <div className={`fixed left-1/2 -translate-x-1/2 top-[max(env(safe-area-inset-top)+1rem,5rem)] z-[70] flex items-center gap-2 px-5 py-3 rounded-full border animate-fade-in ${isDark ? 'bg-[#171724] border-pink-500/30 shadow-lg shadow-pink-500/20' : 'bg-white border-pink-200 shadow-xl'}`}>
+            <Send size={14} className={isDark ? 'text-pink-400' : 'text-pink-500'} />
+            <span className={`text-xs font-medium ${isDark ? 'text-pink-300' : 'text-pink-600'}`}>你的信号已飘向星海</span>
           </div>
         </Portal>
       )}
@@ -692,11 +703,9 @@ export default function TreeholeView({
       {/* === 明日发布成功 Toast === */}
       {showTomorrowToast && (
         <Portal>
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 animate-fade-in" onClick={() => setShowTomorrowToast(false)}>
-            <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl border ${isDark ? 'bg-[#171724] border-emerald-500/30 shadow-lg shadow-emerald-500/10' : 'bg-white border-emerald-200 shadow-xl'}`} onClick={e => e.stopPropagation()}>
-              <CheckCircle2 size={18} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
-              <span className={`text-sm font-medium ${isDark ? 'text-emerald-300' : 'text-emerald-600'}`}>明日约定已立下</span>
-            </div>
+          <div className={`fixed left-1/2 -translate-x-1/2 top-[max(env(safe-area-inset-top)+1rem,5rem)] z-[70] flex items-center gap-2 px-5 py-3 rounded-full border animate-fade-in ${isDark ? 'bg-[#171724] border-emerald-500/30 shadow-lg shadow-emerald-500/20' : 'bg-white border-emerald-200 shadow-xl'}`}>
+            <CheckCircle2 size={14} className={isDark ? 'text-emerald-400' : 'text-emerald-500'} />
+            <span className={`text-xs font-medium ${isDark ? 'text-emerald-300' : 'text-emerald-600'}`}>明日约定已立下</span>
           </div>
         </Portal>
       )}
@@ -737,7 +746,11 @@ export default function TreeholeView({
                   {[...PRESET_TAGS.positive, ...PRESET_TAGS.neutral].slice(0, 5).map((tag, i) => (
                     <button
                       key={i}
-                      onClick={() => { setWhisperText(tag + '...'); setSelectedTag(tag); }}
+                      onClick={() => {
+                        // 仅在输入为空时用标签作为起手式，避免覆盖用户已输入内容
+                        if (!whisperText.trim()) setWhisperText(tag + '...');
+                        setSelectedTag(tag);
+                      }}
                       className={`text-xs px-3 py-2 rounded-full border transition-all active:scale-95 ${
                         selectedTag === tag
                           ? (isDark ? 'bg-pink-500/20 border-pink-500/50 text-pink-300' : 'bg-pink-100 border-pink-300 text-pink-700')

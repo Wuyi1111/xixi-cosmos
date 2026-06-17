@@ -12,7 +12,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Moon, Sparkles } from 'lucide-react';
+import { Moon } from 'lucide-react';
 
 /* ─────────────── 对话树配置 ─────────────── */
 const DIALOG_TREE = {
@@ -217,7 +217,6 @@ function BackgroundStars({ isDark }) {
 /* ─────────────── 主组件 ─────────────── */
 export default function TonightView({ isDark }) {
   const [currentNode, setCurrentNode] = useState('greeting');
-  const [displayText, setDisplayText] = useState('');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
@@ -226,7 +225,6 @@ export default function TonightView({ isDark }) {
   const [allLinesDone, setAllLinesDone] = useState(false);
 
   // 分阶段入场
-  const [entrancePhase, setEntrancePhase] = useState('idle');
   const [showTitle, setShowTitle] = useState(false);
   const [showMoon, setShowMoon] = useState(false);
   const [showText, setShowText] = useState(false);
@@ -234,6 +232,9 @@ export default function TonightView({ isDark }) {
 
   // 文字切换过渡
   const [isFadingOut, setIsFadingOut] = useState(false);
+
+  // 缓存问候语，避免每次渲染重新计算导致打字机重置
+  const greetingTextRef = useRef(getGreetingText());
 
   const today = new Date();
   const month = today.getMonth() + 1;
@@ -243,18 +244,20 @@ export default function TonightView({ isDark }) {
 
   const node = DIALOG_TREE[currentNode];
   const isMultiLine = node?.lines && Array.isArray(node.lines);
-  const currentLineText = isMultiLine ? node.lines[currentLineIndex] : (node?.text || '');
+  // 修复：greeting 节点使用缓存的问候语作为打字机输入
+  const currentLineText = isMultiLine
+    ? node.lines[currentLineIndex]
+    : (currentNode === 'greeting' ? greetingTextRef.current : (node?.text || ''));
 
-  // 打字机
+  // 打字机：用 currentLineText 作为输入，enabled 也基于 currentLineText 判断
   const { display: typedText, done: lineDone } = useTypewriter(
     currentLineText,
     45,
-    displayText !== '' && !isFadingOut
+    currentLineText !== '' && !isFadingOut
   );
 
   // 分阶段入场动画
   useEffect(() => {
-    setEntrancePhase('idle');
     setShowTitle(false);
     setShowMoon(false);
     setShowText(false);
@@ -263,7 +266,6 @@ export default function TonightView({ isDark }) {
     const t1 = setTimeout(() => setShowTitle(true), 100);
     const t2 = setTimeout(() => setShowMoon(true), 300);
     const t3 = setTimeout(() => {
-      setDisplayText(getGreetingText());
       setShowText(true);
     }, 600);
     const t4 = setTimeout(() => {
@@ -338,13 +340,11 @@ export default function TonightView({ isDark }) {
         const nextNode = DIALOG_TREE[option.next];
         if (nextNode.lines) {
           // lines 模式：不立即显示按钮，等打字完成后再显示
-          setDisplayText(nextNode.lines[0]);
           setShowText(true);
           setIsTransitioning(false);
           // 不在这里设置 showButtons，等 allLinesDone 后再显示
         } else {
           // 单句模式：直接显示文字和按钮
-          setDisplayText(nextNode.text);
           setShowText(true);
           setTimeout(() => {
             setShowOptions(true);
@@ -364,8 +364,9 @@ export default function TonightView({ isDark }) {
 
   /* 重置对话 */
   const handleReset = useCallback(() => {
+    // 重新生成问候语（可能跨小时了）
+    greetingTextRef.current = getGreetingText();
     setCurrentNode('greeting');
-    setDisplayText('');
     setIsFinished(false);
     setShowOptions(false);
     setShowResetButton(false);
@@ -383,7 +384,6 @@ export default function TonightView({ isDark }) {
     const t1 = setTimeout(() => setShowTitle(true), 100);
     const t2 = setTimeout(() => setShowMoon(true), 300);
     const t3 = setTimeout(() => {
-      setDisplayText(getGreetingText());
       setShowText(true);
     }, 600);
     const t4 = setTimeout(() => {
@@ -485,7 +485,7 @@ export default function TonightView({ isDark }) {
               ) : (
                 <p className={`text-base leading-relaxed whitespace-pre-line ${isDark ? 'text-gray-200' : 'text-gray-700'}`}>
                   {typedText}
-                  {!lineDone && displayText && (
+                  {!lineDone && currentLineText && (
                     <span className="inline-block w-0.5 h-4 ml-0.5 bg-current animate-pulse align-middle" />
                   )}
                 </p>

@@ -8,7 +8,7 @@
  *   4) 底部：心愿池独立入口
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Settings, Sparkles, Moon, Heart, ChevronRight, X, CheckCircle2, Flame, Quote } from 'lucide-react';
 import Portal from '../components/Portal.jsx';
 import SettingsPanel from './SettingsPanel.jsx';
@@ -52,12 +52,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
   const [showRitual, setShowRitual] = useState(false);
   const [ritualPhase, setRitualPhase] = useState('message');
   const [warmMessage, setWarmMessage] = useState(null);
-  const ritualTimersRef = useRef([]);
-
-  const clearRitualTimers = () => {
-    ritualTimersRef.current.forEach(id => clearTimeout(id));
-    ritualTimersRef.current = [];
-  };
+  const [earnedStardust, setEarnedStardust] = useState(0);
 
   // 连续夜晚显示
   const { lastCheckInDate, hasCheckedInToday, displayContinuousDays } =
@@ -115,21 +110,15 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
       checkInHistory: [newEntry, ...userData.checkInHistory],
     });
 
+    setEarnedStardust(earned);
     setRitualPhase('complete');
   };
 
   const closeRitual = () => {
-    clearRitualTimers();
     setShowRitual(false);
     setRitualPhase('message');
     setWarmMessage(null);
   };
-
-  useEffect(() => {
-    return () => {
-      clearRitualTimers();
-    };
-  }, []);
 
   if (showSettings) {
     return (
@@ -181,9 +170,9 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
       {/* === 1. 统一个人中心入口卡片（含设置按钮） === */}
       <div className="relative">
         {/* 个人中心卡片 */}
-        <button
+        <div
           onClick={() => setShowProfile(true)}
-          className={`w-full text-left rounded-[24px] p-5 transition-all active:scale-[0.98] ${
+          className={`w-full text-left rounded-[24px] p-5 transition-all active:scale-[0.98] cursor-pointer ${
             isDark
               ? 'bg-[#171724] border border-sky-500/20 hover:border-sky-500/40'
               : 'bg-white border border-sky-100 hover:border-sky-300 shadow-sm'
@@ -276,7 +265,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
               </div>
             </div>
           )}
-        </button>
+        </div>
       </div>
 
       {/* === 2. 今日状态卡片（含数据概览） === */}
@@ -402,6 +391,18 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
       {showRitual && (
         <Portal>
           <div className={`fixed inset-0 z-[60] flex items-center justify-center ${isDark ? 'bg-[#0f0f1a]' : 'bg-[#f8fafc]'} animate-fade-in`}>
+            {/* 关闭按钮 — 所有阶段都可取消 */}
+            <button
+              onClick={closeRitual}
+              className={`absolute top-[max(env(safe-area-inset-top),1rem)] right-4 p-2 rounded-full transition-all active:scale-95 z-10 ${
+                isDark
+                  ? 'bg-white/5 text-gray-500 hover:text-gray-300 hover:bg-white/10'
+                  : 'bg-gray-100 text-gray-400 hover:text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <X size={20} />
+            </button>
+
             {/* 温暖话术阶段 */}
             {ritualPhase === 'message' && warmMessage && (
               <div className="w-full max-w-sm mx-6 text-center">
@@ -455,7 +456,7 @@ export default function StarView({ isDark, theme, setTheme, userData, saveUserDa
                     </div>
                     <div className={`w-[1px] h-8 ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`} />
                     <div className="text-center">
-                      <p className={`text-lg font-medium ${isDark ? 'text-sky-300' : 'text-sky-500'}`}>+10</p>
+                      <p className={`text-lg font-medium ${isDark ? 'text-sky-300' : 'text-sky-500'}`}>+{earnedStardust}</p>
                       <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>星尘</p>
                     </div>
                   </div>
