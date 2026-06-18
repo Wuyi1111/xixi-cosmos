@@ -47,6 +47,14 @@ button, [role="button"] {
   touch-action: manipulation;
 }
 
+/* 卡片滑动区域：所有子元素禁用默认触摸手势，确保 touchmove 不被浏览器吞掉 */
+.swipe-area, .swipe-area * {
+  touch-action: none !important;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
 /* 触屏设备所有 input/textarea/select 强制 >= 16px，避免 iOS Safari 聚焦时自动放大 */
 @media (hover: none) and (pointer: coarse) {
   input, textarea, select {

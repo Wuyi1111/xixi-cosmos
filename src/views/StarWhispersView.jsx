@@ -52,10 +52,6 @@ export default function StarWhispersView({
   const [cardEntering, setCardEntering] = useState(false);
 
   const containerRef = useRef(null);
-  const startXRef = useRef(0);
-  const currentXRef = useRef(0);
-  const startTimeRef = useRef(0);
-  const hapticDoneRef = useRef(false);
 
   // === 弹窗 state ===
   const [showEmitModal, setShowEmitModal] = useState(false);
@@ -184,7 +180,6 @@ export default function StarWhispersView({
       setOffsetX(0);
       setSwipeDir(null);
       setIsFlying(false);
-      hapticDoneRef.current = false;
 
       // 新卡片入场动画
       setCardEntering(true);
@@ -196,103 +191,47 @@ export default function StarWhispersView({
   const bounceBack = useCallback(() => {
     setOffsetX(0);
     setSwipeDir(null);
-    hapticDoneRef.current = false;
   }, []);
 
-  // === 触摸事件：touchstart 用 React 事件（可靠），touchmove/touchend 绑定 window（不丢失）===
-  const dragStateRef = useRef({ dragging: false, startX: 0, currentX: 0, startTime: 0, hapticDone: false });
+  // === 统一拖动状态（触摸 + 鼠标共用）===
+  const dragStateRef = useRef({ active: false, startX: 0, currentX: 0, startTime: 0, hapticDone: false });
 
-  const onTouchStart = useCallback((e) => {
+  const startDrag = useCallback((clientX) => {
     if (isFlying || currentIndex >= whispers.length) return;
-    if (e.touches.length > 1) return;
     dragStateRef.current = {
-      dragging: true,
-      startX: e.touches[0].clientX,
-      currentX: e.touches[0].clientX,
+      active: true,
+      startX: clientX,
+      currentX: clientX,
       startTime: Date.now(),
       hapticDone: false,
     };
     setIsDragging(true);
   }, [isFlying, currentIndex, whispers.length]);
 
-  useEffect(() => {
-    const handleMove = (e) => {
-      const ds = dragStateRef.current;
-      if (!ds.dragging || isFlying) return;
-      e.preventDefault();
-      ds.currentX = e.touches[0].clientX;
-      const dx = ds.currentX - ds.startX;
-      setOffsetX(dx);
-
-      const { progress } = getParams(dx);
-      const dir = dx < -30 ? 'left' : dx > 30 ? 'right' : null;
-      setSwipeDir(dir);
-
-      if (progress > 0.5 && !ds.hapticDone) {
-        haptic('light');
-        ds.hapticDone = true;
-      }
-    };
-
-    const handleEnd = () => {
-      const ds = dragStateRef.current;
-      if (!ds.dragging) return;
-      ds.dragging = false;
-      setIsDragging(false);
-      const dx = ds.currentX - ds.startX;
-      const elapsed = Date.now() - ds.startTime;
-      const velocity = Math.abs(dx) / (elapsed || 1);
-      const threshold = window.innerWidth * 0.1;
-
-      if (Math.abs(dx) > threshold || velocity > 0.8) {
-        flyAway(dx < 0 ? 'left' : 'right');
-      } else {
-        bounceBack();
-      }
-    };
-
-    window.addEventListener('touchmove', handleMove, { passive: false });
-    window.addEventListener('touchend', handleEnd, { passive: true });
-    window.addEventListener('touchcancel', handleEnd, { passive: true });
-
-    return () => {
-      window.removeEventListener('touchmove', handleMove);
-      window.removeEventListener('touchend', handleEnd);
-      window.removeEventListener('touchcancel', handleEnd);
-    };
-  }, [isFlying, flyAway, bounceBack]);
-
-  // === 鼠标事件 ===
-  const onMouseDown = useCallback((e) => {
-    if (isFlying || currentIndex >= whispers.length) return;
-    setIsDragging(true);
-    startXRef.current = e.clientX;
-    currentXRef.current = e.clientX;
-    startTimeRef.current = Date.now();
-    hapticDoneRef.current = false;
-  }, [isFlying, currentIndex, whispers.length]);
-
-  const onMouseMove = useCallback((e) => {
-    if (!isDragging || isFlying) return;
-    currentXRef.current = e.clientX;
-    const dx = currentXRef.current - startXRef.current;
+  const updateDrag = useCallback((clientX) => {
+    const ds = dragStateRef.current;
+    if (!ds.active || isFlying) return;
+    ds.currentX = clientX;
+    const dx = clientX - ds.startX;
     setOffsetX(dx);
 
     const { progress } = getParams(dx);
     const dir = dx < -30 ? 'left' : dx > 30 ? 'right' : null;
     setSwipeDir(dir);
 
-    if (progress > 0.5 && !hapticDoneRef.current) {
+    if (progress > 0.5 && !ds.hapticDone) {
       haptic('light');
-      hapticDoneRef.current = true;
+      ds.hapticDone = true;
     }
-  }, [isDragging, isFlying]);
+  }, [isFlying]);
 
-  const onMouseUp = useCallback(() => {
-    if (!isDragging) return;
+  const endDrag = useCallback(() => {
+    const ds = dragStateRef.current;
+    if (!ds.active) return;
+    ds.active = false;
     setIsDragging(false);
-    const dx = currentXRef.current - startXRef.current;
-    const elapsed = Date.now() - startTimeRef.current;
+    const dx = ds.currentX - ds.startX;
+    const elapsed = Date.now() - ds.startTime;
     const velocity = Math.abs(dx) / (elapsed || 1);
     const threshold = window.innerWidth * 0.1;
 
@@ -301,7 +240,47 @@ export default function StarWhispersView({
     } else {
       bounceBack();
     }
-  }, [isDragging, flyAway, bounceBack]);
+  }, [flyAway, bounceBack]);
+
+  // === 触摸事件：start 用 React 事件，move/end 绑 window（防手指移出丢失）===
+  const onTouchStart = useCallback((e) => {
+    if (e.touches.length > 1) return;
+    startDrag(e.touches[0].clientX);
+  }, [startDrag]);
+
+  useEffect(() => {
+    const handleTouchMove = (e) => {
+      if (!dragStateRef.current.active) return;
+      e.preventDefault();
+      updateDrag(e.touches[0].clientX);
+    };
+    const handleTouchEnd = () => {
+      if (!dragStateRef.current.active) return;
+      endDrag();
+    };
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+    window.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('touchcancel', handleTouchEnd);
+    };
+  }, [updateDrag, endDrag]);
+
+  // === 鼠标事件 ===
+  const onMouseDown = useCallback((e) => {
+    startDrag(e.clientX);
+  }, [startDrag]);
+
+  const onMouseMove = useCallback((e) => {
+    if (!dragStateRef.current.active) return;
+    updateDrag(e.clientX);
+  }, [updateDrag]);
+
+  const onMouseUp = useCallback(() => {
+    endDrag();
+  }, [endDrag]);
 
   // === 回到上一张 ===
   const goToPrev = useCallback(() => {
@@ -310,7 +289,6 @@ export default function StarWhispersView({
     setCurrentIndex(prev => prev - 1);
     setOffsetX(0);
     setSwipeDir(null);
-    hapticDoneRef.current = false;
     setTimeout(() => {
       setIsFlying(false);
       setCardEntering(true);
@@ -325,7 +303,6 @@ export default function StarWhispersView({
     setCurrentIndex(0);
     setOffsetX(0);
     setSwipeDir(null);
-    hapticDoneRef.current = false;
     setTimeout(() => {
       setIsFlying(false);
       setCardEntering(true);
@@ -522,7 +499,7 @@ export default function StarWhispersView({
     const ec = getEmotionColor(whisper.emotion);
     return (
       <div className={`relative w-full rounded-3xl border select-none ${ec.split(' ')[0]} ${isDark ? 'bg-[#1a1a2e]' : 'bg-white'}`}
-        style={{ minHeight: '400px', boxShadow: isDark ? '0 12px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)' : '0 12px 48px rgba(0,0,0,0.10)', touchAction: 'none' }}
+        style={{ minHeight: '400px', boxShadow: isDark ? '0 12px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)' : '0 12px 48px rgba(0,0,0,0.10)' }}
       >
         <div className="flex flex-col min-h-[400px] p-6">
           <div className="flex items-center justify-between mb-4">
@@ -590,8 +567,8 @@ export default function StarWhispersView({
       {/* === 卡片区域 === */}
       <div
         ref={containerRef}
-        className="flex-1 relative flex items-center justify-center"
-        style={{ minHeight: '440px', touchAction: 'none', userSelect: 'none' }}
+        className="swipe-area flex-1 relative flex items-center justify-center"
+        style={{ minHeight: '440px' }}
         onTouchStart={onTouchStart}
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
@@ -627,10 +604,10 @@ export default function StarWhispersView({
 
         {/* 第三张卡片 */}
         {thirdW && !isAllDone && (
-          <div className="absolute inset-0 flex items-center justify-center px-4" style={{ ...getThirdStyle(), touchAction: 'none' }}>
+          <div className="absolute inset-0 flex items-center justify-center px-4" style={getThirdStyle()}>
             <div className="w-full max-w-sm">
               <div className={`rounded-2xl border ${isDark ? 'bg-[#1a1a2e] border-white/5' : 'bg-white border-gray-100'} opacity-40`}
-                style={{ minHeight: '360px', boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 4px 20px rgba(0,0,0,0.06)', touchAction: 'none' }}
+                style={{ minHeight: '360px', boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 4px 20px rgba(0,0,0,0.06)' }}
               >
                 <div className="p-4">
                   <span className={`text-[10px] px-2 py-0.5 rounded-full border ${isDark ? 'bg-white/5 text-gray-500 border-white/10' : 'bg-black/5 text-gray-400 border-gray-200'}`}>
@@ -644,10 +621,10 @@ export default function StarWhispersView({
 
         {/* 下一张卡片 */}
         {nextW && !isAllDone && (
-          <div className="absolute inset-0 flex items-center justify-center px-4" style={{ ...getNextStyle(), touchAction: 'none' }}>
+          <div className="absolute inset-0 flex items-center justify-center px-4" style={getNextStyle()}>
             <div className="w-full max-w-sm">
               <div className={`rounded-2xl border ${isDark ? 'bg-[#1a1a2e] border-white/5' : 'bg-white border-gray-100'} opacity-50`}
-                style={{ minHeight: '380px', boxShadow: isDark ? '0 6px 30px rgba(0,0,0,0.35)' : '0 6px 30px rgba(0,0,0,0.08)', touchAction: 'none' }}
+                style={{ minHeight: '380px', boxShadow: isDark ? '0 6px 30px rgba(0,0,0,0.35)' : '0 6px 30px rgba(0,0,0,0.08)' }}
               >
                 <div className="p-4">
                   <span className={`text-[10px] px-2 py-0.5 rounded-full border ${isDark ? 'bg-white/5 text-gray-500 border-white/10' : 'bg-black/5 text-gray-400 border-gray-200'}`}>
@@ -661,8 +638,8 @@ export default function StarWhispersView({
 
         {/* 当前卡片 */}
         {currentW && !isAllDone && (
-          <div className="absolute inset-0 flex items-center justify-center px-4" style={{ ...getCurrentStyle(), touchAction: 'none' }}>
-            <div className="w-full max-w-sm" style={{ touchAction: 'none' }}>
+          <div className="absolute inset-0 flex items-center justify-center px-4" style={getCurrentStyle()}>
+            <div className="w-full max-w-sm">
               <CardFace whisper={currentW} isCurrent={true} />
             </div>
           </div>
