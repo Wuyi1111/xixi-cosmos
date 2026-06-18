@@ -199,51 +199,48 @@ export default function StarWhispersView({
     hapticDoneRef.current = false;
   }, []);
 
-  // === 触摸事件（使用 useEffect + addEventListener 以支持 passive: false）===
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
+  // === 触摸事件：touchstart 用 React 事件（可靠），touchmove/touchend 绑定 window（不丢失）===
+  const dragStateRef = useRef({ dragging: false, startX: 0, currentX: 0, startTime: 0, hapticDone: false });
 
-    let dragging = false;
-    let startX = 0;
-    let currentX = 0;
-    let startTime = 0;
-    let hapticDone = false;
-
-    const handleStart = (e) => {
-      if (isFlying || currentIndex >= whispers.length) return;
-      if (e.touches.length > 1) return;
-      dragging = true;
-      startX = e.touches[0].clientX;
-      currentX = e.touches[0].clientX;
-      startTime = Date.now();
-      hapticDone = false;
-      setIsDragging(true);
+  const onTouchStart = useCallback((e) => {
+    if (isFlying || currentIndex >= whispers.length) return;
+    if (e.touches.length > 1) return;
+    dragStateRef.current = {
+      dragging: true,
+      startX: e.touches[0].clientX,
+      currentX: e.touches[0].clientX,
+      startTime: Date.now(),
+      hapticDone: false,
     };
+    setIsDragging(true);
+  }, [isFlying, currentIndex, whispers.length]);
 
+  useEffect(() => {
     const handleMove = (e) => {
-      if (!dragging || isFlying) return;
+      const ds = dragStateRef.current;
+      if (!ds.dragging || isFlying) return;
       e.preventDefault();
-      currentX = e.touches[0].clientX;
-      const dx = currentX - startX;
+      ds.currentX = e.touches[0].clientX;
+      const dx = ds.currentX - ds.startX;
       setOffsetX(dx);
 
       const { progress } = getParams(dx);
       const dir = dx < -30 ? 'left' : dx > 30 ? 'right' : null;
       setSwipeDir(dir);
 
-      if (progress > 0.5 && !hapticDone) {
+      if (progress > 0.5 && !ds.hapticDone) {
         haptic('light');
-        hapticDone = true;
+        ds.hapticDone = true;
       }
     };
 
     const handleEnd = () => {
-      if (!dragging) return;
-      dragging = false;
+      const ds = dragStateRef.current;
+      if (!ds.dragging) return;
+      ds.dragging = false;
       setIsDragging(false);
-      const dx = currentX - startX;
-      const elapsed = Date.now() - startTime;
+      const dx = ds.currentX - ds.startX;
+      const elapsed = Date.now() - ds.startTime;
       const velocity = Math.abs(dx) / (elapsed || 1);
       const threshold = window.innerWidth * 0.1;
 
@@ -254,18 +251,16 @@ export default function StarWhispersView({
       }
     };
 
-    el.addEventListener('touchstart', handleStart, { passive: true });
-    el.addEventListener('touchmove', handleMove, { passive: false });
-    el.addEventListener('touchend', handleEnd, { passive: true });
-    el.addEventListener('touchcancel', handleEnd, { passive: true });
+    window.addEventListener('touchmove', handleMove, { passive: false });
+    window.addEventListener('touchend', handleEnd, { passive: true });
+    window.addEventListener('touchcancel', handleEnd, { passive: true });
 
     return () => {
-      el.removeEventListener('touchstart', handleStart);
-      el.removeEventListener('touchmove', handleMove);
-      el.removeEventListener('touchend', handleEnd);
-      el.removeEventListener('touchcancel', handleEnd);
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('touchend', handleEnd);
+      window.removeEventListener('touchcancel', handleEnd);
     };
-  }, [isFlying, currentIndex, whispers.length, flyAway, bounceBack]);
+  }, [isFlying, flyAway, bounceBack]);
 
   // === 鼠标事件 ===
   const onMouseDown = useCallback((e) => {
@@ -529,20 +524,19 @@ export default function StarWhispersView({
       <div className={`relative w-full rounded-3xl border select-none ${ec.split(' ')[0]} ${isDark ? 'bg-[#1a1a2e]' : 'bg-white'}`}
         style={{ minHeight: '400px', boxShadow: isDark ? '0 12px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)' : '0 12px 48px rgba(0,0,0,0.10)', touchAction: 'none' }}
       >
-        {hugged && isCurrent && (
-          <div className="absolute top-4 right-4 z-10">
-            <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-pink-500/10 border border-pink-400/20">
-              <Star size={10} className="text-pink-400" />
-              <span className="text-[10px] text-pink-400">已收藏</span>
-            </div>
-          </div>
-        )}
         <div className="flex flex-col min-h-[400px] p-6">
           <div className="flex items-center justify-between mb-4">
             <span className={`text-[10px] px-2.5 py-1 rounded-full border ${ec} ${isDark ? 'bg-white/5' : 'bg-black/5'}`}>
               {whisper.emotion}
             </span>
-            <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{whisper.time}</span>
+            {hugged && isCurrent ? (
+              <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-pink-500/10 border border-pink-400/20">
+                <Star size={10} className="text-pink-400" />
+                <span className="text-[10px] text-pink-400">已收藏</span>
+              </span>
+            ) : (
+              <span className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{whisper.time}</span>
+            )}
           </div>
           <div className="flex-1 flex items-center justify-center py-4">
             <p className={`text-base leading-relaxed font-light text-center transition-all duration-700 ${
@@ -598,6 +592,7 @@ export default function StarWhispersView({
         ref={containerRef}
         className="flex-1 relative flex items-center justify-center"
         style={{ minHeight: '440px', touchAction: 'none', userSelect: 'none' }}
+        onTouchStart={onTouchStart}
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
@@ -710,6 +705,17 @@ export default function StarWhispersView({
       {!isAllDone && (
         <div className="flex items-center justify-center gap-6 mt-6 mb-4">
           <button
+            onClick={() => flyAway('left')}
+            disabled={isFlying}
+            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-90 ${
+              isDark
+                ? 'bg-[#171724] border border-pink-500/20 text-pink-400 hover:bg-[#1f1f2e] hover:border-pink-500/40'
+                : 'bg-white border border-pink-200 text-pink-500 hover:shadow-md hover:border-pink-300'
+            } disabled:opacity-30 disabled:cursor-not-allowed`}
+          >
+            <Heart size={24} />
+          </button>
+          <button
             onClick={() => flyAway('right')}
             disabled={isFlying}
             className={`w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-90 ${
@@ -720,11 +726,6 @@ export default function StarWhispersView({
           >
             <X size={24} />
           </button>
-          <div className="text-center">
-            <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>左滑收藏</p>
-            <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>右滑跳过</p>
-          </div>
-          <div className="w-14 h-14" />
         </div>
       )}
 
